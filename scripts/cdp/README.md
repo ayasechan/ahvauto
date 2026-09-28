@@ -7,6 +7,7 @@
 |---|---|---|
 | `recon.ts` | `npx tsx scripts/cdp/recon.ts` | 只读：页面模式、关键开关、textlog 尾巴 |
 | `battle-log.ts` | `npx tsx scripts/cdp/battle-log.ts [输出]` | 只读：textlog 全文快照，默认存 `logs/` |
+| `export-records.ts` | `npx tsx scripts/cdp/export-records.ts [输出] [--limit N] [--since-seq S]` | 只读：IDB 战斗记录分页导出（倒序游标＋分批落盘，默认最新 1000 条存 `logs/`） |
 | `ops.ts` | `backup [输出]` / `verify` / `refresh` / `screenshot <文件>` / `inject <js> [css]` | 备份 localStorage、断言暂停、刷新页、截图、注入预览 bundle |
 | `tabs.ts` | `npx tsx scripts/cdp/tabs.ts` | 14 个 tab 逐一切换＋内容签名校验 |
 | `inject-full.ts` | `npx tsx scripts/cdp/inject-full.ts [bundle]` | 注入完整 userscript（先断言暂停，弹窗自动 dismiss） |
