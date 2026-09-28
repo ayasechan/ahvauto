@@ -129,7 +129,7 @@ async function startBattle(href: string, initid: string): Promise<boolean> {
  * - 原版等 token.length<3 但只发 2 个请求 → 死锁；此处等 gr/ar/rb 三页。
  * - 原版把 entry cost 当 token 发 inittoken → 无效；此处用表单 postoken。
  * - 原版注释掉 rb 请求导致 RB 永远跳过；此处正常抓取（用户队列末尾的 RB200 可跑）。
- * 队列为纯数字 id：NaN→gr，≥105→rb，≥19→ar&page=2，否则 ar；token 缺失的跳过。
+ * 队列为纯数字 id：NaN→gr，≥105→rb，否则 ar（竞技场已是单页，无分页）；token 缺失的跳过。
  * 只有确认开战成功才消费队列项，失败保留 60 秒后重试（不 reload，避免空转）。
  */
 export async function idleArena(): Promise<void> {
@@ -182,10 +182,9 @@ export async function idleArena(): Promise<void> {
     } else if (n >= 105) {
       href = 'rb';
       id = String(n);
-    } else if (n >= 19) {
-      href = 'ar&page=2';
-      id = String(n);
     } else {
+      // 竞技场单页：全部 id 走 ar。勿用 ar&page=2（游戏已取消分页，
+      // 实测其 GET 与 ar 完全相同，POST 则会被服务端拒绝导致 60s 空转）。
       href = 'ar';
       id = String(n);
     }
