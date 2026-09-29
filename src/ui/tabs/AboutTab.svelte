@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { options } from '../../lib/store';
+  import { options, importLegacyConfig } from '../../lib/store';
   import { tr } from '../../lib/i18n';
   import { STORAGE_NS } from '../../lib/types';
   import { defaultOptions } from '../../lib/defaults';
@@ -72,6 +72,11 @@
   function reset() {
     if (confirm('重置所有设置?')) $options = defaultOptions();
   }
+  function importLegacy() {
+    if (confirm(L('a.importLegacyConfirm'))) {
+      if (!importLegacyConfig()) alert(L('a.noLegacy'));
+    }
+  }
   loadBackups();
 
   let kvLogs = $state<StoredEntry[]>([]);
@@ -139,6 +144,7 @@
     <button type="button" onclick={backup}>{L('a.backup')}</button>
     <button type="button" onclick={exportCfg}>{L('a.export')}</button>
     <button type="button" onclick={importCfg}>{L('a.import')}</button>
+    <button type="button" onclick={importLegacy}>{L('a.importLegacy')}</button>
   </div>
   <div class="row">
     {L('a.lang')}:

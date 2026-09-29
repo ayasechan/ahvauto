@@ -205,6 +205,8 @@ export function importLegacyOption(old: Raw): HvOptions {
           typeof v === 'string' ? v : '',
         ]),
       ),
+      telegram: d.alarm.telegram,
+      webhook: d.alarm.webhook,
     },
     rule: {
       weights: numMap(old.weight),

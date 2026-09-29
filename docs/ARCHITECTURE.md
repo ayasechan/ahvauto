@@ -60,7 +60,7 @@ scripts/cdp/         # 浏览器运维脚本（TS，npx tsx 运行，详见其 R
 
 | 位置 | 内容 |
 |---|---|
-| `hvAA-option`（旧） | 原版配置，只读，首次运行全量导入 |
+| `hvAA-option`（旧） | 原版配置，只读，“关于→导入旧配置”手动导入 |
 | `hvAA3-option` | 新配置（表达式字符串版条件） |
 | `hvAA3-disabled` | 暂停位 |
 | `hvAA3-roundType/roundNow/roundAll/monsterStatus/monsterBase` | 战斗上下文 |

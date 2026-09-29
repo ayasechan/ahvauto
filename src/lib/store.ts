@@ -13,10 +13,9 @@ const LEGACY_OPT_KEY = 'hvAA-option';
 /** 注意：游戏页把 localStorage.setItem 包了一层，静默丢弃 hvAA* 开头的 key。
  *  本文件一律用 localStorage[k] = v 直接赋值（绕过该拦截），勿改回 setItem。 */
 
-/** 读取逻辑（只读旧配置、只写新 key）：
+/** 读取逻辑：
  * 1. hvAA3-option 存在且版本对 → 直接用；
- * 2. 否则读旧 hvAA-option（v2.x）→ 全量转换为新格式 → 存 hvAA3-option；
- * 3. 都没有 → 默认值。旧配置全程只读不写。 */
+ * 2. 否则 → 默认值（旧 hvAA-option 不再自动导入，见 importLegacyConfig）。 */
 function loadOptions(): HvOptions {
   try {
     const raw = localStorage.getItem(OPT_KEY);
@@ -29,24 +28,29 @@ function loadOptions(): HvOptions {
       migrateOptions(merged as unknown as Record<string, unknown>);
       return merged;
     }
+  } catch {
+    /* 损坏则重置 */
+  }
+  return defaultOptions();
+}
+
+/** 手动导入旧配置（hvAA-option v2.x）：覆盖当前配置并持久化。旧配置只读不写。 */
+export function importLegacyConfig(): boolean {
+  try {
     const legacy = localStorage.getItem(LEGACY_OPT_KEY);
     if (legacy && legacy.startsWith('{')) {
       const parsed = JSON.parse(legacy) as unknown;
       if (isLegacyOption(parsed)) {
         const imported = importLegacyOption(parsed);
         migrateOptions(imported as unknown as Record<string, unknown>);
-        try {
-          localStorage[OPT_KEY] = JSON.stringify(imported);
-        } catch (e) {
-          logger.warning('persist imported options failed: {err}', { err: String(e) });
-        }
-        return imported;
+        options.set(imported);
+        return true;
       }
     }
-  } catch {
-    /* 损坏则重置 */
+  } catch (e) {
+    logger.warning('import legacy options failed: {err}', { err: String(e) });
   }
-  return defaultOptions();
+  return false;
 }
 
 export const options = writable<HvOptions>(loadOptions());

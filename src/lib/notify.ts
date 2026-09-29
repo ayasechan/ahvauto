@@ -1,7 +1,16 @@
+import type { GmResponseEvent, GmXmlhttpRequestOption } from 'vite-plugin-monkey/dist/client';
 import { snapshotOptions } from './store';
+import type { AlarmKind } from './types';
 import { logger } from './logger';
+import { renderTemplate } from './template';
+import type { WebhookVars } from './template';
 
-const AUTH_KEY = 'todo-authkey-replace-me';
+/** 油猴提供的跨域 XHR（@grant GM_xmlhttpRequest，由构建自动收集＋显式声明）。 */
+declare const GM_xmlhttpRequest: (
+  details: GmXmlhttpRequestOption<'text', undefined>,
+) => unknown;
+
+type NotifyKind = AlarmKind | 'Test';
 
 export async function sendDesktop(n = 3): Promise<void> {
   try {
@@ -11,25 +20,112 @@ export async function sendDesktop(n = 3): Promise<void> {
   }
 }
 
-export async function sendTelegram(title: string, detail: string): Promise<void> {
-  try {
-    await fetch('https://ero.kamome.eu.org/api/ero/', {
+interface PostResult {
+  status: number;
+  text: string;
+}
+
+/** 油猴 XHR（无视 CORS/混合内容，直达站外）。回调式 API 包成 Promise。 */
+function gmPostText(url: string, body: string): Promise<PostResult> {
+  return new Promise((resolve, reject) => {
+    let done = false;
+    const finish = (fn: () => void): void => {
+      if (!done) {
+        done = true;
+        fn();
+      }
+    };
+    GM_xmlhttpRequest({
       method: 'POST',
+      url,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, source: detail, authkey: AUTH_KEY }),
+      data: body,
+      timeout: 15_000,
+      onload: (res: GmResponseEvent<'text', undefined>) =>
+        finish(() => resolve({ status: res.status, text: res.responseText })),
+      onerror: () => finish(() => reject(new Error('网络错误'))),
+      ontimeout: () => finish(() => reject(new Error('请求超时'))),
+      onabort: () => finish(() => reject(new Error('请求中止'))),
     });
+  });
+}
+
+/** 非油猴环境（预览页）降级 fetch；油猴内请求失败不降级（避免重复发送）。 */
+async function postText(url: string, body: string): Promise<PostResult> {
+  try {
+    return await gmPostText(url, body);
   } catch (e) {
-    logger.debug('telegram push failed: {err}', { err: String(e) });
+    if (e instanceof TypeError || e instanceof ReferenceError) {
+      const ctrl = new AbortController();
+      const timer = window.setTimeout(() => ctrl.abort(), 15_000);
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body,
+          signal: ctrl.signal,
+        });
+        return { status: res.status, text: await res.text() };
+      } finally {
+        window.clearTimeout(timer);
+      }
+    }
+    throw e;
   }
 }
 
-export async function notice(title: string, detail: string): Promise<void> {
-  await Promise.all([sendDesktop(3), sendTelegram(title, detail)]);
+/** Telegram Bot 直连（油猴 XHR）。未启用/未勾选该事件直接跳过。 */
+export async function sendTelegram(kind: AlarmKind, text: string, force = false): Promise<void> {
+  const tg = snapshotOptions().alarm.telegram;
+  if (!force && (!tg?.enabled || !tg.kinds?.[kind])) return;
+  if (!tg?.botToken || !tg?.chatId) throw new Error('telegram 未配置 botToken/chatId');
+  const res = await postText(`https://api.telegram.org/bot${tg.botToken}/sendMessage`, JSON.stringify({
+    chat_id: tg.chatId,
+    text,
+  }));
+  if (res.status < 200 || res.status >= 300) throw new Error(`telegram HTTP ${res.status}`);
+  try {
+    const data = JSON.parse(res.text) as { ok?: boolean; description?: string };
+    if (!data.ok) throw new Error(data.description ?? 'telegram 发送失败');
+  } catch (e) {
+    if (e instanceof SyntaxError) throw new Error('telegram 返回解析失败');
+    throw e;
+  }
 }
 
-type AlarmKind = 'Common' | 'Error' | 'Defeat' | 'Riddle' | 'Victory' | 'Test';
+/** 组装模板变量（与 UI 提示的 5 个变量一致）。 */
+export function webhookVars(kind: AlarmKind, title: string, text: string): WebhookVars {
+  return { kind, title, text, url: location.href, time: new Date().toISOString() };
+}
 
-const DEFAULT_AUDIO: Record<AlarmKind, string> = {
+/** 自定义 Webhook（油猴 XHR）：body 模板经 {var} 替换后原样 POST。 */
+export async function sendWebhook(kind: AlarmKind, title: string, text: string, force = false): Promise<void> {
+  const wh = snapshotOptions().alarm.webhook;
+  if (!force && (!wh?.enabled || !wh.kinds?.[kind])) return;
+  if (!wh?.url) throw new Error('webhook 未配置 URL');
+  if (!wh.template?.trim()) throw new Error('webhook 模板为空');
+  const body = renderTemplate(wh.template, webhookVars(kind, title, text));
+  const res = await postText(wh.url, body);
+  if (res.status < 200 || res.status >= 300) throw new Error(`webhook HTTP ${res.status}`);
+}
+
+/** 告警推送（Telegram＋Webhook）：失败只记 debug 日志，不打断战斗。 */
+export async function pushAlarm(kind: AlarmKind): Promise<void> {
+  const opt = snapshotOptions();
+  const label = NOTIFY_TEXT[kind][Number(opt.lang)] ?? NOTIFY_TEXT[kind][0];
+  const title = `hvAutoAttack ${label}`;
+  const text = `${title}\n${location.href}\n${new Date().toLocaleString()}`;
+  await Promise.all([
+    sendTelegram(kind, text).catch((e) => {
+      logger.debug('telegram push failed: {err}', { err: String(e) });
+    }),
+    sendWebhook(kind, title, text).catch((e) => {
+      logger.debug('webhook push failed: {err}', { err: String(e) });
+    }),
+  ]);
+}
+
+const DEFAULT_AUDIO: Record<NotifyKind, string> = {
   Common: '',
   Error: '',
   Defeat: '',
@@ -38,7 +134,7 @@ const DEFAULT_AUDIO: Record<AlarmKind, string> = {
   Test: '',
 };
 
-function ensureAudio(kind: AlarmKind, src: string): HTMLAudioElement {
+function ensureAudio(kind: NotifyKind, src: string): HTMLAudioElement {
   let audio = document.getElementById(`hvAAAlert-${kind}`) as HTMLAudioElement | null;
   if (!audio) {
     audio = document.createElement('audio');
@@ -50,7 +146,7 @@ function ensureAudio(kind: AlarmKind, src: string): HTMLAudioElement {
   return audio;
 }
 
-const NOTIFY_TEXT: Record<AlarmKind, [string, string, string]> = {
+const NOTIFY_TEXT: Record<NotifyKind, [string, string, string]> = {
   Common: ['通用警报', '通用警報', 'Common alarm'],
   Error: ['错误', '錯誤', 'Error'],
   Defeat: ['战败', '戰敗', 'Defeat'],
@@ -59,7 +155,7 @@ const NOTIFY_TEXT: Record<AlarmKind, [string, string, string]> = {
   Test: ['测试', '測試', 'Test'],
 };
 
-export async function setAlarm(kind: AlarmKind = 'Common'): Promise<void> {
+export async function setAlarm(kind: NotifyKind = 'Common'): Promise<void> {
   const opt = snapshotOptions();
   if (opt.main.notification && 'Notification' in window) {
     try {
@@ -76,20 +172,22 @@ export async function setAlarm(kind: AlarmKind = 'Common'): Promise<void> {
   if (opt.main.alert && opt.alarm.audioEnable[kind as keyof typeof opt.alarm.audioEnable]) {
     try {
       const audio = ensureAudio(kind, opt.alarm.audio[kind] ?? '');
-      if (!audio.src) return;
-      audio.loop = kind === 'Riddle';
-      await audio.play();
-      if (kind === 'Riddle') {
-        const stop = (): void => {
-          audio.pause();
-          window.removeEventListener('mousemove', stop);
-        };
-        window.addEventListener('mousemove', stop, { once: true });
+      if (audio.src) {
+        audio.loop = kind === 'Riddle';
+        await audio.play();
+        if (kind === 'Riddle') {
+          const stop = (): void => {
+            audio.pause();
+            window.removeEventListener('mousemove', stop);
+          };
+          window.addEventListener('mousemove', stop, { once: true });
+        }
       }
     } catch (e) {
       logger.debug('audio alarm blocked: {err}', { err: String(e) });
     }
   }
+  if (kind !== 'Test') void pushAlarm(kind);
 }
 
 export function stopRiddleAlarm(): void {

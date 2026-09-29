@@ -1,4 +1,5 @@
 import type { HvOptions } from './types';
+import { DEFAULT_WEBHOOK_TEMPLATE } from './types';
 import { ITEM_IDS, BUFF_LIB, DRAUGHT_LIB, DEBUFF_LIB, SCROLL_LIB } from './tables';
 
 export const VERSION = '3.0.0';
@@ -112,6 +113,18 @@ export function defaultOptions(): HvOptions {
     alarm: {
       audioEnable: { Common: false, Error: false, Defeat: false, Riddle: false, Victory: false },
       audio: {},
+      telegram: {
+        enabled: false,
+        botToken: '',
+        chatId: '',
+        kinds: { Common: true, Error: true, Defeat: true, Riddle: true, Victory: true },
+      },
+      webhook: {
+        enabled: false,
+        url: '',
+        template: DEFAULT_WEBHOOK_TEMPLATE,
+        kinds: { Common: true, Error: true, Defeat: true, Riddle: true, Victory: true },
+      },
     },
     rule: { weights: {}, reverse: false },
     dropMonitor: false,

@@ -133,10 +133,29 @@ export interface ScrollOptions {
   conditions: Record<string, Condition>;
 }
 
+export type AlarmKind = 'Common' | 'Error' | 'Defeat' | 'Riddle' | 'Victory';
+
+export interface PushTarget {
+  enabled: boolean;
+  kinds: Record<'Common' | 'Error' | 'Defeat' | 'Riddle' | 'Victory', boolean>;
+}
+
 export interface AlarmOptions {
   audioEnable: Record<'Common' | 'Error' | 'Defeat' | 'Riddle' | 'Victory', boolean>;
   audio: Record<string, string>;
+  telegram: PushTarget & { botToken: string; chatId: string };
+  webhook: PushTarget & { url: string; template: string };
 }
+
+/** Webhook 默认 body 模板（{var} 占位发送前替换，见 template.ts）。 */
+export const DEFAULT_WEBHOOK_TEMPLATE = `{
+  "app": "hvAutoAttack",
+  "kind": "{kind}",
+  "title": "{title}",
+  "text": "{text}",
+  "url": "{url}",
+  "time": "{time}"
+}`;
 
 export interface RuleOptions {
   weights: Record<string, number>;

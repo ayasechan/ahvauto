@@ -20,7 +20,8 @@ export default defineConfig({
           '*://hentaiverse.org/pages/showequip.php?*',
           '*://alt.hentaiverse.org/pages/showequip.php?*',
         ],
-        grant: ['unsafeWindow'],
+        grant: ['unsafeWindow', 'GM_xmlhttpRequest'],
+        connect: ['*'],
         'run-at': 'document-end',
       },
       build: {

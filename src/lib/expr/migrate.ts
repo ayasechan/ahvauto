@@ -1,4 +1,5 @@
 import type { ConditionGroups } from '../types';
+import { DEFAULT_WEBHOOK_TEMPLATE } from '../types';
 import { ITEM_IDS, BUFF_LIB, DRAUGHT_LIB, DEBUFF_LIB, SCROLL_LIB } from '../tables';
 
 /** 战斗变量名表（与 conditions.ts battleCtx 的 key 一致，漂移由单测守护）。 */
@@ -118,6 +119,37 @@ function backfill(rec: unknown, keys: string[]): void {
   }
 }
 
+const ALARM_KINDS = ['Common', 'Error', 'Defeat', 'Riddle', 'Victory'];
+
+/** 补齐 Alarm 推送配置（旧存档缺 telegram/webhook 时补默认，保证 bind 永不拿 undefined）。 */
+function backfillAlarm(raw: Record<string, unknown>): void {
+  const alarm = raw.alarm as Record<string, unknown> | undefined;
+  if (typeof alarm !== 'object' || alarm === null) return;
+  for (const target of ['telegram', 'webhook'] as const) {
+    let t = alarm[target] as Record<string, unknown> | undefined;
+    if (typeof t !== 'object' || t === null) {
+      t = {};
+      alarm[target] = t;
+    }
+    if (typeof t.enabled !== 'boolean') t.enabled = false;
+    if (target === 'telegram') {
+      if (typeof t.botToken !== 'string') t.botToken = '';
+      if (typeof t.chatId !== 'string') t.chatId = '';
+    } else {
+      if (typeof t.url !== 'string') t.url = '';
+      if (typeof t.template !== 'string') t.template = DEFAULT_WEBHOOK_TEMPLATE;
+    }
+    let kinds = t.kinds as Record<string, unknown> | undefined;
+    if (typeof kinds !== 'object' || kinds === null) {
+      kinds = {};
+      t.kinds = kinds;
+    }
+    for (const k of ALARM_KINDS) {
+      if (typeof kinds[k] !== 'boolean') kinds[k] = true;
+    }
+  }
+}
+
 /** 启动时对整份 options 做一次性迁移（原地修改）。 */
 export function migrateOptions(raw: Record<string, unknown>): void {
   const lookup: Lookup = (name) => {
@@ -164,4 +196,5 @@ export function migrateOptions(raw: Record<string, unknown>): void {
   if (infusion && 'condition' in infusion) {
     infusion.condition = migrateCond(infusion.condition, BATTLE_VARS, lookup);
   }
+  backfillAlarm(raw);
 }

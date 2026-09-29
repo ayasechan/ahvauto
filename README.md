@@ -7,7 +7,7 @@
 
 1. 浏览器装 Violentmonkey（或 Tampermonkey），**禁用旧版脚本**（两个不能同时跑）。
 2. 把 `dist/hvauto.user.js` 拖进脚本管理器安装并启用。
-3. 刷新 hentaiverse 页面。首次运行会自动从旧配置导入（含攻击模式、权重、全部条件）。
+3. 刷新 hentaiverse 页面。沿用旧版配置的，点面板“关于→导入旧配置”（含攻击模式、权重、全部条件）。
 
 > 开发联调装 dev 版（见 `docs/DEV.md`），日常使用装 `dist` 版。
 

@@ -31,7 +31,7 @@ npx tsx scripts/cdp/<脚本>.ts   # 浏览器运维（见 scripts/cdp/README.md�
 
 - 旧脚本：`hvAA-` 前缀（`hvAA-option` 等）——**只读不写**。
 - 新脚本：`hvAA3-` 前缀（`hvAA3-option` / `hvAA3-disabled` / KV / 日志 / 备份）。
-- 首次运行自动把旧 `hvAA-option`（v2.x）全量导入新 key（含权重、条件翻译），见 `src/lib/legacy-import.ts`。
+- 旧配置不再自动导入，需面板“关于→导入旧配置”手动触发（含权重、条件翻译），见 `src/lib/legacy-import.ts`。
 
 ## 安全铁律（测战斗时）
 
