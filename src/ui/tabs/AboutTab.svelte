@@ -11,8 +11,15 @@
 
   const L = (k: string) => tr($options.lang, k);
 
-  let configText = $state('');
   let backups = $state<Record<string, string>>({});
+  let cfgFile = $state<HTMLInputElement>();
+
+  /** 文件名时间戳：本地时间精确到分（YYYYMMDD-HHmm） */
+  function stamp(): string {
+    const d = new Date();
+    const p = (n: number): string => String(n).padStart(2, '0');
+    return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+  }
 
   function loadBackups() {
     try {
@@ -64,10 +71,32 @@
     }
   }
   function exportCfg() {
-    configText = JSON.stringify($options);
+    try {
+      const blob = new Blob([JSON.stringify($options)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `ahvauto-config-${stamp()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    } catch {
+      alert('导出失败');
+    }
   }
   function importCfg() {
-    if (!applyImported(configText)) alert('配置解析失败');
+    cfgFile?.click();
+  }
+  async function onCfgFile(e: Event): Promise<void> {
+    const input = e.target as HTMLInputElement;
+    const f = input.files?.[0];
+    input.value = '';
+    if (!f) return;
+    try {
+      if (!applyImported(await f.text())) alert('配置解析失败');
+    } catch {
+      alert('配置解析失败');
+    }
   }
   function reset() {
     if (confirm('重置所有设置?')) $options = defaultOptions();
@@ -103,7 +132,7 @@
       const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `hvaa-battle-${Date.now()}.json`;
+      a.download = `ahvauto-battle-${stamp()}.json`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -126,7 +155,7 @@
       const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `hvaa-turns-${Date.now()}.json`;
+      a.download = `ahvauto-turns-${stamp()}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -145,6 +174,7 @@
     <button type="button" onclick={exportCfg}>{L('a.export')}</button>
     <button type="button" onclick={importCfg}>{L('a.import')}</button>
     <button type="button" onclick={importLegacy}>{L('a.importLegacy')}</button>
+    <input type="file" accept="application/json,.json" hidden bind:this={cfgFile} onchange={onCfgFile} />
   </div>
   <div class="row">
     {L('a.lang')}:
@@ -184,15 +214,11 @@
     <button type="button" onclick={clearRec}>{L('ui.clear')}</button>
     {#if !$options.main.debug}<div class="hint">需先开启调试日志才会录制</div>{/if}
   </div>
-  <div class="row">
-    <textarea class="cfg" bind:value={configText} placeholder={L('a.cfgPh')}></textarea>
-  </div>
 </div>
 
 <style>
   .row { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; margin: 0 0 12px; padding: 12px; }
   .url { width: 50%; }
-  .cfg { width: 100%; height: 90px; }
   .logview { max-height: 200px; overflow: auto; background: #111; color: #ddd; font-size: 12px; padding: 4px; }
   .logline { white-space: pre-wrap; word-break: break-all; }
   .logline .ts { color: #888; }

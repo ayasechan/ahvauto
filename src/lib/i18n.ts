@@ -140,7 +140,6 @@ const D: Record<string, Triple> = {
   'a.backups': ['备份列表', '備份列表', 'Backups'],
   'a.restore': ['还原', '還原', 'Restore'],
   'a.logs': ['运行日志', '運行日誌', 'Runtime logs'],
-  'a.cfgPh': ['导出/导入 JSON', '導出/導入 JSON', 'Export/import JSON'],
   'a.debug': ['调试日志（控制台输出战斗文本）', '調試日誌（控制台輸出戰鬥文本）', 'Debug log (battle text to console)'],
   'a.rec': ['战斗请求录制', '戰鬥請求錄製', 'Battle request capture'],
   'a.recExport': ['导出记录', '導出記錄', 'Export'],
