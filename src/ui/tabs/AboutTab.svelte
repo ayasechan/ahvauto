@@ -177,12 +177,6 @@
     <input type="file" accept="application/json,.json" hidden bind:this={cfgFile} onchange={onCfgFile} />
   </div>
   <div class="row">
-    {L('a.lang')}:
-    <select bind:value={$options.lang}>
-      <option value="0">简体中文</option>
-      <option value="1">繁體中文</option>
-      <option value="2">English</option>
-    </select>
     <label><input type="checkbox" bind:checked={$options.main.debug} />{L('a.debug')}</label>
   </div>
   <div class="row">
