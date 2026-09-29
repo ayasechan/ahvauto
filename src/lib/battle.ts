@@ -13,6 +13,7 @@ import type { Action } from './combat/types';
 import { readSnapshot, resolveTarget } from './combat/snapshot';
 import { decide, shouldEmergencyPause } from './combat/decide';
 import { executeAction, describeAction } from './combat/execute';
+import { tt } from './i18n';
 
 function patchBattle(partial: Partial<import('./types').BattleState>): void {
   battle.update((b) => ({ ...b, ...partial }));
@@ -180,14 +181,14 @@ function battleInfo(): void {
     log.className = 'hvAALog';
   }
   const names = ['物理', '火', '冰', '雷', '风', '圣', '暗'];
-  const hist = (debugSurface().history ?? []).slice(-8).reverse();
+  const hist = (debugSurface().history ?? []).slice(-10).reverse();
   log.innerHTML =
     `Turns: ${b.turn}<br>Speed: ${b.runSpeed} t/s` +
     `<br>Round: ${b.roundNow}/${b.roundAll}` +
     `<br>攻击模式: ${names[b.attackStatus] ?? ''}` +
     `<br>敌人: ${b.monsterAlive}/${b.monsterAll}` +
     (hist.length > 0
-      ? '<br>——<br>' + hist.map((h, i) => `${hist.length - i}. T${h.turn} [${h.rule}] ${h.action}`).join('<br>')
+      ? '<br>——<br>' + hist.map((h) => `Turn ${h.turn} [${tt(`r.${h.rule}`)}] ${h.action}`).join('<br>')
       : '');
   document.title = `${b.turn}||${b.runSpeed}||${b.roundNow}/${b.roundAll}||${b.monsterAlive}/${b.monsterAll}`;
 }
