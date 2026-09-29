@@ -27,9 +27,10 @@ function parseBuffName(over: string): string {
 /**
  * 集火权重（原 countMonsterHP 公式）：血量比×10 ± 身上 debuff 权重，
  * 永远升序，死怪（Infinity）垫底。返回按权重排好的怪 id。
+ * 例外：活着的 Yggdrasil 永远置顶（无视 reverse，死了就地掉回权重排序）。
  */
 export function orderTargets(
-  monsters: { id: string; hpNow: number; marks: string[] }[],
+  monsters: { id: string; name: string; hpNow: number; marks: string[] }[],
   weights: Record<string, number>,
   reverse: boolean,
 ): string[] {
@@ -37,7 +38,9 @@ export function orderTargets(
   const hps = alive.map((m) => m.hpNow);
   const lo = hps.length > 0 ? Math.min(...hps) : 1;
   const hi = hps.length > 0 ? Math.max(...hps) : 1;
-  return [...monsters]
+  const first = monsters.filter((m) => m.hpNow !== Infinity && isPriorityTarget(m.name)).map((m) => m.id);
+  const rest = [...monsters]
+    .filter((m) => !first.includes(m.id))
     .map((m) => {
       let w = m.hpNow === Infinity
         ? Infinity
@@ -53,6 +56,14 @@ export function orderTargets(
     })
     .sort((a, b) => a.weight - b.weight)
     .map((x) => x.id);
+  return [...first, ...rest];
+}
+
+/** 置顶集火的怪名（去首尾空格后大小写无关全等）。只要活着就先打它。 */
+const PRIORITY_TARGET_NAME = 'yggdrasil';
+
+function isPriorityTarget(name: string): boolean {
+  return name.trim().toLowerCase() === PRIORITY_TARGET_NAME;
 }
 
 function readPaneBuffs(): PaneBuff[] {
@@ -77,6 +88,7 @@ function readMonster(
 ): SnapMonster {
   const id = String(idx === 9 ? 0 : idx + 1);
   const hpNow = monsterHp(base, bar);
+  const name = bar?.closest('div.btm1')?.querySelector('div.btm3 > div > div')?.textContent?.trim() ?? '';
   const imgs = box ? box.querySelectorAll('img') : [];
   const marks: string[] = [];
   for (const img of imgs) {
@@ -88,6 +100,7 @@ function readMonster(
   const lastOver = imgs.length > 0 ? (imgs[imgs.length - 1].getAttribute('onmouseover') ?? '') : '';
   return {
     id,
+    name,
     alive: hpNow !== Infinity,
     hpNow,
     maxHp: base,

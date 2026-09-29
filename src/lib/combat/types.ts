@@ -3,6 +3,8 @@
 export interface SnapMonster {
   /** mkey id（第 10 只为 0） */
   id: string;
+  /** 怪名（btm3 解析，拿不到为空串） */
+  name: string;
   alive: boolean;
   /** 当前血量估计（死＝Infinity） */
   hpNow: number;

@@ -26,6 +26,8 @@
 
 `finWeight ＝ 血量比×10 ± 身上 debuff 权重`，**永远升序**（`ruleReverse`
 只反公式不反排序——曾反向排把死怪选成目标，已修），死怪（`Infinity`）垫底。
+例外：活着的 Yggdrasil（怪名去空格后大小写无关全等）永远置顶，无视
+`ruleReverse`；死了掉回权重排序。怪名从 `btm3` 解析进快照。
 点目标前验 `onclick` handler（死怪没有），无 handler 顺延活怪。
 
 ## 武器链（attack 规则内）

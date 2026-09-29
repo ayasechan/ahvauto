@@ -21,7 +21,7 @@ function snap(over: Partial<Snapshot> = {}): Snapshot {
 
 function mon(id: string, hpNow = 1000, extra: Partial<SnapMonster> = {}): SnapMonster {
   return {
-    id, alive: hpNow !== Infinity, hpNow, maxHp: 1000,
+    id, name: '', alive: hpNow !== Infinity, hpNow, maxHp: 1000,
     marks: [], markCount: 0, lastTurns: 0, clickable: true, ...extra,
   };
 }
@@ -244,9 +244,9 @@ describe('orderTargets/resolveTarget', () => {
   it('死怪垫底，血少优先', () => {
     const ids = orderTargets(
       [
-        { id: '1', hpNow: 900, marks: [] },
-        { id: '2', hpNow: Infinity, marks: [] },
-        { id: '3', hpNow: 100, marks: [] },
+        { id: '1', name: 'Slime', hpNow: 900, marks: [] },
+        { id: '2', name: 'Mimic', hpNow: Infinity, marks: [] },
+        { id: '3', name: 'Bat', hpNow: 100, marks: [] },
       ],
       {},
       false,
@@ -256,9 +256,9 @@ describe('orderTargets/resolveTarget', () => {
   it('reverse 反转但死怪仍垫底', () => {
     const ids = orderTargets(
       [
-        { id: '1', hpNow: 900, marks: [] },
-        { id: '2', hpNow: Infinity, marks: [] },
-        { id: '3', hpNow: 100, marks: [] },
+        { id: '1', name: 'Slime', hpNow: 900, marks: [] },
+        { id: '2', name: 'Mimic', hpNow: Infinity, marks: [] },
+        { id: '3', name: 'Bat', hpNow: 100, marks: [] },
       ],
       {},
       true,
@@ -268,13 +268,36 @@ describe('orderTargets/resolveTarget', () => {
   it('debuff 权重修正', () => {
     const ids = orderTargets(
       [
-        { id: '1', hpNow: 500, marks: [] },
-        { id: '2', hpNow: 500, marks: ['imperil'] },
+        { id: '1', name: 'Slime', hpNow: 500, marks: [] },
+        { id: '2', name: 'Bat', hpNow: 500, marks: ['imperil'] },
       ],
       { Im: 100 },
       false,
     );
     assert.deepEqual(ids, ['1', '2']);
+  });
+  it('Yggdrasil 活着永远置顶（正序/反序都一样）', () => {
+    const ms = [
+      { id: '1', name: 'Slime', hpNow: 100, marks: [] },
+      { id: '2', name: 'Yggdrasil', hpNow: 9000, marks: [] },
+      { id: '3', name: 'Bat', hpNow: 200, marks: [] },
+    ];
+    assert.deepEqual(orderTargets(ms, {}, false), ['2', '1', '3']);
+    assert.deepEqual(orderTargets(ms, {}, true), ['2', '3', '1']);
+  });
+  it('Yggdrasil 大小写/空格不敏感，死了不置顶', () => {
+    const ms = [
+      { id: '1', name: 'Slime', hpNow: 100, marks: [] },
+      { id: '2', name: '  YGGDRASIL ', hpNow: Infinity, marks: [] },
+    ];
+    assert.deepEqual(orderTargets(ms, {}, false), ['1', '2']);
+  });
+  it('decide 集火 Yggdrasil', () => {
+    const s = snap({
+      monsters: [mon('1', 100, { name: 'Slime' }), mon('2', 9000, { name: 'Yggdrasil' })],
+      monsterAlive: 2,
+    });
+    assert.deepEqual(go(s, opt()).action, { kind: 'attack', target: '2' });
   });
   it('resolveTarget 顺延可点活怪', () => {
     const ms = [mon('1', 100), mon('2', Infinity, { clickable: false }), mon('3', 100)];
