@@ -25,10 +25,10 @@
     <button type="button" onclick={clear}>{L('ui.clear')}</button>
   </div>
   <table>
-    <thead><tr><th>{L('d.h.battle')}</th><th>Turns</th><th>DMG</th><th>{L('d.h.exp')}</th><th>{L('d.h.credit')}</th><th>Kills</th><th>{L('d.h.items')}</th></tr></thead>
+    <thead><tr><th>{L('d.h.battle')}</th><th>Turns</th><th>DMG</th><th>{L('d.h.exp')}</th><th>{L('d.h.credit')}</th><th>Kills</th><th>Monster</th><th>Boss</th><th>{L('d.h.items')}</th></tr></thead>
     <tbody>
       {#each rows as v}
-        <tr><td>{v.key}</td><td>{v.turns}</td><td>{v.damage}</td><td>{v.exp}</td><td>{v.credit}</td><td>{v.kills}</td><td>{v.drops.join('; ')}</td></tr>
+        <tr><td>{v.key}</td><td>{v.turns}</td><td>{v.damage}</td><td>{v.exp}</td><td>{v.credit}</td><td>{v.kills}</td><td>{v.monsters ?? 0}</td><td>{v.bosses ?? 0}</td><td>{v.drops.join('; ')}</td></tr>
       {/each}
     </tbody>
   </table>

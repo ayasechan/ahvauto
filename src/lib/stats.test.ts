@@ -1,8 +1,8 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseTurn, stripHtml, battlesToCsv, beginBattle, beginRound, endBattle, recordBattleTurn, getBattles, getTotals, clearStats, recState } from './stats';
-import type { BattleRow } from './stats';
-import { options } from './store';
+import { parseTurn, stripHtml, battlesToCsv, beginBattle, beginRound, endBattle, recordBattleTurn, getBattles, getTotals, getCurBattle, clearStats, recState, addCost, addKills, takenAvg, takenPhysAvg, takenMagAvg } from './stats';
+import type { BattleRow, Totals, CurBattle } from './stats';
+import { options, kvSet } from './store';
 
 beforeEach(() => {
   clearStats();
@@ -74,7 +74,7 @@ describe('parseTurn 真实数据', () => {
     assert.equal(s.misses, 1);
     assert.equal(s.taken, 0);
   });
-  it('核爆轮：暴击、击杀、治疗分流', () => {
+  it('核爆轮：暴击、击杀、治疗分流（回复按来源归因）', () => {
     const { stat: s } = parseTurn(TURN_NUKE);
     assert.equal(s.damage, 361489 + 148691);
     assert.equal(s.crits, 1);
@@ -82,6 +82,7 @@ describe('parseTurn 真实数据', () => {
     assert.equal(s.kills, 2);
     assert.equal(s.healedHp, 2026 + 54);
     assert.equal(s.restoredMp, 32);
+    assert.deepEqual(s.restoreBySource, { Regen: 2026, Regeneration: 54, Replenishment: 32 });
     assert.deepEqual(s.casts, { Disintegrate: 1 });
   });
   it('胜利轮：击杀＋掉落＋经验', () => {
@@ -91,17 +92,87 @@ describe('parseTurn 真实数据', () => {
     assert.equal(s.exp, 4273664);
     assert.deepEqual(s.casts, { Ragnarok: 1 });
   });
-  it('药水轮：物品＋回蓝＋承伤', () => {
+  it('药水轮：物品＋回蓝＋承伤（回蓝归因到所用物品）', () => {
     const { stat: s } = parseTurn(TURN_POTION);
     assert.deepEqual(s.itemsUsed, { 'Mana Potion': 1 });
     assert.equal(s.restoredMp, 450);
+    assert.deepEqual(s.restoreBySource, { 'Mana Potion': 450 });
     assert.equal(s.taken, 830);
+    assert.equal(s.takenPhys, 830);
+    assert.equal(s.takenMag, 0);
+    assert.equal(s.takenCount, 1);
   });
-  it('护盾吸收：残伤计承伤，吸收量另计', () => {
+  it('护盾吸收：残伤计承伤，吸收量另计（残伤 spirit→魔法组）', () => {
     const { stat: s } = parseTurn(['Your spirit shield absorbs 648 points of damage from the attack into 11 points of spirit damage.']);
     assert.equal(s.taken, 11);
     assert.deepEqual(s.takenByType, { spirit: 11 });
     assert.equal(s.absorbed, 648);
+    assert.equal(s.takenMag, 11);
+    assert.equal(s.takenPhys, 0);
+    assert.equal(s.takenCount, 1);
+  });
+  it('承伤物/魔拆分：pierc|crush|slash 进物理组，其余进魔法组', () => {
+    const { stat: s } = parseTurn([
+      'Kumakura Shouko hits you, causing 830 points of Piercing damage.',
+      'Type Delta Astrea glances you, causing 600 points of Slashing damage.',
+      'Shinokawa Shioriko uses Lost clock, which hits! You partially parry the attack, and take 4829 Fire damage.',
+    ]);
+    assert.equal(s.taken, 830 + 600 + 4829);
+    assert.equal(s.takenCount, 3);
+    assert.equal(s.takenPhys, 830 + 600);
+    assert.equal(s.takenMag, 4829);
+    assert.equal(takenAvg(s), Math.round((830 + 600 + 4829) / 3));
+    assert.equal(takenPhysAvg(s), Math.round((830 + 600) / 3));
+    assert.equal(takenMagAvg(s), Math.round(4829 / 3));
+    assert.equal(takenAvg({ taken: 0, takenCount: 0 }), 0);
+  });
+  it('Vital Theft 行计伤害（无 points-of 格式，独立规则）', () => {
+    const { stat: s } = parseTurn(['Vital Theft hits Goblin for 500 damage.']);
+    assert.equal(s.damage, 500);
+    assert.deepEqual(s.damageByType, { 'Vital Theft': 500 });
+  });
+  it('drain 行归因 drain（HP/MP 混记到对应总量）', () => {
+    const { stat: s } = parseTurn([
+      'You drain 300 HP from Goblin.',
+      'You drain 200 points of magic from Goblin.',
+    ]);
+    assert.equal(s.healedHp, 300);
+    assert.equal(s.restoredMp, 200);
+    assert.deepEqual(s.restoreBySource, { drain: 500 });
+  });
+  it('无来源回复行沿用本轮 cast（You cast X.→X），否则记 unknown', () => {
+    const withCast = parseTurn(['You cast Vital Theft.', 'Recovered 120 points of spirit.']);
+    assert.equal(withCast.stat.restoredSp, 120);
+    assert.deepEqual(withCast.stat.restoreBySource, { 'Vital Theft': 120 });
+    const bare = parseTurn(['You are healed for 10504 Health Points.']);
+    assert.equal(bare.stat.healedHp, 10504);
+    assert.deepEqual(bare.stat.restoreBySource, { unknown: 10504 });
+  });
+  it('mpCost/ocCost 行里没有记 0，addCost 供 capture-agent 补记', () => {
+    const { stat: s } = parseTurn(TURN_IMPERIL);
+    assert.equal(s.mpCost, 0);
+    assert.equal(s.ocCost, 0);
+    addCost(s, 45, 12);
+    addCost(s, 5, 3);
+    assert.equal(s.mpCost, 50);
+    assert.equal(s.ocCost, 15);
+  });
+  it('addKills 在终局补怪/Boss 构成（cur＋totals 双写，回写后随行落盘）', () => {
+    beginBattle('ar', 'AR 1/35');
+    recordBattleTurn(['Y was hit for 100 Dark damage']);
+    const t = getTotals();
+    const cur = getCurBattle();
+    assert.ok(cur);
+    addKills(cur as CurBattle, t as Totals, 8, 1);
+    // 模拟 capture-agent 终局流程：回写 kv 后再 endBattle
+    kvSet('curBattle2', cur);
+    kvSet('stats2', t);
+    endBattle('victory');
+    const rows = getBattles();
+    assert.equal(rows[0].monsters, 8);
+    assert.equal(rows[0].bosses, 1);
+    assert.equal(getTotals().monsters, 8);
+    assert.equal(getTotals().bosses, 1);
   });
   it('直接治疗计入 healedHp', () => {
     const { stat: s } = parseTurn(['You are healed for 10504 Health Points.']);
@@ -141,16 +212,16 @@ describe('parseTurn 真实数据', () => {
   it('stripHtml 去标签', () => {
     assert.equal(stripHtml('a<span style="x">[127 Credits]</span>b'), 'a[127 Credits]b');
   });
-  it('battlesToCsv 转义与 BOM', () => {
+  it('battlesToCsv 转义与 BOM（含 monster/boss 列）', () => {
     const rows: BattleRow[] = [
-      { key: '09/27', startedAt: 0, type: 'ar', result: 'victory', rounds: 3, turns: 9, damage: 100, taken: 5, exp: 10, credit: 2, kills: 1, drops: [] },
-      { key: '09/27', startedAt: 1, type: 'ba', result: 'defeat', rounds: 1, turns: 10, damage: 200, taken: 6, exp: 20, credit: 0, kills: 2, drops: ['a,b', 'c"d'] },
+      { key: '09/27', startedAt: 0, type: 'ar', result: 'victory', rounds: 3, turns: 9, damage: 100, taken: 5, exp: 10, credit: 2, kills: 1, monsters: 8, bosses: 1, drops: [] },
+      { key: '09/27', startedAt: 1, type: 'ba', result: 'defeat', rounds: 1, turns: 10, damage: 200, taken: 6, exp: 20, credit: 0, kills: 2, monsters: 3, bosses: 0, drops: ['a,b', 'c"d'] },
     ];
     const csv = battlesToCsv(rows);
     assert.equal(csv.charCodeAt(0), 0xfeff);
     const lines = csv.split('\n');
-    assert.equal(lines[0].replace(/^\uFEFF/, ''), 'time,type,result,rounds,turns,damage,taken,kills,exp,credit,drops');
-    assert.ok(lines[1].includes(',ar,victory,3,9,100,5,1,10,2,'));
+    assert.equal(lines[0].replace(/^\uFEFF/, ''), 'time,type,result,rounds,turns,damage,taken,kills,monster,boss,exp,credit,drops');
+    assert.ok(lines[1].includes(',ar,victory,3,9,100,5,1,8,1,10,2,'));
     assert.ok(lines[2].includes('"a,b; c""d"'));
   });
   it('多轮汇成一局：类型/轮数/结果', () => {

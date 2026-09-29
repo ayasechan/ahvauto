@@ -7,7 +7,9 @@ import { logger } from './logger';
 import { installRecordBridge, recordTurn } from './recorder';
 import { pause, resume, after } from './fsm';
 import { requestRetry, httpGet, sleep, todayKey } from './http';
-import { beginBattle, beginRound, endBattle } from './stats';
+import { beginBattle, beginRound, endBattle, addCost, addKills, getTotals } from './stats';
+import type { Totals, CurBattle } from './stats';
+import type { Action } from './combat/types';
 import { readSnapshot, resolveTarget } from './combat/snapshot';
 import { decide, shouldEmergencyPause } from './combat/decide';
 import { executeAction, describeAction } from './combat/execute';
@@ -188,6 +190,87 @@ function battleInfo(): void {
       ? '<br>——<br>' + hist.map((h, i) => `${hist.length - i}. T${h.turn} [${h.rule}] ${h.action}`).join('<br>')
       : '');
   document.title = `${b.turn}||${b.runSpeed}||${b.roundNow}/${b.roundAll}||${b.monsterAlive}/${b.monsterAll}`;
+}
+
+/**
+ * 数据收集 v2 接入（capture-agent，只读 DOM，失败静默，绝不挡战斗）：
+ * - 施法成本 MP/OC：老版在 eventStart 读技能 DOM 的 onmouseover（legacy L2167-2173）。
+ *   新架构等价点是 mainInner 里 decide 命中法术动作时读同一 DOM；
+ *   本函数同步写 kv，响应侧 recordBattleTurn（postMessage 任务）必然后到，
+ *   故成本先落盘、回合统计后合并，是同一 turn 的 kv 对象，无竞态。
+ * - 怪/Boss 构成：终局 endBattle 调用前以本局 monsterAll/bossAll 补记，随行落盘。
+ */
+
+/** 技能 DOM onmouseover → 本次施法 MP/OC（legacy 正则原样沿用，读不到记 0） */
+function spellCost(skillId: string): { mp: number; oc: number } {
+  try {
+    const over = document.getElementById(skillId)?.getAttribute('onmouseover') ?? '';
+    const m = over.match(/\('.*', '.*', '.*', (\d+), (\d+), \d+\)/);
+    if (!m) return { mp: 0, oc: 0 };
+    return { mp: Number(m[1]) || 0, oc: Number(m[2]) || 0 };
+  } catch {
+    return { mp: 0, oc: 0 };
+  }
+}
+
+/**
+ * 法术动作（法术书施放，游戏侧 mode=magic）→ MP/OC 累进 totals（stats2）。
+ * 注：CurBattle/BattleRow 无成本列，成本只记 totals（与 stats-legacy 类型一致）。
+ */
+function recordSpellCost(action: Action): void {
+  try {
+    const id =
+      action.kind === 'magic' || action.kind === 'debuff' || action.kind === 'buff'
+        ? action.id
+        : action.kind === 'imperil'
+          ? '213'
+          : null;
+    if (!id) return;
+    const opt = snapshotOptions();
+    if (!opt.recordUsage && !opt.dropMonitor) return;
+    const { mp, oc } = spellCost(id);
+    if (!mp && !oc) return;
+    const totals: Totals = getTotals();
+    addCost(totals, mp, oc);
+    kvSet('stats2', totals);
+  } catch {
+    /* 读不到记 0，绝不挡战斗 */
+  }
+}
+
+/** 终局怪/Boss 构成补记（老 self._monster/_boss）：endBattle 前并入 cur+totals 并回写 */
+function recordEndKills(): void {
+  try {
+    const opt = snapshotOptions();
+    if (!opt.recordUsage && !opt.dropMonitor) return;
+    const b = get(battle);
+    const cur = kvGet('curBattle2', true) as CurBattle | null;
+    if (!cur) return;
+    const totals: Totals = getTotals();
+    addKills(cur, totals, b.monsterAll ?? 0, b.bossAll ?? 0);
+    kvSet('curBattle2', cur);
+    kvSet('stats2', totals);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Stamina 台账读（newRound 记账，供 Usage 面板展示；与 ui-agent 约定签名） */
+export function getStaminaLog(): Record<string, number> {
+  try {
+    return (kvGet('staminaLostLog', true) as Record<string, number> | null) ?? {};
+  } catch {
+    return {};
+  }
+}
+
+/** 遭遇战计数读（newRound 记账，供 Usage 面板展示；与 ui-agent 约定签名） */
+export function getEncounter(): { lastTime: number; time: number } {
+  try {
+    return (kvGet('encounter', true) as { lastTime: number; time: number } | null) ?? { lastTime: 0, time: 0 };
+  } catch {
+    return { lastTime: 0, time: 0 };
+  }
 }
 
 
@@ -378,6 +461,7 @@ async function mainInner(dbg: DebugSurface, trace: boolean): Promise<void> {
       pauseChange();
     },
   );
+  recordSpellCost(decided.action);
   step('done');
 }
 
@@ -426,6 +510,7 @@ export function installReloader(): void {
         const nb = get(battle);
         if (nb.monsterAlive > 0) {
           await setAlarm('Defeat');
+          recordEndKills();
           endBattle('defeat');
           kvDel('roundType');
           kvDel('monsterStatus');
@@ -463,6 +548,7 @@ export function installReloader(): void {
           await main();
         } else {
           await setAlarm('Victory');
+          recordEndKills();
           endBattle('victory');
           kvDel('roundType');
           kvDel('monsterStatus');
