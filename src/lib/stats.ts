@@ -528,7 +528,7 @@ function flushBattle(cur: CurBattle, result: string): void {
 /** 一局开始（引擎在 newRound 看到 Round 1 时调用）：顶掉未落盘的上一局 */
 export function beginBattle(type: string, code: string): void {
   const opt = snapshotOptions();
-  if (!opt.recordUsage && !opt.dropMonitor) return;
+  if (!opt.recordUsage) return;
   const prev = kvGet('curBattle2', true) as CurBattle | null;
   if (prev && prev.turns > 0) {
     transition('begin:flush-interrupted', `type=${prev.type} turns=${prev.turns}`);
@@ -541,7 +541,7 @@ export function beginBattle(type: string, code: string): void {
 /** 新一轮开始（同局内轮数累加；无局时先开未知局，保证 totals 可对账） */
 export function beginRound(): void {
   const opt = snapshotOptions();
-  if (!opt.recordUsage && !opt.dropMonitor) return;
+  if (!opt.recordUsage) return;
   const cur = (kvGet('curBattle2', true) as CurBattle | null) ?? newCur('?', '?');
   if (cur.rounds === 0 && cur.turns === 0) transition('begin:auto', 'round-without-battle');
   cur.rounds++;
@@ -559,11 +559,11 @@ export function endBattle(result: 'victory' | 'defeat'): void {
 /**
  * 记录一轮战斗响应。rows 为该响应的 textlog 原始行（含 HTML）。
  * 只累加 totals + 当前局；分段（开局/终局）由引擎经 beginBattle/beginRound/endBattle 驱动。
- * 仅在 recordUsage/dropMonitor 任一开启时工作。
+ * 仅在 recordUsage 开启时工作。
  */
 export function recordBattleTurn(rows: string[]): void {
   const opt = snapshotOptions();
-  if (!opt.recordUsage && !opt.dropMonitor) return;
+  if (!opt.recordUsage) return;
   const texts = rows.map((r) => stripHtml(r).trim()).filter(Boolean);
   const { stat: st, drops } = parseTurn(texts);
   const totals = (kvGet('stats2', true) as Totals | null) ?? emptyTotals();

@@ -50,7 +50,7 @@ JS worlds; filter only on the `ahvauto-rec` marker (`e.source` differs across wo
 - **No `eval`/`new Function`** anywhere (CSP + imported stranger configs).
 - Storage: `hvAA-` (legacy) is read-only; everything new lives under `ahvauto-`.
   Never write legacy keys. `main.debug` gates IDB recording; stats gate on
-  `recordUsage`/`dropMonitor`.
+  `recordUsage`.
 
 ## Conventions
 

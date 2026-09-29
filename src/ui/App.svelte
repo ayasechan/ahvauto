@@ -29,7 +29,7 @@
     { name: 'Infusion', labelKey: 'tab.Infusion', comp: InfusionTab, check: 'infusion' },
     { name: 'Alarm', labelKey: 'tab.Alarm', comp: AlarmTab },
     { name: 'Rule', labelKey: 'tab.Rule', comp: RuleTab },
-    { name: 'Drop', labelKey: 'tab.Drop', comp: DropTab, check: 'dropMonitor' },
+    { name: 'Drop', labelKey: 'tab.Drop', comp: DropTab, check: 'recordUsage' },
     { name: 'Usage', labelKey: 'tab.Usage', comp: UsageTab, check: 'recordUsage' },
     { name: 'About', labelKey: 'tab.About', comp: AboutTab },
     { name: 'Feedback', labelKey: 'tab.Feedback', comp: FeedbackTab },
@@ -42,7 +42,6 @@
     if (name === 'skill') return $options.skill.enabled;
     if (name === 'scroll') return $options.scroll.enabled;
     if (name === 'infusion') return $options.infusion.enabled;
-    if (name === 'dropMonitor') return $options.dropMonitor;
     if (name === 'recordUsage') return $options.recordUsage;
     return true;
   }
@@ -54,14 +53,13 @@
     else if (name === 'skill') $options.skill.enabled = v;
     else if (name === 'scroll') $options.scroll.enabled = v;
     else if (name === 'infusion') $options.infusion.enabled = v;
-    else if (name === 'dropMonitor') $options.dropMonitor = v;
     else if (name === 'recordUsage') $options.recordUsage = v;
   }
 
   const GROUPS: { title: string; tabs: typeof TABS }[] = [
-    { title: '战斗设置', tabs: TABS.filter((t) => ['Main', 'Channel', 'Buff', 'Debuff', 'Skill'].includes(t.name)) },
+    { title: '战斗设置', tabs: TABS.filter((t) => ['Main', 'Channel', 'Buff', 'Debuff', 'Skill', 'Rule', 'Alarm'].includes(t.name)) },
     { title: '物品消耗', tabs: TABS.filter((t) => ['Item', 'Scroll', 'Infusion'].includes(t.name)) },
-    { title: '监控数据', tabs: TABS.filter((t) => ['Alarm', 'Rule', 'Drop', 'Usage'].includes(t.name)) },
+    { title: '监控数据', tabs: TABS.filter((t) => ['Drop', 'Usage'].includes(t.name)) },
     { title: '系统', tabs: TABS.filter((t) => ['About', 'Feedback'].includes(t.name)) },
   ];
 

@@ -172,7 +172,6 @@ export interface HvOptions {
   infusion: { enabled: boolean; condition: Condition };
   alarm: AlarmOptions;
   rule: RuleOptions;
-  dropMonitor: boolean;
   dropQuality: string;
   recordUsage: boolean;
 }

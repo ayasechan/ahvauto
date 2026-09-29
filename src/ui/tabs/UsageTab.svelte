@@ -99,7 +99,6 @@
 
 <div>
   <div class="row">
-    <label><input type="checkbox" bind:checked={$options.recordUsage} />{L('tab.Usage')}</label>
     <button type="button" onclick={refresh}>{L('ui.refresh')}</button>
     <button type="button" onclick={exportCsv}>{L('u.csv')}</button>
     <button type="button" onclick={clear}>{L('ui.clear')}</button>

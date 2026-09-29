@@ -196,5 +196,8 @@ export function migrateOptions(raw: Record<string, unknown>): void {
   if (infusion && 'condition' in infusion) {
     infusion.condition = migrateCond(infusion.condition, BATTLE_VARS, lookup);
   }
+  // 旧 dropMonitor 开关并入 recordUsage（任一开即全开，保持行为）
+  if (raw.dropMonitor === true) raw.recordUsage = true;
+  delete raw.dropMonitor;
   backfillAlarm(raw);
 }

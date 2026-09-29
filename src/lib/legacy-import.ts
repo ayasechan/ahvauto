@@ -212,9 +212,8 @@ export function importLegacyOption(old: Raw): HvOptions {
       weights: numMap(old.weight),
       reverse: bool(old.ruleReverse),
     },
-    dropMonitor: bool(old.dropMonitor),
     dropQuality: str(old.dropQuality),
-    recordUsage: bool(old.recordUsage),
+    recordUsage: bool(old.recordUsage) || bool(old.dropMonitor),
   };
 }
 

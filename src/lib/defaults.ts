@@ -127,7 +127,6 @@ export function defaultOptions(): HvOptions {
       },
     },
     rule: { weights: {}, reverse: false },
-    dropMonitor: false,
     dropQuality: '',
     recordUsage: false,
   };

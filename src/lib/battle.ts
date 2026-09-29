@@ -229,7 +229,7 @@ function recordSpellCost(action: Action): void {
           : null;
     if (!id) return;
     const opt = snapshotOptions();
-    if (!opt.recordUsage && !opt.dropMonitor) return;
+    if (!opt.recordUsage) return;
     const { mp, oc } = spellCost(id);
     if (!mp && !oc) return;
     const totals: Totals = getTotals();
@@ -244,7 +244,7 @@ function recordSpellCost(action: Action): void {
 function recordEndKills(): void {
   try {
     const opt = snapshotOptions();
-    if (!opt.recordUsage && !opt.dropMonitor) return;
+    if (!opt.recordUsage) return;
     const b = get(battle);
     const cur = kvGet('curBattle2', true) as CurBattle | null;
     if (!cur) return;

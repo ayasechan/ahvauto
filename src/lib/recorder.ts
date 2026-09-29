@@ -324,7 +324,7 @@ export function installRecordBridge(): void {
     if (!d || d.source !== REC_MARKER) return;
     const seq = typeof d.seq === 'number' ? d.seq : 0;
     if (d.kind === 'req' || d.kind === 'res') void recordBattleEvent(d.kind, d.payload, seq);
-    // 数据收集走响应体（与 debug 录制开关无关，由 recordUsage/dropMonitor 门控）
+    // 数据收集走响应体（与 debug 录制开关无关，由 recordUsage 门控）
     if (d.kind === 'res' && d.payload && typeof d.payload === 'object') {
       try {
         const body = (d.payload as { body?: unknown }).body as { textlog?: unknown[] } | undefined;

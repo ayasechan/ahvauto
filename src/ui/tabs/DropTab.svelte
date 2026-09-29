@@ -19,7 +19,6 @@
 
 <div>
   <div class="row">
-    <label><input type="checkbox" bind:checked={$options.dropMonitor} />{L('tab.Drop')}</label>
     {L('d.filter')} <input bind:value={$options.dropQuality} placeholder="Epic" />
     <button type="button" onclick={refresh}>{L('ui.refresh')}</button>
     <button type="button" onclick={clear}>{L('ui.clear')}</button>

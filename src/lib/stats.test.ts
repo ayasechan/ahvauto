@@ -6,7 +6,7 @@ import { options, kvSet } from './store';
 
 beforeEach(() => {
   clearStats();
-  options.update((o) => ({ ...o, recordUsage: true, dropMonitor: true }));
+  options.update((o) => ({ ...o, recordUsage: true }));
 });
 
 /** 以下 fixture 全部取自真实战斗响应（logs/battle-records-1.json），逐字引用 */
