@@ -67,5 +67,4 @@
 
 <style>
   .row { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; margin: 0 0 12px; padding: 12px; }
-  .num { width: 56px; text-align: right; }
 </style>

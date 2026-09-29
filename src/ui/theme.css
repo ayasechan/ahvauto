@@ -15,6 +15,7 @@
   --hv-danger: #dc2626;
   --hv-radius-card: 10px;
   --hv-radius-input: 8px;
+  --hv-input-num: 56px;
 }
 
 #hvAABox .hvAATab button {
@@ -148,4 +149,10 @@
   accent-color: var(--hv-primary);
   width: 15px;
   height: 15px;
+}
+
+/* 短数字输入框：各 Tab 共用（scoped 样式不再各自重复定义） */
+#hvAABox .num {
+  width: var(--hv-input-num);
+  text-align: right;
 }

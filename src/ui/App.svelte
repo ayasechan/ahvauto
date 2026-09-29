@@ -162,5 +162,4 @@
     padding: 12px !important;
   }
   .hvAATab :global(.row) :global(b) { font-size: 13px; }
-  .hvAATab :global(.num) { width: 56px !important; text-align: right !important; }
 </style>

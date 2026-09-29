@@ -51,7 +51,7 @@
     <label><input type="checkbox" bind:checked={$options.alarm.telegram.enabled} /><b>{L('al.tg')}</b></label>
     <div class="hint">{L('al.tgHint')}</div>
     <div class="field">{L('al.token')} <input class="url" type="password" bind:value={$options.alarm.telegram.botToken} placeholder="123456:ABC..." /></div>
-    <div class="field">{L('al.chat')} <input class="num" bind:value={$options.alarm.telegram.chatId} placeholder="123456789" /></div>
+    <div class="field">{L('al.chat')} <input class="chat" type="text" bind:value={$options.alarm.telegram.chatId} placeholder="-1001234567890" autocomplete="off" spellcheck="false" /></div>
     <div class="field">{L('al.events')}:
       {#each KINDS as k}
         <label><input type="checkbox" bind:checked={$options.alarm.telegram.kinds[k]} />{k}</label>
@@ -80,7 +80,7 @@
 <style>
   .row { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; margin: 0 0 12px; padding: 12px; }
   .url { width: 70%; }
-  .num { width: 160px; }
+  .chat { width: 280px; max-width: 70%; font-family: monospace; }
   .field { margin-top: 8px; }
   .hint { color: #64748b; font-size: 12px; margin-top: 4px; }
   .msg { margin-left: 8px; color: #475569; }
