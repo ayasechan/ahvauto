@@ -1,6 +1,6 @@
-# AGENTS.md — hvauto (HentaiVerse userscript, TS+Svelte)
+# AGENTS.md — ahvauto (HentaiVerse userscript, TS+Svelte)
 
-Vite + Svelte 5 + TS userscript (`vite-plugin-monkey` → `dist/hvauto.user.js`).
+Vite + Svelte 5 + TS userscript (`vite-plugin-monkey` → `dist/ahvauto.user.js`).
 Original script preserved at `legacy/hvauto.js` (reference only). No CI.
 
 ## Commands
@@ -23,7 +23,7 @@ DOM → `combat/snapshot.ts` → `combat/decide.ts` (ordered rule table,
 first match wins) → `combat/execute.ts` (clicks) → game `api_call` →
 response → `eventEnd` → next turn. Stats/logging consume responses via
 `postMessage` bridge (`recorder.ts`) — page and userscript run in different
-JS worlds; filter only on the `hvaa-rec` marker (`e.source` differs across worlds).
+JS worlds; filter only on the `ahvauto-rec` marker (`e.source` differs across worlds).
 
 ## Gotchas (all verified live, do not regress)
 
@@ -48,7 +48,7 @@ JS worlds; filter only on the `hvaa-rec` marker (`e.source` differs across world
 - **IDB**: only `recorder.ts` may `open()` with a version number (a versioned open
   without handler permanently poisons upgrades). Tools must open versionless.
 - **No `eval`/`new Function`** anywhere (CSP + imported stranger configs).
-- Storage: `hvAA-` (legacy) is read-only; everything new lives under `hvAA3-`.
+- Storage: `hvAA-` (legacy) is read-only; everything new lives under `ahvauto-`.
   Never write legacy keys. `main.debug` gates IDB recording; stats gate on
   `recordUsage`/`dropMonitor`.
 

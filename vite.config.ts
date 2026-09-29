@@ -8,7 +8,7 @@ export default defineConfig({
     monkey({
       entry: 'src/main.ts',
       userscript: {
-        name: '[HV]AutoAttack TS',
+        name: 'ahvauto',
         description: 'HV auto attack script, TS + Svelte rewrite.',
         version: '3.0.0',
         author: 'dodying',

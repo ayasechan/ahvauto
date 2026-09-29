@@ -1,5 +1,6 @@
 // CDP 共享客户端。安全原则：默认只读；任何点击/写入由各脚本显式执行并自行负责。
 // 环境变量：CDP_URL（默认 http://127.0.0.1:12422），CDP_PAGE_WS（直接指定 ws，跳过自动发现）.
+import { DISABLED_KEY } from '../../src/lib/storage-keys.js';
 
 export const CDP_BASE: string = process.env.CDP_URL ?? 'http://127.0.0.1:12422';
 
@@ -104,9 +105,9 @@ export async function autoDismissDialogs(cdp: Cdp): Promise<string[]> {
   return seen;
 }
 
-/** 断言角色暂停（hvAA-disabled 置位），否则抛错中止。 */
+/** 断言角色暂停（ahvauto-disabled 置位），否则抛错中止。 */
 export async function assertPaused(cdp: Cdp): Promise<true> {
-  const v = await cdp.ev<string | null>('localStorage.getItem("hvAA-disabled")');
-  if (v !== '1' && v !== 'true') throw new Error(`角色未暂停（hvAA-disabled=${v}），中止操作`);
+  const v = await cdp.ev<string | null>(`localStorage.getItem(${JSON.stringify(DISABLED_KEY)})`);
+  if (v !== '1' && v !== 'true') throw new Error(`角色未暂停（${DISABLED_KEY}=${v}），中止操作`);
   return true;
 }

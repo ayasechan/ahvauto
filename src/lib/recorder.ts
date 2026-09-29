@@ -1,5 +1,6 @@
 import { snapshotOptions } from './store';
 import { recordBattleTurn } from './stats';
+import { IDB_NAME as DB_NAME, REC_MARKER } from './storage-keys';
 
 /** 配对后的一行：一次请求＋它的响应。v2 起 keyPath 为 seq。 */
 export interface BattleRecord {
@@ -21,7 +22,6 @@ export interface DecodedRecord {
   rttMs?: number;
 }
 
-const DB_NAME = 'hvaa-debug';
 const STORE = 'records';
 const TURNS = 'turns';
 const CAP = 1000;
@@ -313,15 +313,15 @@ export async function clearRecords(): Promise<void> {
 }
 
 /**
- * 页上下文→隔离世界的桥：注入脚本用 window.postMessage({source:'hvaa-rec',...})
+ * 页上下文→隔离世界的桥：注入脚本用 window.postMessage({source:'ahvauto-rec',...})
  * 上报 api_call/api_response（同 seq），隔离世界侧按 seq 配对写入 IDB。
  */
 export function installRecordBridge(): void {
   window.addEventListener('message', (e: MessageEvent) => {
     // 注意：油猴隔离世界里，页上下文 post 来的消息 e.source !== window，
-    // 不能用 source 做过滤，仅认 hvaa-rec 标记（调试通道，无安全影响）。
+    // 不能用 source 做过滤，仅认 ahvauto-rec 标记（调试通道，无安全影响）。
     const d = e.data as { source?: string; kind?: string; seq?: number; payload?: unknown } | null;
-    if (!d || d.source !== 'hvaa-rec') return;
+    if (!d || d.source !== REC_MARKER) return;
     const seq = typeof d.seq === 'number' ? d.seq : 0;
     if (d.kind === 'req' || d.kind === 'res') void recordBattleEvent(d.kind, d.payload, seq);
     // 数据收集走响应体（与 debug 录制开关无关，由 recordUsage/dropMonitor 门控）

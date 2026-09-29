@@ -19,7 +19,7 @@
   async function testTelegram() {
     tgMsg = '...';
     try {
-      await sendTelegram('Common', `hvAutoAttack ${L('al.testPush')}\n${location.href}`, true);
+      await sendTelegram('Common', `ahvauto ${L('al.testPush')}\n${location.href}`, true);
       tgMsg = 'OK';
     } catch (e) {
       tgMsg = e instanceof Error ? e.message : String(e);
@@ -29,7 +29,7 @@
   async function testWebhook() {
     whMsg = '...';
     try {
-      await sendWebhook('Common', 'hvAutoAttack', `hvAutoAttack ${L('al.testPush')}`, true);
+      await sendWebhook('Common', 'ahvauto', `ahvauto ${L('al.testPush')}`, true);
       whMsg = 'OK';
     } catch (e) {
       whMsg = e instanceof Error ? e.message : String(e);

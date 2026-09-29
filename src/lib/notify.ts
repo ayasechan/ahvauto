@@ -113,7 +113,7 @@ export async function sendWebhook(kind: AlarmKind, title: string, text: string, 
 export async function pushAlarm(kind: AlarmKind): Promise<void> {
   const opt = snapshotOptions();
   const label = NOTIFY_TEXT[kind][Number(opt.lang)] ?? NOTIFY_TEXT[kind][0];
-  const title = `hvAutoAttack ${label}`;
+  const title = `ahvauto ${label}`;
   const text = `${title}\n${location.href}\n${new Date().toLocaleString()}`;
   await Promise.all([
     sendTelegram(kind, text).catch((e) => {
@@ -162,7 +162,7 @@ export async function setAlarm(kind: NotifyKind = 'Common'): Promise<void> {
       if (Notification.permission === 'default') await Notification.requestPermission();
       if (Notification.permission === 'granted') {
         const text = NOTIFY_TEXT[kind][Number(opt.lang)] ?? NOTIFY_TEXT[kind][0];
-        const n = new Notification('hvAutoAttack', { body: text });
+        const n = new Notification('ahvauto', { body: text });
         setTimeout(() => n.close(), 10_000);
       }
     } catch (e) {

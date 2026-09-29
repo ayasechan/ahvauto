@@ -73,9 +73,9 @@
 </script>
 
 {#if $panelOpen}
-  <div id="hvAABox" role="dialog" aria-label="hvAutoAttack">
+  <div id="hvAABox" role="dialog" aria-label="ahvauto">
     <div class="hvAACenter">
-      <h1>hvAutoAttack</h1>
+      <h1>ahvauto</h1>
       <select bind:value={$options.lang} aria-label={tr($options.lang, 'a.lang')}>
         <option value="0">简体中文</option>
         <option value="1">繁體中文</option>

@@ -1,5 +1,8 @@
 import { configureSync, getConsoleSink, getLogger, getLogfmtFormatter } from '@logtape/logtape';
 import type { LogLevel, LogRecord, Sink } from '@logtape/logtape';
+import { LOGS_KEY as STORE_KEY } from './storage-keys';
+
+const STORE_CAP = 500;
 
 const CATEGORY = ['hvauto'];
 const RANK: Record<LogLevel, number> = {
@@ -19,8 +22,6 @@ export interface StoredEntry {
   props: Record<string, string>;
 }
 
-const STORE_KEY = 'hvAA3-logs';
-const STORE_CAP = 500;
 let storeDisabled = false;
 
 /** 本地持久化 sink：localStorage 环形缓冲，页面 reload 后仍可查；配额满时丢一半后重试一次 */

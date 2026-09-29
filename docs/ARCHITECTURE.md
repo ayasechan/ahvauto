@@ -56,18 +56,18 @@ src/
 scripts/cdp/         # 浏览器运维脚本（TS，npx tsx 运行，详见其 README）
 ```
 
-## 存储（铁律：`hvAA-` 只读，`hvAA3-` 读写）
+## 存储（铁律：`hvAA-` 只读，`ahvauto-` 读写）
 
 | 位置 | 内容 |
 |---|---|
 | `hvAA-option`（旧） | 原版配置，只读，“关于→导入旧配置”手动导入 |
-| `hvAA3-option` | 新配置（表达式字符串版条件） |
-| `hvAA3-disabled` | 暂停位 |
-| `hvAA3-roundType/roundNow/roundAll/monsterStatus/monsterBase` | 战斗上下文 |
-| `hvAA3-stats2/battles2/curBattle2` | 数据收集（总数/单场/进行中） |
-| `hvAA3-arena/encounter` | 竞技场队列＋token／遭遇战计数 |
-| `hvAA3-logs/backup` | 运行日志环形缓冲／配置备份 |
-| IDB `hvaa-debug` | `records`（请求/响应配对，keyPath seq）、`turns`（回合现场） |
+| `ahvauto-option` | 新配置（表达式字符串版条件） |
+| `ahvauto-disabled` | 暂停位 |
+| `ahvauto-roundType/roundNow/roundAll/monsterStatus/monsterBase` | 战斗上下文 |
+| `ahvauto-stats2/battles2/curBattle2` | 数据收集（总数/单场/进行中） |
+| `ahvauto-arena/encounter` | 竞技场队列＋token／遭遇战计数 |
+| `ahvauto-logs/backup` | 运行日志环形缓冲／配置备份 |
+| IDB `ahvauto-debug` | `records`（请求/响应配对，keyPath seq）、`turns`（回合现场） |
 
 注意：游戏页把 `localStorage.setItem` 包了一层丢弃 `hvAA*` key，
 全仓一律直接赋值（`store.ts` 有注释）。

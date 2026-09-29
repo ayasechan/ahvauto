@@ -14,7 +14,7 @@
 
 安全铁律（写进脚本的不变量）：
 
-1. `inject*` 前必须 `verify` 通过（`hvAA-disabled` 置位，角色暂停）。
+1. `inject*` 前必须 `verify` 通过（`ahvauto-disabled` 置位，角色暂停）。
 2. 注入的要么是预览 bundle（不跑战斗逻辑、不写 `hvAA*`），要么是暂停预置下的全量 bundle。
 3. 任何会话前后用 `backup` 留档，`logs/` 已 gitignore，备份文件不出仓库。
 4. 不点击任何游戏战斗按钮，不用高级道具（脚本里根本没有这类操作；如需加，先经用户确认）。

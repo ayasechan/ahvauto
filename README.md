@@ -1,4 +1,4 @@
-# hvAutoAttack TS 版（HentaiVerse 自动战斗）
+# ahvauto TS 版（HentaiVerse 自动战斗）
 
 原 dodying `[HV]AutoAttack`（v2.88）的 TypeScript＋Svelte 重写版：
 配置界面全新实现，战斗内核逐行对照原版移植，另修了原版几个陈年 bug。
@@ -6,7 +6,7 @@
 ## 安装
 
 1. 浏览器装 Violentmonkey（或 Tampermonkey），**禁用旧版脚本**（两个不能同时跑）。
-2. 把 `dist/hvauto.user.js` 拖进脚本管理器安装并启用。
+2. 把 `dist/ahvauto.user.js` 拖进脚本管理器安装并启用。
 3. 刷新 hentaiverse 页面。沿用旧版配置的，点面板“关于→导入旧配置”（含攻击模式、权重、全部条件）。
 
 > 开发联调装 dev 版（见 `docs/DEV.md`），日常使用装 `dist` 版。
@@ -29,7 +29,7 @@
 
 ## 安全须知
 
-- 新旧配置完全隔离（`hvAA3-*` vs `hvAA-*`）：**旧配置只读不写**，可随时切回旧版。
+- 新旧配置完全隔离（`ahvauto-*` vs `hvAA-*`）：**旧配置只读不写**，可随时切回旧版。
 - 战败不自动复活，复活由你手动决定。
 - 小马答题只报警、不自动提交（官方红线）。
 - 遇到连续失败会自动暂停/重载并记日志，详见面板“关于→运行日志”。

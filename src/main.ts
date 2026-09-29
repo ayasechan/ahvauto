@@ -1,6 +1,6 @@
 import { mount } from 'svelte';
 import App from './ui/App.svelte';
-import { panelOpen, options, snapshotOptions, battle } from './lib/store';
+import { panelOpen, options, snapshotOptions, battle, kvDel } from './lib/store';
 import { initLogger, setLogLevel, logger } from './lib/logger';
 import { qs, el } from './lib/dom';
 import { tr } from './lib/i18n';
@@ -27,7 +27,7 @@ function mountButton(): void {
     'font:bold 12px/36px sans-serif;text-align:center;box-shadow:0 0 4px #000;}';
   const btn = document.body.appendChild(el('div'));
   btn.className = 'hvAAButton';
-  btn.title = 'hvAutoAttack';
+  btn.title = 'ahvauto';
   btn.textContent = 'hvAA·dev';
   btn.onclick = () => panelOpen.update((v) => !v);
 }
@@ -66,7 +66,7 @@ async function init(): Promise<void> {
 async function initInner(): Promise<void> {
   initLogger(snapshotOptions().main.debug ? 'debug' : 'info');
   options.subscribe((o) => setLogLevel(o.main.debug ? 'debug' : 'info'));
-  logger.info('hvAutoAttack started on {url}', { url: location.href });
+  logger.info('ahvauto started on {url}', { url: location.href });
   if (location.href === 'https://e-hentai.org/news.php') {
     let href = document.referrer || 'https://hentaiverse.org';
     const a = qs<HTMLAnchorElement>('#eventpane>div>a');
@@ -135,8 +135,8 @@ onEnter('battle', () => {
 
 onEnter('field', () => {
   const opt = snapshotOptions();
-  localStorage.removeItem('hvAA3-roundType');
-  localStorage.removeItem('hvAA3-battleCode');
+  kvDel('roundType');
+  kvDel('battleCode');
   if (opt.main.encounter) encounterCheck();
   const staminaText = qs('#stamina_readout .fc4.far>div')?.textContent ?? '';
   const stamina = Number(staminaText.match(/\d+/)?.[0] ?? 100);

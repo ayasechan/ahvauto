@@ -14,6 +14,7 @@ import { readSnapshot, resolveTarget } from './combat/snapshot';
 import { decide, shouldEmergencyPause } from './combat/decide';
 import { executeAction, describeAction } from './combat/execute';
 import { tt } from './i18n';
+import { SESSION_DELAY_KEY, SESSION_DELAY2_KEY, REC_MARKER } from './storage-keys';
 
 function patchBattle(partial: Partial<import('./types').BattleState>): void {
   battle.update((b) => ({ ...b, ...partial }));
@@ -396,7 +397,7 @@ async function mainInner(dbg: DebugSurface, trace: boolean): Promise<void> {
     if (trace) dbg.step = s;
   };
   if (isDisabled()) {
-    document.title = 'hvAutoAttack暂停中';
+    document.title = 'ahvauto暂停中';
     return;
   }
   patchBattle({ end: false });
@@ -573,14 +574,14 @@ export function installReloader(): void {
   };
   document.body.appendChild(eventEnd);
 
-  sessionStorage['hvAA-delay'] = String(opt.main.delay);
-  sessionStorage['hvAA-delay2'] = String(opt.main.delay2);
+  sessionStorage[SESSION_DELAY_KEY] = String(opt.main.delay);
+  sessionStorage[SESSION_DELAY2_KEY] = String(opt.main.delay2);
   const inject = el('script');
   inject.textContent = `(${((): void => {
     const w = window as unknown as Record<string, unknown>;
     w['api_call'] = function (b: XMLHttpRequest, a: { mode: string; skill: number }, d: () => void): void {
-      const delay = Number(sessionStorage.getItem('hvAA-delay') ?? 200);
-      const delay2 = Number(sessionStorage.getItem('hvAA-delay2') ?? 30);
+      const delay = Number(sessionStorage.getItem('${SESSION_DELAY_KEY}') ?? 200);
+      const delay2 = Number(sessionStorage.getItem('${SESSION_DELAY2_KEY}') ?? 30);
       (window as unknown as Record<string, unknown>)['info'] = a;
       // 发包序号：req/res 同号，录制侧按 seq 配对。存页面全局，reload 清零。
       let seq = 0;
@@ -602,7 +603,7 @@ export function installReloader(): void {
         /* 观测不影响战斗 */
       }
       try {
-        window.postMessage({ source: 'hvaa-rec', kind: 'req', seq, payload: a }, '*');
+        window.postMessage({ source: '${REC_MARKER}', kind: 'req', seq, payload: a }, '*');
       } catch {
         /* 录制上报失败不影响战斗 */
       }
@@ -635,7 +636,7 @@ export function installReloader(): void {
         if (b.status === 200) {
           const a = JSON.parse(b.responseText) as { login?: unknown; error?: unknown; reload?: unknown };
           try {
-            window.postMessage({ source: 'hvaa-rec', kind: 'res', seq: seq ?? 0, payload: { status: b.status, body: a } }, '*');
+            window.postMessage({ source: '${REC_MARKER}', kind: 'res', seq: seq ?? 0, payload: { status: b.status, body: a } }, '*');
           } catch {
             /* 录制上报失败不影响战斗 */
           }
@@ -647,7 +648,7 @@ export function installReloader(): void {
           }
         } else {
           try {
-            window.postMessage({ source: 'hvaa-rec', kind: 'res', seq: seq ?? 0, payload: { status: b.status, body: null } }, '*');
+            window.postMessage({ source: '${REC_MARKER}', kind: 'res', seq: seq ?? 0, payload: { status: b.status, body: null } }, '*');
           } catch {
             /* ignore */
           }

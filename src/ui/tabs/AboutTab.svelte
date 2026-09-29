@@ -1,7 +1,7 @@
 <script lang="ts">
   import { options, importLegacyConfig } from '../../lib/store';
   import { tr } from '../../lib/i18n';
-  import { STORAGE_NS } from '../../lib/types';
+  import { BACKUP_KEY } from '../../lib/storage-keys';
   import { defaultOptions } from '../../lib/defaults';
   import { migrateOptions } from '../../lib/expr/migrate';
   import type { HvOptions } from '../../lib/types';
@@ -16,13 +16,13 @@
 
   function loadBackups() {
     try {
-      backups = JSON.parse(localStorage.getItem(`${STORAGE_NS}backup`) ?? '{}');
+      backups = JSON.parse(localStorage.getItem(BACKUP_KEY) ?? '{}');
     } catch {
       backups = {};
     }
   }
   function saveBackups() {
-    localStorage[`${STORAGE_NS}backup`] = JSON.stringify(backups);
+    localStorage[BACKUP_KEY] = JSON.stringify(backups);
   }
   function backup() {
     const code = prompt('备份名称:');

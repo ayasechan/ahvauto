@@ -1,4 +1,4 @@
-# 开发文档（hvAutoAttack TS 重写版）
+# 开发文档（ahvauto TS 重写版）
 
 相关文档：`README.md`（用户手册）、`docs/CLASSES.md`（战士/法师玩法对照，改配置先看）、
 `docs/ARCHITECTURE.md`（系统架构）、`docs/COMBAT.md`（战斗算法）、
@@ -10,7 +10,7 @@
 | 进程 | 启动 | 作用 |
 |---|---|---|
 | `npm run dev`（vite :5173） | `setsid nohup npm run dev > logs/dev-server.log 2>&1 < /dev/null &` | VM dev 版（`server:` 安装）热更新源。改 `src/` 即触发页面 reload，新代码直接生效，**不用重装脚本** |
-| `vite build --watch` | `setsid nohup npx vite build --watch > logs/build-watch.log 2>&1 < /dev/null &` | `src/` 变动自动重编 `dist/hvauto.user.js`（生产安装包） |
+| `vite build --watch` | `setsid nohup npx vite build --watch > logs/build-watch.log 2>&1 < /dev/null &` | `src/` 变动自动重编 `dist/ahvauto.user.js`（生产安装包） |
 
 验证 dev 联通：改完 reload 页面，看右上悬浮钮文字——`hvAA·dev`＝当前源码，`hvAA`＝旧包。
 
@@ -29,13 +29,13 @@ npx tsx scripts/cdp/<脚本>.ts   # 浏览器运维（见 scripts/cdp/README.md�
 
 ## 存储命名空间（铁律）
 
-- 旧脚本：`hvAA-` 前缀（`hvAA-option` 等）——**只读不写**。
-- 新脚本：`hvAA3-` 前缀（`hvAA3-option` / `hvAA3-disabled` / KV / 日志 / 备份）。
+- 旧脚本：`hvAA-` 前缀——**只读不写**。
+- 新脚本：`ahvauto-` 前缀（`ahvauto-option` / `ahvauto-disabled` / KV / 日志 / 备份）。
 - 旧配置不再自动导入，需面板“关于→导入旧配置”手动触发（含权重、条件翻译），见 `src/lib/legacy-import.ts`。
 
 ## 安全铁律（测战斗时）
 
-1. `inject*` 前必须 `verify` 通过（`hvAA-disabled` 置位，角色暂停）。
+1. `inject*` 前必须 `verify` 通过（`ahvauto-disabled` 置位，角色暂停）。
 2. 注入的要么是预览 bundle（不跑战斗逻辑），要么在暂停预置下注入全量。
 3. 会话前后 `backup` 留档，`logs/` 已 gitignore。
 4. 不点游戏战斗按钮，不用高级道具（脚本里没有这类操作；要加先确认）。
@@ -44,9 +44,9 @@ npx tsx scripts/cdp/<脚本>.ts   # 浏览器运维（见 scripts/cdp/README.md�
 ## 调试面
 
 - `window.__hvaa`：`{step（规则名）/lastError/lastAction/apiCalls/lastReq/fired/nr}`，只读定位 stall。
-- IDB `hvaa-debug`：`records`（请求/响应配对，keyPath seq，v4）、`turns`（每回合快照＋规则＋动作）。
+- IDB `ahvauto-debug`：`records`（请求/响应配对，keyPath seq，v4）、`turns`（每回合快照＋规则＋动作）。
   ⚠️ 外部工具 open IDB **不许带版本号**（会空提交版本跳过升级，v2 就是这么坏的）。
-- `hvAA3-logs`：logtape 日志（含 `fsm boot -> battle`、`rec begin/end` 转移）。
+- `ahvauto-logs`：logtape 日志（含 `fsm boot -> battle`、`rec begin/end` 转移）。
 - `logs/`：战斗快照、录制导出、localStorage 备份（不出仓库）。
 
 ## 已知的坑（别再踩）
@@ -54,7 +54,7 @@ npx tsx scripts/cdp/<脚本>.ts   # 浏览器运维（见 scripts/cdp/README.md�
 1. 游戏页把 `localStorage.setItem` 包了一层，静默丢弃 `hvAA*` 开头 key——全仓一律直接赋值（`store.ts` 有注释）。
 2. `Infinity` 过 JSON 变 `null`——读回必须归一化（死亡判定依赖）。
 3. `src` 里出现动态 `import()` 会让 monkey 打包切 SystemJS（页内无 `System` 直接暴毙）——禁止动态 import。
-4. 油猴隔离世界里页 `postMessage` 的 `e.source !== window`——桥接只认 `hvaa-rec` 标记。
+4. 油猴隔离世界里页 `postMessage` 的 `e.source !== window`——桥接只认 `ahvauto-rec` 标记。
 5. `bind:` 传 `undefined` 会炸 tab 切换（`props_invalid_value`）——conditions 表必须预填 key（`backfill`＋单测守护）。
 6. 集火排序恒升序（原版亦然），`ruleReverse` 只反公式不反排序；点目标前验 `onclick`（死怪没有）。
 7. 魔法 lock＋目标必须同回合两次点击（游戏机制），只锁不等于是 stall 主因之一。

@@ -1,8 +1,5 @@
 /** 核心类型：替代原脚本 window.hvAA 全局杂物袋 + localStorage 零散 key */
 
-/** 新脚本存储命名空间。旧脚本用 hvAA- 前缀；新脚本只读写 hvAA3- 下的 key，绝不碰旧配置。 */
-export const STORAGE_NS = 'hvAA3-';
-
 export type Lang = '0' | '1' | '2';
 
 /** 老格式（仅迁移用）：组内 AND、组间 OR，单条形如 "hp,1,50" / "_isCd_411,5,0" */
@@ -149,7 +146,7 @@ export interface AlarmOptions {
 
 /** Webhook 默认 body 模板（{var} 占位发送前替换，见 template.ts）。 */
 export const DEFAULT_WEBHOOK_TEMPLATE = `{
-  "app": "hvAutoAttack",
+  "app": "ahvauto",
   "kind": "{kind}",
   "title": "{title}",
   "text": "{text}",

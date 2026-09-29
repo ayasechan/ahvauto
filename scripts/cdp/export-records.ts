@@ -1,6 +1,7 @@
 import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { pickPage, connect } from './common.js';
+import { IDB_NAME } from '../../src/lib/storage-keys.js';
 // 导出 IDB 战斗记录（解压）。新形状为配对行 {seq,tReq,req,tRes,res,rttMs}，兼容旧分行。
 // 分页策略：页内倒序 key 游标（openKeyCursor(range,'prev')，since-seq 用
 // IDBKeyRange.lowerBound 下界）按 limit 提前终止；每批 200 条经 CDP 分批回传、
@@ -72,7 +73,7 @@ interface Batch {
 // 逐 key get + gunzip。无版本号 open（versionless），readonly 事务。
 const batchExpr = (upperExcl: number | null, take: number, since: number | null): string =>
   `(async(upperExcl,batchSize,sinceSeq)=>{` +
-  `const db=await new Promise((res,rej)=>{const q=indexedDB.open("hvaa-debug");q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});` +
+  `const db=await new Promise((res,rej)=>{const q=indexedDB.open(${JSON.stringify(IDB_NAME)});q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});` +
   `try{` +
   `let range=null;` +
   `if(upperExcl!==null&&sinceSeq!==null)range=IDBKeyRange.bound(sinceSeq,upperExcl,false,true);` +

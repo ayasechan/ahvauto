@@ -1,4 +1,5 @@
 import { pickPage, connect } from './common.js';
+import { IDB_NAME } from '../../src/lib/storage-keys.js';
 
 // 观察战斗：title/__hvaa/log 行数/血条/IDB，每 4 秒一行，共 ~60 秒。只读。
 const cdp = await connect(await pickPage());
@@ -15,7 +16,7 @@ try {
       })`,
     );
     const idb = await cdp.ev<number>(
-      `(async()=>{try{const db=await new Promise((res,rej)=>{const q=indexedDB.open("hvaa-debug");q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});return await new Promise((res,rej)=>{const q=db.transaction("records","readonly").objectStore("records").count();q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});}catch(e){return -1;}})()`,
+      `(async()=>{try{const db=await new Promise((res,rej)=>{const q=indexedDB.open(${JSON.stringify(IDB_NAME)});q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});return await new Promise((res,rej)=>{const q=db.transaction("records","readonly").objectStore("records").count();q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});}catch(e){return -1;}})()`,
       true,
     );
     console.log(`t=${i * 4}s idb=${idb}`, s);

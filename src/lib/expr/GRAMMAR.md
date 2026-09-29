@@ -1,4 +1,4 @@
-# hvAutoAttack 条件表达式 EBNF（v1）
+# ahvauto 条件表达式 EBNF（v1）
 
 实现：`src/lib/expr/`（tokenizer / parser / evaluator / index）。
 用例即规格补充：`src/lib/expr/expr.test.ts`（`npm test`）。
