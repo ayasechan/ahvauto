@@ -74,13 +74,23 @@ async function postText(url: string, body: string): Promise<PostResult> {
   }
 }
 
+/** chatId 始终按字符串处理（不经 Number，避免长 ID 精度丢失）。
+ * 数字旧存档转字符串，字符串去首尾空格，@用户名原样保留。 */
+export function normalizeTelegramChatId(v: unknown): string {
+  if (typeof v === 'number') return Number.isFinite(v) ? String(Math.trunc(v)) : '';
+  if (typeof v === 'string') return v.trim();
+  return '';
+}
+
 /** Telegram Bot 直连（油猴 XHR）。未启用/未勾选该事件直接跳过。 */
 export async function sendTelegram(kind: AlarmKind, text: string, force = false): Promise<void> {
   const tg = snapshotOptions().alarm.telegram;
   if (!force && (!tg?.enabled || !tg.kinds?.[kind])) return;
-  if (!tg?.botToken || !tg?.chatId) throw new Error('telegram 未配置 botToken/chatId');
-  const res = await postText(`https://api.telegram.org/bot${tg.botToken}/sendMessage`, JSON.stringify({
-    chat_id: tg.chatId,
+  const botToken = typeof tg?.botToken === 'string' ? tg.botToken.trim() : '';
+  const chatId = normalizeTelegramChatId(tg?.chatId);
+  if (!botToken || !chatId) throw new Error('telegram 未配置 botToken/chatId');
+  const res = await postText(`https://api.telegram.org/bot${botToken}/sendMessage`, JSON.stringify({
+    chat_id: chatId,
     text,
   }));
   if (res.status < 200 || res.status >= 300) throw new Error(`telegram HTTP ${res.status}`);

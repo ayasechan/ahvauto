@@ -133,8 +133,11 @@ function backfillAlarm(raw: Record<string, unknown>): void {
     }
     if (typeof t.enabled !== 'boolean') t.enabled = false;
     if (target === 'telegram') {
-      if (typeof t.botToken !== 'string') t.botToken = '';
-      if (typeof t.chatId !== 'string') t.chatId = '';
+      if (typeof t.botToken === 'string') t.botToken = t.botToken.trim();
+      else t.botToken = '';
+      if (typeof t.chatId === 'number' && Number.isFinite(t.chatId)) t.chatId = String(Math.trunc(t.chatId));
+      else if (typeof t.chatId === 'string') t.chatId = t.chatId.trim();
+      else t.chatId = '';
     } else {
       if (typeof t.url !== 'string') t.url = '';
       if (typeof t.template !== 'string') t.template = DEFAULT_WEBHOOK_TEMPLATE;

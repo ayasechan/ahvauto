@@ -92,7 +92,7 @@ const D: Record<string, Triple> = {
   'al.tg': ['Telegram 通知', 'Telegram 通知', 'Telegram notify'],
   'al.token': ['Bot Token', 'Bot Token', 'Bot Token'],
   'al.chat': ['Chat ID', 'Chat ID', 'Chat ID'],
-  'al.tgHint': ['找 @BotFather 建 Bot，填 token；Chat ID 问 @userinfobot', '找 @BotFather 建 Bot，填 token；Chat ID 問 @userinfobot', 'Create a bot via @BotFather, fill token; get Chat ID from @userinfobot'],
+  'al.tgHint': ['找 @BotFather 建 Bot；个人 ID 问 @userinfobot，群组 ID 以 -100 开头，也支持 @频道用户名', '找 @BotFather 建 Bot；個人 ID 問 @userinfobot，群組 ID 以 -100 開頭，也支援 @頻道用戶名', 'Create a bot via @BotFather; personal ID from @userinfobot, group ID starts with -100, @channel username also works'],
   'al.hook': ['自定义 Webhook', '自定義 Webhook', 'Custom Webhook'],
   'al.hookUrl': ['推送 URL（油猴直接请求，无视 CORS）', '推送 URL（油猴直接請求，無視 CORS）', 'Push URL (GM request, CORS bypassed)'],
   'al.tpl': ['数据模板（POST 原文）', '數據模板（POST 原文）', 'Body template (sent as-is)'],
