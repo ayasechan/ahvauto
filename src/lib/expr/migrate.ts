@@ -144,6 +144,40 @@ function backfill(rec: unknown, keys: string[]): void {
   }
 }
 
+/** 补齐布尔表（缺的置 false），保证 bind:checked 永不拿 undefined。 */
+function backfillBool(rec: unknown, keys: string[]): void {
+  if (typeof rec !== 'object' || rec === null) return;
+  const r = rec as Record<string, unknown>;
+  for (const k of keys) {
+    if (typeof r[k] !== 'boolean') r[k] = false;
+  }
+}
+
+/** 补齐数字表（缺的置 0），保证 bind:value 永不拿 undefined。 */
+function backfillNum(rec: unknown, keys: string[]): void {
+  if (typeof rec !== 'object' || rec === null) return;
+  const r = rec as Record<string, unknown>;
+  for (const k of keys) {
+    if (typeof r[k] !== 'number' || !Number.isFinite(r[k])) r[k] = 0;
+  }
+}
+
+const RULE_WEIGHT_KEYS = [
+  'Sle',
+  'Bl',
+  'Slo',
+  'Im',
+  'MN',
+  'Si',
+  'Dr',
+  'We',
+  'Co',
+  'CM',
+  'Stun',
+  'PA',
+  'BW',
+];
+
 const ALARM_KINDS = ['Common', 'Error', 'Defeat', 'Riddle', 'Victory'];
 
 /** 补齐 Alarm 推送配置（旧存档缺 telegram/webhook 时补默认，保证 bind 永不拿 undefined）。 */
@@ -196,12 +230,18 @@ export function migrateOptions(raw: Record<string, unknown>): void {
   if (item) {
     migrateRecord(item.conditions, BATTLE_VARS, lookup);
     backfill(item.conditions, Object.keys(ITEM_IDS));
+    backfillBool(item.enabled, Object.keys(ITEM_IDS));
+  }
+  const channel = raw.channel as Record<string, unknown> | undefined;
+  if (channel) {
+    backfillBool(channel.first, Object.keys(BUFF_LIB));
   }
   const buff = raw.buff as Record<string, unknown> | undefined;
   if (buff) {
     if ('condition' in buff) buff.condition = migrateCond(buff.condition, BATTLE_VARS, lookup);
     migrateRecord(buff.conditions, BATTLE_VARS, lookup);
     backfill(buff.conditions, [...Object.keys(DRAUGHT_LIB), ...Object.keys(BUFF_LIB)]);
+    backfillBool(buff.enabledMap, [...Object.keys(DRAUGHT_LIB), ...Object.keys(BUFF_LIB)]);
   }
   const debuff = raw.debuff as Record<string, unknown> | undefined;
   if (debuff) {
@@ -209,6 +249,8 @@ export function migrateOptions(raw: Record<string, unknown>): void {
       debuff.condition = migrateCond(debuff.condition, BATTLE_VARS, lookup);
     migrateRecord(debuff.conditions, BATTLE_VARS, lookup);
     backfill(debuff.conditions, Object.keys(DEBUFF_LIB));
+    backfillBool(debuff.enabledMap, Object.keys(DEBUFF_LIB));
+    backfillNum(debuff.turns, Object.keys(DEBUFF_LIB));
   }
   const skill = raw.skill as Record<string, unknown> | undefined;
   if (skill) {
@@ -222,6 +264,7 @@ export function migrateOptions(raw: Record<string, unknown>): void {
       scroll.condition = migrateCond(scroll.condition, BATTLE_VARS, lookup);
     migrateRecord(scroll.conditions, BATTLE_VARS, lookup);
     backfill(scroll.conditions, Object.keys(SCROLL_LIB));
+    backfillBool(scroll.enabledMap, Object.keys(SCROLL_LIB));
   }
   const infusion = raw.infusion as Record<string, unknown> | undefined;
   if (infusion && 'condition' in infusion) {
@@ -231,4 +274,12 @@ export function migrateOptions(raw: Record<string, unknown>): void {
   if (raw.dropMonitor === true) raw.recordUsage = true;
   delete raw.dropMonitor;
   backfillAlarm(raw);
+  const alarm = raw.alarm as Record<string, unknown> | undefined;
+  if (alarm) {
+    backfill(alarm.audio, ['Common', 'Error', 'Defeat', 'Riddle', 'Victory']);
+  }
+  const rule = raw.rule as Record<string, unknown> | undefined;
+  if (rule) {
+    backfillNum(rule.weights, RULE_WEIGHT_KEYS);
+  }
 }

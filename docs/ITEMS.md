@@ -15,9 +15,9 @@
 | LE（Last Elixir）   | 11501 | 物品栏            | 同上                              |
 | ED（Energy Drink）  | 11401 | 物品栏            | 同上                              |
 
-`id > 10000` 走物品栏存在性，`≤ 9999` 走法术书可用性——两边判定不同，
-执行层必须“判哪点哪”（`combat/execute.ts`），点错元素会静默失败。
-取元素一律 `document.getElementById`，`querySelector('#411')` 是非法选择器。
+`id > 10000` 走物品栏存在性，否则走法术书可用性——两边判定不同，
+执行层必须“判哪点哪”（`src/lib/combat/execute.ts`），点错元素会静默失败。
+法术书直点用 `document.getElementById`（`querySelector('#411')` 是非法选择器），其余经 `qs`/选择器。
 
 ## 施放顺序
 

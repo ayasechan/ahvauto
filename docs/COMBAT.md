@@ -7,18 +7,18 @@
 
 ## 决策规则表（`combat/decide.ts`，顺序即优先级）
 
-| #   | 规则     | 触发                                                                                         |
-| --- | -------- | -------------------------------------------------------------------------------------------- |
-| 1   | gem      | 宝石阈值（Health≤hp1 / Mana≤mp1 / Spirit≤sp1，Mystic 无条件）                                |
-| 2   | item     | 用户顺序首个“启用＋条件通过＋有货/可用”                                                      |
-| 3   | defend   | 开关＋条件                                                                                   |
-| 4   | scroll   | 开关＋条件＋轮次类型＋对应 buff 缺失（`scrollFirst` 勾选只认 `_scroll` 后缀）                |
-| 5   | channel  | 仅 Channeling 窗口：按 Buff 顺序补缺 → 第二顺序 → ReBuff 最早过期（含 Cloak of Fallen 特例） |
-| 6   | buff     | 按顺序补缺失 Buff；再补药剂/花瓶/口香糖                                                      |
-| 7   | infusion | 非物理＋开关＋条件＋对应魔药缺失                                                             |
-| 8   | imperil  | 开关＋`debuffSkillAllIm`＋有怪没挂 Imperil（隔 3 遍历＋顺序遍历）                            |
-| 9   | deskill  | 按顺序给集火目标补缺失 Debuff（含 6 格上限检查，失败弹框暂停）                               |
-| 10  | attack   | focus → Spirit 开关 →（EtherTap 跳过魔法）→ 高/中/低阶魔法 → 武器链 → 普攻兜底               |
+| #   | 规则     | 触发                                                                                                          |
+| --- | -------- | ------------------------------------------------------------------------------------------------------------- |
+| 1   | gem      | 宝石阈值（Health≤hp1 / Mana≤mp1 / Spirit≤sp1，Mystic 无条件）                                                 |
+| 2   | item     | 用户顺序首个“启用＋条件通过＋有货/可用”                                                                       |
+| 3   | defend   | 开关＋条件                                                                                                    |
+| 4   | scroll   | 开关＋条件＋轮次类型＋对应 buff 缺失（`scrollFirst` 勾选只认 `_scroll` 后缀）                                 |
+| 5   | channel  | 仅 Channeling 窗口：按 Buff 顺序补缺 → 第二顺序 → ReBuff 最早过期（含 Cloak of Fallen 特例）                  |
+| 6   | buff     | 按顺序补缺失 Buff；再补药剂/花瓶/口香糖                                                                       |
+| 7   | infusion | 非物理＋开关＋条件＋对应魔药缺失＋有货/可用                                                                   |
+| 8   | imperil  | 开关＋`debuffSkillAllIm`＋有怪没挂 Imperil（隔 3 遍历＋顺序遍历，点缺口怪的下一个可点活怪）                   |
+| 9   | deskill  | 按顺序给集火目标补缺失 Debuff（含 6 格上限检查，失败弹框暂停）                                                |
+| 10  | attack   | focus → Spirit 开关 →（EtherTap 跳过魔法）→ 武器链优先 → 高/中/低阶魔法 → 普攻（有可点活怪时兜底，否则 none） |
 
 `focus`/`spirit` 在 attack 规则内部最先处理（与原版 `attack()` 内序一致）。
 
@@ -37,7 +37,7 @@
   各需 2 OC），要求：Spirit 开启中＋条件＋可用＋OC 足＋OTOS 未用。
 - OTOS（一回合一次）每轮清零（`newRound`）。
 - Merciful Blow：仅单手（style 2）＋T3，目标血 <25% 且流血则转火。
-- EtherTap：集火目标有 Coalesced Mana 且无 Ether Tap(x2) 时**只跳过魔法**，武器照走。
+- EtherTap：集火目标有 Coalesced Mana 且（无 Ether Tap(x2) 或 x2 快过期）且条件通过时**只跳过魔法**，武器照走。
 
 ## 保底与自救
 
@@ -49,5 +49,5 @@
 
 ## 面板决策历史
 
-`.hvAALog` 下方显示本轮最近 8 条（最新在上，序号倒标），换轮清空。
-`window.__hvaa` 同步暴露 `{step（规则名）/lastError/lastAction/apiCalls/fired}` 供 CDP 取证。
+`.hvAALog` 下方显示本轮最近 10 条（最新在上，Turn 号正标倒序展示），换轮清空（缓冲保留 20 条）。
+`window.__hvaa` 同步暴露含 `{step（规则名）/lastError/lastAction/history/nr/apiCalls/lastReq/lastSend/fired}` 供 CDP 取证。

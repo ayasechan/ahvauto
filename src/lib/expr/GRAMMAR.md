@@ -49,8 +49,8 @@ var_path       = ident { "." ident } ;   (* 点后面必须是 ident；函数调
 - 未知变量 / 未知函数：抛错（不回 `undefined`）。
 - **大小写规则（已确定）**：变量名、函数名区分大小写；关键字仅小写有效
   （`AND` 会被当成变量名）；字符串字面量区分大小写。
-- **typo 建议（已确定）**：未知名字抛错时附带"你是不是想说"建议。候选池＝变量全路径＋
-  函数名＋五个关键字；先找忽略大小写的完全匹配（如 `HP`→`hp`、`AND`→`and`），
+- **typo 建议（已确定）**：未知名字抛错时附带"你是不是想说"建议。候选池按位置分池：
+  变量位＝变量全路径＋五个关键字；函数位＝仅函数名；先找忽略大小写的完全匹配（如 `HP`→`hp`、`AND`→`and`），
   否则取编辑距离最小者，需同时满足`距离≤3`且`2×距离≤两名长度之和`，否则只报未知名字。
   示例：`未知变量 'heal'，你是不是想说变量 'hp'？`
 - 函数参数个数/类型：由各函数自己守卫，守卫失败抛错。
@@ -74,8 +74,8 @@ var_path       = ident { "." ident } ;   (* 点后面必须是 ident；函数调
 
 ```
 hp < 30 or (mp > 50 and oc >= 50)
-turn >= 3 and buff("haste") >= 2
-mp < 40 and not isCd(411)
+turn >= 3 and buffTurn("haste") >= 2
+mp < 40 and isCd(411) == 0
 roundType == "ar" and bossAlive > 0
 ```
 
@@ -83,4 +83,4 @@ roundType == "ar" and bossAlive > 0
 
 - 编译结果 `Map` 缓存，上限 500 条（key 为表达式原文）。
 - 老格式 `{组号: ["a,op,b"]}` 由 `conditions.ts:groupsToExpr` 翻译成本语法后求值。
-- 求值上下文变量见 `conditions.ts:battleVars`；函数（`isCd`、`buffTurn`）见同文件 `evalCtx`。
+- 求值上下文变量见 `src/lib/conditions.ts:battleVars`；函数（`isCd`、`buffTurn`）见同文件 `evalCtx`（`src/lib/conditions.ts`）。

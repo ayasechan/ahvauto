@@ -15,7 +15,7 @@ Original script preserved at `legacy/hvauto.js` (reference only). No CI.
 ## Architecture (see `docs/ARCHITECTURE.md`)
 
 `snapshot → decide → execute → api_call → eventEnd → next turn`;
-stats/logging via `postMessage` bridge (`recorder.ts`, marker `ahvauto-rec`).
+stats/logging via direct `handleRec` calls (`recorder.ts`); `postMessage` bridge (marker `ahvauto-rec`) compat-only.
 
 ## Gotchas (rules only; explanations live in docs/ — do not re-expand here)
 
@@ -25,7 +25,7 @@ stats/logging via `postMessage` bridge (`recorder.ts`, marker `ahvauto-rec`).
 - **`bind:` must never receive `undefined`** (`docs/DEV.md` 坑 #5).
 - **Finishing order is ascending, always** (`docs/COMBAT.md` 集火).
 - **Target clicks need a live target** (`#mkey_<id>` `onclick`) (`docs/COMBAT.md` 集火).
-- **Skill/item clicks route by id** (`>10000` → `.bti3`, else `getElementById`) (`docs/ITEMS.md`).
+- **Skill/item clicks route by kind** (item by id: `>10000` → `.bti3`, else `getElementById`; scroll/draught/infusion → shelf, buff → spellbook) (`docs/ITEMS.md`).
 - **Spells need lock+target in the same turn** (`docs/DEV.md` 坑 #7).
 - **The game silently swallows clicks** when busy/locked/in-flight — don't remove the watchdog (`docs/DEV.md` 坑 #8).
 - **IDB**: only `recorder.ts` may `open()` with a version number (`docs/DEV.md` 调试面).
@@ -34,5 +34,5 @@ stats/logging via `postMessage` bridge (`recorder.ts`, marker `ahvauto-rec`).
 
 ## Conventions
 
-- Workflow (commits, i18n, layering) → `docs/DEV.md` 常用命令, `docs/ARCHITECTURE.md`.
+- Workflow: commits → `docs/DEV.md` 常用命令; i18n/layering → `docs/ARCHITECTURE.md`.
 - Doc index → `README.md` (文档节); spec → `src/lib/expr/GRAMMAR.md`.

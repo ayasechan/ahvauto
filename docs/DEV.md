@@ -56,11 +56,11 @@ npx tsx scripts/cdp/<脚本>.ts   # 浏览器运维（见 scripts/cdp/README.md�
 
 ## 已知的坑（别再踩）
 
-1. 游戏页把 `localStorage.setItem` 包了一层，静默丢弃 `hvAA*` 开头 key——全仓一律直接赋值（`store.ts` 有注释）。
+1. 游戏页把 `localStorage.setItem` 包了一层，静默丢弃 `hvAA*` 开头 key——`hvAA*` 禁 `setItem`（`preview-ui.ts` 拦截器同理），其余直接赋值（`store.ts` 有注释）。
 2. `Infinity` 过 JSON 变 `null`——读回必须归一化（死亡判定依赖）。
-3. `src` 里出现动态 `import()` 会让 monkey 打包切 SystemJS（页内无 `System` 直接暴毙）——禁止动态 import。
+3. `src` 生产入口（`src/main.ts`，monkey 打包）禁动态 `import()`，会切 SystemJS（页内无 `System` 直接暴毙）——`src/preview-ui.ts`＋`vite.preview.config.ts` 临时预览链（不过 monkey）豁免。
 4. 油猴隔离世界里页 `postMessage` 的 `e.source !== window`——桥接只认 `ahvauto-rec` 标记。
-5. `bind:` 传 `undefined` 会炸 tab 切换（`props_invalid_value`）——conditions 表必须预填 key（`backfill`＋单测守护）。
+5. `bind:` 传 `undefined` 会炸 tab 切换（`props_invalid_value`）——conditions 表＋`rule.weights`/`debuff.turns`/`alarm.audio`/各 `enabledMap` 必须预填 key（`backfill`＋单测守护）。
 6. 集火排序恒升序（原版亦然），`ruleReverse` 只反公式不反排序；点目标前验 `onclick`（死怪没有）。
 7. 魔法 lock＋目标必须同回合两次点击（游戏机制），只锁不等于是 stall 主因之一。
 8. 发包三道门（忙/已锁/在途）会静默吞点击——看门狗（8s 补点／25s 重载）是最终兜底。

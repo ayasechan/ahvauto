@@ -6,24 +6,26 @@
 游戏页面 DOM ──readSnapshot──▶ Snapshot ──decide──▶ Action ──execute──▶ 点击
                                    ▲                    │
                           条件表达式 (expr/)            ▼
-                                              游戏 api_call → 响应
-                                                    │ postMessage
-                                                    ▼
-                         recorder ──▶ IDB (records/turns) + stats ──▶ kv → UI
+                                               游戏 api_call → 响应
+                                                     │ handleRec 直调
+                                                     ▼
+                          recorder ──▶ IDB (records/turns) + stats ──▶ kv → UI
 ```
 
+`postMessage`（标记 `ahvauto-rec`）仅兼容保留，非主链路。
+
 - **感知**（`src/lib/combat/snapshot.ts`）：每回合把 DOM 一次性读成纯 `Snapshot`
-  （血蓝/怪/buff/技能可用性/姿态），是唯一碰 DOM 读的地方。
+  （血蓝/怪/buff/技能可用性/姿态），是唯一把 DOM 读成快照的地方（他处仍有零散只读 DOM）。
 - **决策**（`src/lib/combat/decide.ts`）：规则表按优先级求值，首个命中即决策。
-  纯函数，88+ 单测覆盖。详见 `docs/COMBAT.md`。
-- **执行**（`src/lib/combat/execute.ts`）：把动作翻译成点击。法术走
-  `getElementById`，物品/卷轴/魔药走物品栏（与原版“判哪点哪”同构）。
+  纯函数，决策 33 用例、全仓 120+ 单测覆盖。详见 `docs/COMBAT.md`。
+- **执行**（`src/lib/combat/execute.ts`）：把动作翻译成点击。法术书/Buff 直调
+  `getElementById`，其余经 `click`/`qs`（纯数字 id 回落 `getElementById`），物品/卷轴/魔药走物品栏 `.bti3`（与原版“判哪点哪”同构）。
 - **驱动**（`src/lib/battle.ts`）：劫持 `api_call/api_response`（游戏动态查找，
   覆盖有效），响应→`eventEnd`→统计→`main()` 下一轮。发包三道门会被游戏静默吞，
   看门狗（8s 补点／25s 重载）兜底。
 - **UI**（`src/ui/`）：Svelte 14 页设置面板＋战斗内状态条。详见下。
-- **分层约束**：纯逻辑（`combat/decide`、`expr`、`stats`）配单测；DOM 只在
-  `snapshot.ts`/`execute.ts`/`battle.ts`/`meta.ts` 碰。
+- **分层约束**：纯逻辑（`combat/decide`、`expr`、`stats`）配单测；DOM 触点在
+  `snapshot.ts`/`execute.ts`/`battle.ts`/`meta.ts`，另有 `conditions.ts`（读物品栏/效果栏）、`main.ts`（挂载按钮）、`dom.ts` 本体及 `ui/`。
 
 ## 目录结构
 
@@ -55,6 +57,7 @@ src/
     ConditionEditor.svelte  # 条件文本编辑器（即时编译校验）
     tabs/*.svelte    # 14 页（Main/Item/Channel/Buff/Debuff/Skill/Scroll/
                      #   Infusion/Alarm/Rule/Drop/Usage/About/Feedback）
+                     # 另有 lib/dom.ts、defaults.ts、types.ts、storage-keys.ts、template.ts、legacy-import.ts 等，仅列主要文件
 scripts/cdp/         # 浏览器运维脚本（TS，npx tsx 运行，详见其 README）
 ```
 
@@ -69,7 +72,10 @@ scripts/cdp/         # 浏览器运维脚本（TS，npx tsx 运行，详见其 R
 | `ahvauto-stats2/battles2/curBattle2`                            | 数据收集（总数/单场/进行中）                                 |
 | `ahvauto-arena/encounter`                                       | 竞技场队列＋token／遭遇战计数                                |
 | `ahvauto-logs/backup`                                           | 运行日志环形缓冲／配置备份                                   |
+| `ahvauto-staminaLostLog`                                        | 体力消耗记录                                                 |
 | IDB `ahvauto-debug`                                             | `records`（请求/响应配对，keyPath seq）、`turns`（回合现场） |
+
+`battleCode` 为旧键，仅启动清理（`kvDel`），无现行写入。
 
 注意：游戏页把 `localStorage.setItem` 包了一层丢弃 `hvAA*` key，
 全仓一律直接赋值（`store.ts` 有注释）。
