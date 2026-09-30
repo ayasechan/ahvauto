@@ -194,7 +194,7 @@ describe('老格式迁移', () => {
   });
   it('migrateOptions 走完整份', () => {
     const raw: Record<string, unknown> = {
-      main: { defendCondition: { 0: ['hp,2,20'] }, delay: 200 },
+      main: { defendCondition: { 0: ['hp,2,20'] }, spellDelay: 200 },
       buff: { condition: 'mp > 10', conditions: { Pr: { 0: ['mp,1,30'] } } },
       infusion: { enabled: false, condition: {} },
     };
@@ -202,7 +202,7 @@ describe('老格式迁移', () => {
     const main = raw.main as Record<string, unknown>;
     const buff = raw.buff as Record<string, { [k: string]: unknown }>;
     assert.equal(main.defendCondition, '(hp < 20)');
-    assert.equal(main.delay, 200);
+    assert.equal(main.spellDelay, 200);
     assert.equal(buff.condition, 'mp > 10');
     assert.equal(buff.conditions.Pr, '(mp > 30)');
     assert.equal((raw.infusion as Record<string, unknown>).condition, '');

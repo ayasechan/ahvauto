@@ -69,7 +69,7 @@ export async function requestRetry<T = Document>(
 
 export const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
-/** 延迟抖动：原 delay 取 50%-150% */
+/** 延迟抖动：原发包延迟取 50%-150% */
 export function jitter(baseMs: number): number {
   if (baseMs <= 0) return 0;
   return (baseMs * (Math.random() * 100 + 50)) / 100;

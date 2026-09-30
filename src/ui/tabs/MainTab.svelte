@@ -98,8 +98,8 @@
     <label><input type="checkbox" bind:checked={$options.main.hpFloorPause} /><b>{L('m.hpFloor')} <input class="num" type="number" bind:value={$options.main.hpFloor} />{L('m.hpFloorDo')}</b></label>
   </div>
   <div class="row">
-    <b>{L('m.delay')}</b>: 1. {L('m.skills')} <input class="num" type="number" bind:value={$options.main.delay} />ms
-    2. {L('m.other')} <input class="num" type="number" bind:value={$options.main.delay2} />ms {L('m.jitter')}
+    <b>{L('m.delay')}</b>: 1. {L('m.skills')} <input class="num" type="number" bind:value={$options.main.spellDelay} />ms
+    2. {L('m.other')} <input class="num" type="number" bind:value={$options.main.noSpellDelay} />ms {L('m.jitter')}
   </div>
   <div class="row">
     {L('m.style')}:

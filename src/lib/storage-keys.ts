@@ -12,8 +12,8 @@ export const LOGS_KEY = `${STORAGE_NS}logs`;
 export const BACKUP_KEY = `${STORAGE_NS}backup`;
 
 /** sessionStorage：发包延迟（注入脚本与 userscript 两侧同读） */
-export const SESSION_DELAY_KEY = `${STORAGE_NS}delay`;
-export const SESSION_DELAY2_KEY = `${STORAGE_NS}delay2`;
+export const SPELL_DELAY_KEY = `${STORAGE_NS}spell-delay`;
+export const NO_SPELL_DELAY_KEY = `${STORAGE_NS}nospell-delay`;
 
 /** IDB 录制库（仅 recorder.ts 带版本号 open） */
 export const IDB_NAME = `${STORAGE_NS}debug`;

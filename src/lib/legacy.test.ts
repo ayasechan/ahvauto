@@ -74,6 +74,8 @@ describe('旧配置导入', () => {
     assert.equal(o.main.fightingStyle, '5');
     assert.equal(o.main.encounter, true);
     assert.equal(o.main.turnOnSS, false);
+    assert.equal(o.main.spellDelay, 200);
+    assert.equal(o.main.noSpellDelay, 30);
     assert.deepEqual(o.rule.weights, { Sle: 0, Bl: -3, Im: 10, MN: 4, Si: -10, CM: 3 });
     assert.equal(o.rule.reverse, true);
     assert.equal(o.dropQuality, '6');

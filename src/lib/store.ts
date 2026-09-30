@@ -20,6 +20,14 @@ function loadOptions(): HvOptions {
       if (parsed.version !== VERSION) {
         return { ...defaultOptions(), lang: parsed.lang ?? '0' };
       }
+      // 字段改名迁移：delay/delay2 → spellDelay/noSpellDelay（旧值优先保留）
+      const pm = (parsed as unknown as Record<string, unknown>).main as Record<string, unknown> | undefined;
+      if (pm) {
+        if (typeof pm.spellDelay !== 'number' && typeof pm.delay === 'number') pm.spellDelay = pm.delay;
+        if (typeof pm.noSpellDelay !== 'number' && typeof pm.delay2 === 'number') pm.noSpellDelay = pm.delay2;
+        delete pm.delay;
+        delete pm.delay2;
+      }
       const merged = { ...defaultOptions(), ...parsed };
       migrateOptions(merged as unknown as Record<string, unknown>);
       return merged;

@@ -62,8 +62,8 @@ export interface MainOptions {
   /** 保底停机：血量 ≤ hpFloor 即暂停＋告警（默认开 15%） */
   hpFloorPause: boolean;
   hpFloor: number;
-  delay: number;
-  delay2: number;
+  spellDelay: number;
+  noSpellDelay: number;
   fightingStyle: string;
   debug: boolean;
 }
