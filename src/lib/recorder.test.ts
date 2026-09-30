@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { gzipStr, gunzip, keysToDelete, decodeRecordRow, decodeTurnRow } from './recorder';
+import { gzipStr, gunzip, keysToDelete, decodeRecordRow, decodeTurnRow, handleRec } from './recorder';
 
 describe('recorder gzip', () => {
   it('回环', async () => {
@@ -53,5 +53,15 @@ describe('keysToDelete', () => {
   });
   it('超限删最老', () => {
     assert.deepEqual(keysToDelete([1, 2, 3, 4, 5], 3), [1, 2]);
+  });
+});
+
+describe('handleRec', () => {
+  it('坏输入静默跳过（与统计跨进程文件共享，断言只验不抛）', () => {
+    assert.doesNotThrow(() => handleRec('bogus', null, 0));
+    assert.doesNotThrow(() => handleRec('res', null, 0));
+    assert.doesNotThrow(() => handleRec('res', { status: 200, body: null }, 0));
+    assert.doesNotThrow(() => handleRec('res', { status: 200, body: { textlog: [] } }, 0));
+    assert.doesNotThrow(() => handleRec('req', { a: 1 }, 0));
   });
 });

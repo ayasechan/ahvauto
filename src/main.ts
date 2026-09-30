@@ -1,6 +1,6 @@
 import { mount } from 'svelte';
 import App from './ui/App.svelte';
-import { panelOpen, options, snapshotOptions, battle, kvDel } from './lib/store';
+import { panelOpen, options, snapshotOptions, battle, kvDel, isDisabled } from './lib/store';
 import { initLogger, setLogLevel, logger } from './lib/logger';
 import { qs, el } from './lib/dom';
 import { tr } from './lib/i18n';
@@ -40,7 +40,7 @@ function mountPauseButton(): void {
   if (!snapshotOptions().main.pauseButton) return;
   const button = box2.appendChild(el('button'));
   button.className = 'pauseChange';
-  button.textContent = tr(snapshotOptions().lang, 'pause');
+  button.textContent = tr(snapshotOptions().lang, isDisabled() ? 'resume' : 'pause');
   button.onclick = () => pauseChange();
 }
 

@@ -4,17 +4,17 @@ import { qs, qsa, el, click as rawClick } from './dom';
 import { checkCondition } from './conditions';
 import { setAlarm } from './notify';
 import { logger } from './logger';
-import { installRecordBridge, recordTurn } from './recorder';
+import { installRecordBridge, recordTurn, handleRec } from './recorder';
 import { pause, resume, after } from './fsm';
 import { requestRetry, httpGet, sleep, todayKey } from './http';
-import { beginBattle, beginRound, endBattle, addCost, addKills, getTotals } from './stats';
+import { beginBattle, beginRound, endBattle, addCost, addKills, getTotals, recordMode } from './stats';
 import type { Totals, CurBattle } from './stats';
 import type { Action } from './combat/types';
 import { readSnapshot, resolveTarget } from './combat/snapshot';
 import { decide, shouldEmergencyPause } from './combat/decide';
 import { executeAction, describeAction } from './combat/execute';
 import { tt } from './i18n';
-import { SESSION_DELAY_KEY, SESSION_DELAY2_KEY, REC_MARKER } from './storage-keys';
+import { SPELL_DELAY_KEY, NO_SPELL_DELAY_KEY } from './storage-keys';
 
 function patchBattle(partial: Partial<import('./types').BattleState>): void {
   battle.update((b) => ({ ...b, ...partial }));
@@ -36,12 +36,12 @@ function goto(): void {
 export function pauseChange(): void {
   if (!isDisabled()) {
     const btn = qs('.pauseChange');
-    if (btn) btn.innerHTML = '继续';
+    if (btn) btn.innerHTML = tt('resume');
     pause('button');
     patchBattle({ end: true });
   } else {
     const btn = qs('.pauseChange');
-    if (btn) btn.innerHTML = '暂停';
+    if (btn) btn.innerHTML = tt('pause');
     resume('button');
     void main();
   }
@@ -198,7 +198,7 @@ function battleInfo(): void {
  * 数据收集 v2 接入（capture-agent，只读 DOM，失败静默，绝不挡战斗）：
  * - 施法成本 MP/OC：老版在 eventStart 读技能 DOM 的 onmouseover（legacy L2167-2173）。
  *   新架构等价点是 mainInner 里 decide 命中法术动作时读同一 DOM；
- *   本函数同步写 kv，响应侧 recordBattleTurn（postMessage 任务）必然后到，
+ *   本函数同步写 kv，响应侧 handleRec 直调 recordBattleTurn（同任务内、eventEnd 点击前），
  *   故成本先落盘、回合统计后合并，是同一 turn 的 kv 对象，无竞态。
  * - 怪/Boss 构成：终局 endBattle 调用前以本局 monsterAll/bossAll 补记，随行落盘。
  */
@@ -255,6 +255,17 @@ function recordEndKills(): void {
   } catch {
     /* ignore */
   }
+}
+
+/** 页世界作用域：油猴下用 unsafeWindow 直接挂钩（真闭包，无需序列化），直接运行则走 window。 */
+function pageScope(): Record<string, unknown> {
+  try {
+    const uw = (globalThis as unknown as { unsafeWindow?: Record<string, unknown> }).unsafeWindow;
+    if (uw) return uw;
+  } catch {
+    /* 取不到则回落 window */
+  }
+  return window as unknown as Record<string, unknown>;
 }
 
 /** Stamina 台账读（newRound 记账，供 Usage 面板展示；与 ui-agent 约定签名） */
@@ -464,6 +475,7 @@ async function mainInner(dbg: DebugSurface, trace: boolean): Promise<void> {
     },
   );
   recordSpellCost(decided.action);
+  recordMode(decided.action.kind);
   step('done');
 }
 
@@ -574,14 +586,13 @@ export function installReloader(): void {
   };
   document.body.appendChild(eventEnd);
 
-  sessionStorage[SESSION_DELAY_KEY] = String(opt.main.delay);
-  sessionStorage[SESSION_DELAY2_KEY] = String(opt.main.delay2);
-  const inject = el('script');
-  inject.textContent = `(${((): void => {
-    const w = window as unknown as Record<string, unknown>;
+  sessionStorage[SPELL_DELAY_KEY] = String(opt.main.spellDelay);
+  sessionStorage[NO_SPELL_DELAY_KEY] = String(opt.main.noSpellDelay);
+  // 页世界钩子经 unsafeWindow/window 直接赋值，真闭包：常量直接引用，无序列化陷阱。
+  const w = pageScope();
     w['api_call'] = function (b: XMLHttpRequest, a: { mode: string; skill: number }, d: () => void): void {
-      const delay = Number(sessionStorage.getItem('${SESSION_DELAY_KEY}') ?? 200);
-      const delay2 = Number(sessionStorage.getItem('${SESSION_DELAY2_KEY}') ?? 30);
+      const spellDelay = Number(sessionStorage.getItem(SPELL_DELAY_KEY) ?? 200);
+      const noSpellDelay = Number(sessionStorage.getItem(NO_SPELL_DELAY_KEY) ?? 30);
       (window as unknown as Record<string, unknown>)['info'] = a;
       // 发包序号：req/res 同号，录制侧按 seq 配对。存页面全局，reload 清零。
       let seq = 0;
@@ -603,7 +614,7 @@ export function installReloader(): void {
         /* 观测不影响战斗 */
       }
       try {
-        window.postMessage({ source: '${REC_MARKER}', kind: 'req', seq, payload: a }, '*');
+        handleRec('req', a, seq);
       } catch {
         /* 录制上报失败不影响战斗 */
       }
@@ -626,7 +637,7 @@ export function installReloader(): void {
         document.getElementById('eventEnd')?.click();
       };
       document.getElementById('eventStart')?.click();
-      const base = a.mode === 'magic' && a.skill >= 200 ? delay : delay2;
+      const base = a.mode === 'magic' && a.skill >= 200 ? spellDelay : noSpellDelay;
       if (base <= 0) b.send(JSON.stringify(a));
       else setTimeout(() => b.send(JSON.stringify(a)), (base * (Math.random() * 100 + 50)) / 100);
     };
@@ -636,7 +647,7 @@ export function installReloader(): void {
         if (b.status === 200) {
           const a = JSON.parse(b.responseText) as { login?: unknown; error?: unknown; reload?: unknown };
           try {
-            window.postMessage({ source: '${REC_MARKER}', kind: 'res', seq: seq ?? 0, payload: { status: b.status, body: a } }, '*');
+            handleRec('res', { status: b.status, body: a }, seq ?? 0);
           } catch {
             /* 录制上报失败不影响战斗 */
           }
@@ -648,7 +659,7 @@ export function installReloader(): void {
           }
         } else {
           try {
-            window.postMessage({ source: '${REC_MARKER}', kind: 'res', seq: seq ?? 0, payload: { status: b.status, body: null } }, '*');
+            handleRec('res', { status: b.status, body: null }, seq ?? 0);
           } catch {
             /* ignore */
           }
@@ -657,8 +668,6 @@ export function installReloader(): void {
       }
       return false;
     };
-  }).toString()})()`;
-  document.head.appendChild(inject);
 }
 
 export { options };

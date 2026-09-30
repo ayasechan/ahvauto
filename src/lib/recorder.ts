@@ -312,9 +312,25 @@ export async function clearRecords(): Promise<void> {
   });
 }
 
+/** 录制分发（纯本世界直调）：req/res 配对写 IDB，res 另喂统计（与 debug 开关无关，由 recordUsage 门控）。 */
+export function handleRec(kind: string, payload: unknown, seq = 0): void {
+  if (kind === 'req' || kind === 'res') void recordBattleEvent(kind, payload, seq);
+  // 数据收集走响应体
+  if (kind === 'res' && payload && typeof payload === 'object') {
+    try {
+      const body = (payload as { body?: unknown }).body as { textlog?: unknown[] } | undefined;
+      const raw = Array.isArray(body?.textlog) ? body.textlog : [];
+      const rows = raw.map((r) => (typeof r === 'string' ? r : (r as { t?: string }).t ?? ''));
+      if (rows.length > 0) recordBattleTurn(rows);
+    } catch {
+      /* 统计失败不影响战斗 */
+    }
+  }
+}
+
 /**
- * 页上下文→隔离世界的桥：注入脚本用 window.postMessage({source:'ahvauto-rec',...})
- * 上报 api_call/api_response（同 seq），隔离世界侧按 seq 配对写入 IDB。
+ * 消息桥（兼容保留）：页上下文用 window.postMessage({source:'ahvauto-rec',...})
+ * 上报时走本函数。直注时代钩子直接调 handleRec，不再经过 postMessage。
  */
 export function installRecordBridge(): void {
   window.addEventListener('message', (e: MessageEvent) => {
@@ -322,18 +338,6 @@ export function installRecordBridge(): void {
     // 不能用 source 做过滤，仅认 ahvauto-rec 标记（调试通道，无安全影响）。
     const d = e.data as { source?: string; kind?: string; seq?: number; payload?: unknown } | null;
     if (!d || d.source !== REC_MARKER) return;
-    const seq = typeof d.seq === 'number' ? d.seq : 0;
-    if (d.kind === 'req' || d.kind === 'res') void recordBattleEvent(d.kind, d.payload, seq);
-    // 数据收集走响应体（与 debug 录制开关无关，由 recordUsage 门控）
-    if (d.kind === 'res' && d.payload && typeof d.payload === 'object') {
-      try {
-        const body = (d.payload as { body?: unknown }).body as { textlog?: unknown[] } | undefined;
-        const raw = Array.isArray(body?.textlog) ? body.textlog : [];
-        const rows = raw.map((r) => (typeof r === 'string' ? r : (r as { t?: string }).t ?? ''));
-        if (rows.length > 0) recordBattleTurn(rows);
-      } catch {
-        /* 统计失败不影响战斗 */
-      }
-    }
+    handleRec(d.kind ?? '', d.payload, typeof d.seq === 'number' ? d.seq : 0);
   });
 }
