@@ -1,6 +1,6 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseTurn, stripHtml, battlesToCsv, beginBattle, beginRound, endBattle, recordBattleTurn, getBattles, getTotals, getCurBattle, clearStats, recState, addCost, addKills, takenAvg, takenPhysAvg, takenMagAvg } from './stats';
+import { parseTurn, stripHtml, battlesToCsv, beginBattle, beginRound, endBattle, recordBattleTurn, getBattles, getTotals, getCurBattle, clearStats, recState, addCost, addKills, recordMode, normalizeDrop, dropColorKind, takenAvg, takenPhysAvg, takenMagAvg } from './stats';
 import type { BattleRow, Totals, CurBattle } from './stats';
 import { options, kvSet } from './store';
 
@@ -111,7 +111,7 @@ describe('parseTurn 真实数据', () => {
     assert.equal(s.takenPhys, 0);
     assert.equal(s.takenCount, 1);
   });
-  it('承伤物/魔拆分：pierc|crush|slash 进物理组，其余进魔法组', () => {
+  it('承伤物/魔拆分：pierc|crush|slash 进物理组，其余进魔法组（均值各除各的 count）', () => {
     const { stat: s } = parseTurn([
       'Kumakura Shouko hits you, causing 830 points of Piercing damage.',
       'Type Delta Astrea glances you, causing 600 points of Slashing damage.',
@@ -121,9 +121,11 @@ describe('parseTurn 真实数据', () => {
     assert.equal(s.takenCount, 3);
     assert.equal(s.takenPhys, 830 + 600);
     assert.equal(s.takenMag, 4829);
+    assert.equal(s.takenPhysCount, 2);
+    assert.equal(s.takenMagCount, 1);
     assert.equal(takenAvg(s), Math.round((830 + 600 + 4829) / 3));
-    assert.equal(takenPhysAvg(s), Math.round((830 + 600) / 3));
-    assert.equal(takenMagAvg(s), Math.round(4829 / 3));
+    assert.equal(takenPhysAvg(s), Math.round((830 + 600) / 2));
+    assert.equal(takenMagAvg(s), Math.round(4829 / 1));
     assert.equal(takenAvg({ taken: 0, takenCount: 0 }), 0);
   });
   it('Vital Theft 行计伤害（无 points-of 格式，独立规则）', () => {
@@ -212,16 +214,16 @@ describe('parseTurn 真实数据', () => {
   it('stripHtml 去标签', () => {
     assert.equal(stripHtml('a<span style="x">[127 Credits]</span>b'), 'a[127 Credits]b');
   });
-  it('battlesToCsv 转义与 BOM（含 monster/boss 列）', () => {
+  it('battlesToCsv 转义与 BOM（含 code/monster/boss 列）', () => {
     const rows: BattleRow[] = [
-      { key: '09/27', startedAt: 0, type: 'ar', result: 'victory', rounds: 3, turns: 9, damage: 100, taken: 5, exp: 10, credit: 2, kills: 1, monsters: 8, bosses: 1, drops: [] },
-      { key: '09/27', startedAt: 1, type: 'ba', result: 'defeat', rounds: 1, turns: 10, damage: 200, taken: 6, exp: 20, credit: 0, kills: 2, monsters: 3, bosses: 0, drops: ['a,b', 'c"d'] },
+      { key: '09/27', startedAt: 0, endedAt: 1, type: 'ar', code: 'AR 1/35', result: 'victory', rounds: 3, turns: 9, damage: 100, taken: 5, exp: 10, credit: 2, kills: 1, monsters: 8, bosses: 1, drops: [], modes: {}, detail: null },
+      { key: '09/27', startedAt: 1, endedAt: 2, type: 'ba', code: 'BA 1/1', result: 'defeat', rounds: 1, turns: 10, damage: 200, taken: 6, exp: 20, credit: 0, kills: 2, monsters: 3, bosses: 0, drops: ['a,b', 'c"d'], modes: {}, detail: null },
     ];
     const csv = battlesToCsv(rows);
     assert.equal(csv.charCodeAt(0), 0xfeff);
     const lines = csv.split('\n');
-    assert.equal(lines[0].replace(/^\uFEFF/, ''), 'time,type,result,rounds,turns,damage,taken,kills,monster,boss,exp,credit,drops');
-    assert.ok(lines[1].includes(',ar,victory,3,9,100,5,1,8,1,10,2,'));
+    assert.equal(lines[0].replace(/^\uFEFF/, ''), 'time,type,code,result,rounds,turns,damage,taken,kills,monster,boss,exp,credit,drops');
+    assert.ok(lines[1].includes(',ar,AR 1/35,victory,3,9,100,5,1,8,1,10,2,'));
     assert.ok(lines[2].includes('"a,b; c""d"'));
   });
   it('多轮汇成一局：类型/轮数/结果', () => {
@@ -277,5 +279,74 @@ describe('parseTurn 真实数据', () => {
     assert.equal(rows.length, 1);
     assert.equal(rows[0].type, '?');
     assert.equal(rows[0].damage, 10);
+  });
+  it('格挡/招架计入 evade（原口径）', () => {
+    assert.equal(parseTurn(['You parry the attack from Goblin.']).stat.evades, 1);
+    assert.equal(parseTurn(['You block the attack from Goblin.']).stat.evades, 1);
+  });
+  it('掉落颜色识别（红装/水晶/金币）', () => {
+    assert.equal(dropColorKind('<span style="color:#FF0000">[Peerless Sword]</span>'), 'equip');
+    assert.equal(dropColorKind('<span style="color:rgb(186, 5, 180)">[Crystal]</span>'), 'crystal');
+    assert.equal(dropColorKind('<span style="color:#A89000">[127 Credits]</span>'), 'credit');
+    assert.equal(dropColorKind('plain text'), '');
+  });
+  it('红装折叠 Equipment of 首词＋档位/文本过滤', () => {
+    assert.deepEqual(normalizeDrop('Peerless Sword of Doom', 'equip', ''), ['Equipment of Peerless']);
+    assert.deepEqual(normalizeDrop('Peerless Sword of Doom', 'equip', '6'), ['Equipment of Peerless']);
+    assert.equal(normalizeDrop('Average Sword of Doom', 'equip', '6'), null);
+    assert.equal(normalizeDrop('Peerless Sword of Doom', 'equip', 'Epic'), null);
+    assert.deepEqual(normalizeDrop('Peerless Sword of Doom', 'equip', 'Peerless'), ['Equipment of Peerless']);
+  });
+  it('水晶 Nx 展开，Credit 不进 drops', () => {
+    assert.deepEqual(normalizeDrop('2x Crystal of Fire', 'crystal'), ['Crystal of Fire', 'Crystal of Fire']);
+    assert.deepEqual(normalizeDrop('Crystal of Fire', 'crystal'), ['Crystal of Fire']);
+    assert.equal(normalizeDrop('127 Credits', 'credit'), null);
+  });
+  it('红装行经 parseTurn 折叠（含 HTML 颜色）', () => {
+    const { drops } = parseTurn(['Goblin dropped <span style="color:#FF0000">[Peerless Sword of Doom]</span>']);
+    assert.deepEqual(drops, ['Equipment of Peerless']);
+  });
+  it('recordMode 累计动作模式（totals＋cur 双写）', () => {
+    beginBattle('ar', 'AR 1/35');
+    recordMode('defend');
+    recordMode('defend');
+    recordMode('attack');
+    assert.deepEqual(getTotals().modes, { defend: 2, attack: 1 });
+    assert.deepEqual(getCurBattle()?.modes, { defend: 2, attack: 1 });
+    endBattle('victory');
+    assert.deepEqual(getBattles()[0].modes, { defend: 2, attack: 1 });
+  });
+  it('recordEach 开时落盘单场详情，关时为 null', () => {
+    options.update((o) => ({ ...o, main: { ...o.main, recordEach: true } }));
+    try {
+      beginBattle('ar', 'AR 1/35');
+      recordBattleTurn(['Y was hit for 100 Dark damage']);
+      endBattle('victory');
+      const row = getBattles()[0];
+      assert.equal(row.code, 'AR 1/35');
+      assert.ok(row.endedAt >= row.startedAt);
+      assert.deepEqual(row.detail?.damageByType, { Dark: 100 });
+    } finally {
+      options.update((o) => ({ ...o, main: { ...o.main, recordEach: false } }));
+    }
+    beginBattle('ba', 'BA 1/1');
+    recordBattleTurn(['Y was hit for 10 Dark damage']);
+    endBattle('defeat');
+    const rows = getBattles();
+    assert.equal(rows[rows.length - 1].detail, null);
+    assert.equal(rows[rows.length - 1].code, 'BA 1/1');
+  });
+  it('旧存档回填：缺字段补默认', () => {
+    kvSet('stats2', { turns: 5 });
+    const t = getTotals();
+    assert.equal(t.turns, 5);
+    assert.deepEqual(t.modes, {});
+    assert.equal(t.takenPhysCount, 0);
+    assert.equal(t.takenMagCount, 0);
+    kvSet('battles2', [{ key: 'k', startedAt: 7, type: 'ar', result: 'victory', rounds: 1, turns: 1, damage: 1, taken: 0, exp: 0, credit: 0, kills: 0, monsters: 0, bosses: 0, drops: [] }]);
+    const b = getBattles()[0];
+    assert.equal(b.code, '');
+    assert.equal(b.endedAt, 7);
+    assert.equal(b.detail, null);
   });
 });

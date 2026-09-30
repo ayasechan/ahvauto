@@ -24,6 +24,9 @@ export interface TurnStat {
   /** 承伤物/魔拆分（老 hurt._ptotal/_mtotal）：pierc|crush|slash→物理，其余→魔法 */
   takenPhys: number;
   takenMag: number;
+  /** 物/魔各自计数（老 hurt._pcount/_mcount）：均值各除各的 */
+  takenPhysCount: number;
+  takenMagCount: number;
   /** 承伤次数（老 hurt._count）：均值读时算（takenAvg），不存 avg 字段 */
   takenCount: number;
   /** 护盾吸收掉的量（未实际扣血，仅统计） */
@@ -51,13 +54,31 @@ export interface Totals extends TurnStat {
   /** 生涯击杀怪/Boss 数（老 self._monster/_boss）：终局由 capture-agent 经 addKills 补 */
   monsters: number;
   bosses: number;
+  /** 动作模式计数（老 stats.self[mode]：attack/defend…），由 recordMode 在动作派发时累加 */
+  modes: Record<string, number>;
+  /** 累计开始时间（老 self._startTime），首轮落盘时记 */
+  startedAt: number;
+}
+
+/** 单场详情分布（仅 recordEach 开时落盘，关时为 null 以控体积） */
+export interface BattleDetail {
+  damageByType: Record<string, number>;
+  takenByType: Record<string, number>;
+  casts: Record<string, number>;
+  itemsUsed: Record<string, number>;
+  restoreBySource: Record<string, number>;
+  proficiency: Record<string, number>;
 }
 
 export interface BattleRow {
   key: string;
   startedAt: number;
+  /** 终局时间（老 self._endTime） */
+  endedAt: number;
   /** 战斗类型：ar 竞技场 / rb RB / gr Grindfest / iw Item World / ba 遭遇战 / ? 未知 */
   type: string;
+  /** 战斗代号（老 __name=battleCode，如 ar 1/35） */
+  code: string;
   /** 胜负：victory / defeat / interrupted（被新战斗顶掉） */
   result: string;
   /** 包含轮数 */
@@ -72,6 +93,10 @@ export interface BattleRow {
   monsters: number;
   bosses: number;
   drops: string[];
+  /** 本局动作模式计数（attack/defend…，与 totals.modes 同口径） */
+  modes: Record<string, number>;
+  /** 单场详情分布（recordEach 关时为 null） */
+  detail: BattleDetail | null;
 }
 
 const emptyTurn = (): TurnStat => ({
@@ -84,6 +109,8 @@ const emptyTurn = (): TurnStat => ({
   takenByType: {},
   takenPhys: 0,
   takenMag: 0,
+  takenPhysCount: 0,
+  takenMagCount: 0,
   takenCount: 0,
   absorbed: 0,
   evades: 0,
@@ -102,7 +129,7 @@ const emptyTurn = (): TurnStat => ({
   buffs: {},
 });
 
-const emptyTotals = (): Totals => ({ ...emptyTurn(), turns: 0, battles: 0, monsters: 0, bosses: 0 });
+const emptyTotals = (): Totals => ({ ...emptyTurn(), turns: 0, battles: 0, monsters: 0, bosses: 0, modes: {}, startedAt: 0 });
 
 const bump = (rec: Record<string, number>, key: string, n = 1): void => {
   rec[key] = (rec[key] ?? 0) + n;
@@ -117,6 +144,10 @@ interface RuleCtx {
   drops: string[];
   /** 本轮最近一次施法/用药名（You cast/use 行），供无显式来源的回复行归因 */
   lastAction: string | null;
+  /** 本行掉落 span 颜色种类（equip/crystal/credit/''未知），供 dropItem 折叠 */
+  colorKind: string;
+  /** 掉落品质过滤（原 dropQuality：数字档位或文本子串），供 dropItem */
+  dropQuality: string;
 }
 
 interface Rule {
@@ -126,16 +157,26 @@ interface Rule {
   apply: (ctx: RuleCtx, m: RegExpMatchArray, text: string) => void;
 }
 
-/** 物理承伤判定（老口径 L3390：pierc|crush|slash；元素名先 replace("ing","") 归一化再判） */
+/** 物理承伤判定（piercing/crushing/slashing；元素名先去 "ing" 尾再判，与老口径一致） */
 const PHYS_RE = /pierc|crush|slash/i;
+
+/** 元素是否属物理组（UI 分组展示与 addTaken 同口径，单一起源） */
+export function isPhysicalElem(elem: string): boolean {
+  return PHYS_RE.test((elem ?? '').replace('ing', ''));
+}
 
 /** 承伤统一入口：总量＋按元素分＋物/魔拆分＋计数（takenByType 键保持原文，不归一化） */
 function addTaken(stat: TurnStat, n: number, elem: string): void {
   stat.taken += n;
   stat.takenCount++;
   bump(stat.takenByType, elem, n);
-  if (PHYS_RE.test(elem.replace('ing', ''))) stat.takenPhys += n;
-  else stat.takenMag += n;
+  if (isPhysicalElem(elem)) {
+    stat.takenPhys += n;
+    stat.takenPhysCount = (stat.takenPhysCount ?? 0) + 1;
+  } else {
+    stat.takenMag += n;
+    stat.takenMagCount = (stat.takenMagCount ?? 0) + 1;
+  }
 }
 
 /**
@@ -159,14 +200,14 @@ export function takenAvg(s: Pick<TurnStat, 'taken' | 'takenCount'>): number {
   return avgDiv(s.taken, s.takenCount ?? 0);
 }
 
-/** 物理承伤均值（读时算） */
-export function takenPhysAvg(s: Pick<TurnStat, 'takenPhys' | 'takenCount'>): number {
-  return avgDiv(s.takenPhys ?? 0, s.takenCount ?? 0);
+/** 物理承伤均值（老 hurt._pavg 口径：round(_ptotal/_pcount)，无样本为 0） */
+export function takenPhysAvg(s: Pick<TurnStat, 'takenPhys' | 'takenPhysCount'>): number {
+  return avgDiv(s.takenPhys ?? 0, s.takenPhysCount ?? 0);
 }
 
-/** 魔法承伤均值（读时算） */
-export function takenMagAvg(s: Pick<TurnStat, 'takenMag' | 'takenCount'>): number {
-  return avgDiv(s.takenMag ?? 0, s.takenCount ?? 0);
+/** 魔法承伤均值（老 hurt._mavg 口径：round(_mtotal/_mcount)，无样本为 0） */
+export function takenMagAvg(s: Pick<TurnStat, 'takenMag' | 'takenMagCount'>): number {
+  return avgDiv(s.takenMag ?? 0, s.takenMagCount ?? 0);
 }
 
 /**
@@ -266,7 +307,7 @@ const RULES: Rule[] = [
   },
   {
     name: 'evade',
-    re: /You evade the attack|misses the attack against you/,
+    re: /You (evade|parry|block) the attack|misses the attack against you/,
     apply: ({ stat }) => {
       stat.evades++;
     },
@@ -340,8 +381,9 @@ const RULES: Rule[] = [
   {
     name: 'dropItem',
     re: /dropped \[(.+)\]/,
-    apply: ({ drops }, m) => {
-      if (!/credits?/i.test(m[1])) drops.push(m[1]);
+    apply: ({ drops, colorKind, dropQuality }, m) => {
+      const folded = normalizeDrop(m[1], colorKind, dropQuality);
+      if (folded) drops.push(...folded);
     },
   },
   {
@@ -393,10 +435,63 @@ const RULES: Rule[] = [
   },
 ];
 
-/** 纯函数：解析一轮（一次响应）的 textlog 行 → 统计＋掉落名。 */
-export function parseTurn(lines: string[]): { stat: TurnStat; drops: string[] } {
-  const ctx: RuleCtx = { stat: emptyTurn(), drops: [], lastAction: null };
+/**
+ * 掉落名归一化（老 dropMonitor 口径）：
+ * - 红装（colorKind=equip）：按 dropQuality 过滤并折叠为 `Equipment of <首词>`；
+ *   dropQuality 为数字 0-7 时作起始档位，为文本时作子串匹配，为空时不过滤；
+ *   未命中档位返回 null（过滤掉，不计入）。
+ * - 紫水晶（colorKind=crystal）：`Nx Crystal of Y` 展开为 N 个单名。
+ * - 未知颜色：不断言品质，原样返回（纯文本行行为不变）。
+ * - Credit 行返回 null（另有 credit 规则记账，不进 drops）。
+ */
+export const DROP_QUALITY = ['Crude', 'Fair', 'Average', 'Superior', 'Exquisite', 'Magnificent', 'Legendary', 'Peerless'];
+
+export function normalizeDrop(name: string, colorKind: string, dropQuality = ''): string[] | null {
+  if (/credits?/i.test(name)) return null;
+  if (colorKind === 'crystal') {
+    const nx = name.match(/^(\d+)x (Crystal of \w+)$/);
+    if (nx) return Array(Number(nx[1])).fill(nx[2]);
+    const single = name.match(/^(Crystal of \w+)$/);
+    return [single ? single[1] : name];
+  }
+  if (colorKind === 'equip') {
+    const q = (dropQuality ?? '').trim();
+    const asNum = Number(q);
+    let start = 0;
+    if (q !== '' && Number.isInteger(asNum) && asNum >= 0 && asNum < DROP_QUALITY.length) {
+      start = asNum;
+    } else if (q !== '') {
+      if (!name.toLowerCase().includes(q.toLowerCase())) return null;
+    }
+    for (let j = start; j < DROP_QUALITY.length; j++) {
+      if (name.includes(DROP_QUALITY[j])) {
+        const first = name.match(/^\w+/)?.[0] ?? name;
+        return [`Equipment of ${first}`];
+      }
+    }
+    return q === '' ? [name] : null;
+  }
+  return [name];
+}
+
+/** 掉落 span 颜色 → 种类（老版按计算样式 rgb 比对：红装/紫水晶/金币） */
+export function dropColorKind(raw: string): string {
+  const m = raw.match(/#([0-9a-fA-F]{6})|rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/);
+  if (!m) return '';
+  let hex: string;
+  if (m[1]) hex = m[1].toLowerCase();
+  else hex = [m[2], m[3], m[4]].map((v) => Number(v).toString(16).padStart(2, '0')).join('');
+  if (hex === 'ff0000') return 'equip';
+  if (hex === 'ba05b4') return 'crystal';
+  if (hex === 'a89000') return 'credit';
+  return '';
+}
+
+/** 纯函数：解析一轮（一次响应）的 textlog 行 → 统计＋掉落名（raw 保留 HTML 以取掉落颜色）。 */
+export function parseTurn(lines: string[], dropQuality = ''): { stat: TurnStat; drops: string[] } {
+  const ctx: RuleCtx = { stat: emptyTurn(), drops: [], lastAction: null, colorKind: '', dropQuality };
   for (const raw of lines) {
+    ctx.colorKind = dropColorKind(raw);
     const t = stripHtml(raw).trim();
     if (!t) continue;
     for (const rule of RULES) {
@@ -407,11 +502,12 @@ export function parseTurn(lines: string[]): { stat: TurnStat; drops: string[] } 
       }
     }
   }
-  return ctx;
+  return { stat: ctx.stat, drops: ctx.drops };
 }
 
 function mergeTotals(t: Totals, s: TurnStat): void {
   t.turns++;
+  if (!t.startedAt) t.startedAt = Date.now();
   t.damage += s.damage;
   t.crits += s.crits;
   t.mpCost = (t.mpCost ?? 0) + s.mpCost;
@@ -419,6 +515,8 @@ function mergeTotals(t: Totals, s: TurnStat): void {
   t.taken += s.taken;
   t.takenPhys = (t.takenPhys ?? 0) + s.takenPhys;
   t.takenMag = (t.takenMag ?? 0) + s.takenMag;
+  t.takenPhysCount = (t.takenPhysCount ?? 0) + (s.takenPhysCount ?? 0);
+  t.takenMagCount = (t.takenMagCount ?? 0) + (s.takenMagCount ?? 0);
   t.takenCount = (t.takenCount ?? 0) + s.takenCount;
   t.absorbed += s.absorbed;
   t.evades += s.evades;
@@ -430,9 +528,10 @@ function mergeTotals(t: Totals, s: TurnStat): void {
   t.exp += s.exp;
   t.credit += s.credit;
   t.kills += s.kills;
-  // Totals-only 台账（monsters/bosses）不在 TurnStat 里，合并时只保底不累加
+  // Totals-only 台账（monsters/bosses/modes/startedAt）不在 TurnStat 里，合并时只保底不累加
   t.monsters ??= 0;
   t.bosses ??= 0;
+  t.modes ??= {};
   t.restoreBySource ??= {};
   for (const [k, v] of Object.entries(s.damageByType)) bump(t.damageByType, k, v);
   for (const [k, v] of Object.entries(s.takenByType)) bump(t.takenByType, k, v);
@@ -457,6 +556,14 @@ export interface CurBattle {
   monsters: number;
   bosses: number;
   drops: string[];
+  /** 本局分布累加（recordEach 开时随行落盘进 detail） */
+  damageByType: Record<string, number>;
+  takenByType: Record<string, number>;
+  casts: Record<string, number>;
+  itemsUsed: Record<string, number>;
+  restoreBySource: Record<string, number>;
+  proficiency: Record<string, number>;
+  modes: Record<string, number>;
 }
 
 const newCur = (type = '?', code = ''): CurBattle => ({
@@ -473,7 +580,44 @@ const newCur = (type = '?', code = ''): CurBattle => ({
   monsters: 0,
   bosses: 0,
   drops: [],
+  damageByType: {},
+  takenByType: {},
+  casts: {},
+  itemsUsed: {},
+  restoreBySource: {},
+  proficiency: {},
+  modes: {},
 });
+
+/** 旧存档回填（缺字段补默认，保证 UI bind 永不拿 undefined；原地修改） */
+function backfillTotals(t: Totals): Totals {
+  const d = emptyTotals();
+  const r = t as unknown as Record<string, unknown>;
+  for (const [k, v] of Object.entries(d)) {
+    if (r[k] === undefined) r[k] = v;
+  }
+  t.modes ??= {};
+  t.takenPhysCount ??= 0;
+  t.takenMagCount ??= 0;
+  return t;
+}
+
+function backfillCur(c: CurBattle): CurBattle {
+  const d = newCur(c.type, c.code);
+  const r = c as unknown as Record<string, unknown>;
+  for (const [k, v] of Object.entries(d)) {
+    if (r[k] === undefined) r[k] = v;
+  }
+  return c;
+}
+
+function backfillRow(b: BattleRow): BattleRow {
+  b.code ??= '';
+  b.endedAt ??= b.startedAt ?? 0;
+  b.modes ??= {};
+  if (b.detail === undefined) b.detail = null;
+  return b;
+}
 
 /**
  * 记录生命周期状态机（idle → open → idle）。
@@ -501,14 +645,32 @@ function battleKey(at: number): string {
 }
 
 function flushBattle(cur: CurBattle, result: string): void {
-  const totals = (kvGet('stats2', true) as Totals | null) ?? emptyTotals();
+  const totals = backfillTotals((kvGet('stats2', true) as Totals | null) ?? emptyTotals());
   totals.battles++;
   kvSet('stats2', totals);
+  backfillCur(cur);
+  let detail: BattleDetail | null = null;
+  try {
+    if (snapshotOptions().main.recordEach) {
+      detail = {
+        damageByType: { ...cur.damageByType },
+        takenByType: { ...cur.takenByType },
+        casts: { ...cur.casts },
+        itemsUsed: { ...cur.itemsUsed },
+        restoreBySource: { ...cur.restoreBySource },
+        proficiency: { ...cur.proficiency },
+      };
+    }
+  } catch {
+    detail = null;
+  }
   const list = (kvGet('battles2', true) as BattleRow[] | null) ?? [];
   list.push({
     key: battleKey(cur.startedAt),
     startedAt: cur.startedAt,
+    endedAt: Date.now(),
     type: cur.type,
+    code: cur.code ?? '',
     result,
     rounds: cur.rounds,
     turns: cur.turns,
@@ -520,6 +682,8 @@ function flushBattle(cur: CurBattle, result: string): void {
     monsters: cur.monsters ?? 0,
     bosses: cur.bosses ?? 0,
     drops: cur.drops,
+    modes: { ...cur.modes },
+    detail,
   });
   kvSet('battles2', list.slice(-50));
   kvDel('curBattle2');
@@ -557,20 +721,44 @@ export function endBattle(result: 'victory' | 'defeat'): void {
 }
 
 /**
- * 记录一轮战斗响应。rows 为该响应的 textlog 原始行（含 HTML）。
+ * 动作模式计数（老 stats.self[mode]）：在动作派发时调用（与 recordSpellCost 同模式），
+ * 同步累加 totals.modes + cur.modes。失败静默，绝不挡战斗。
+ */
+export function recordMode(kind: string): void {
+  try {
+    if (!kind) return;
+    const opt = snapshotOptions();
+    if (!opt.recordUsage) return;
+    const totals = backfillTotals((kvGet('stats2', true) as Totals | null) ?? emptyTotals());
+    bump(totals.modes, kind);
+    kvSet('stats2', totals);
+    const cur = kvGet('curBattle2', true) as CurBattle | null;
+    if (cur) {
+      backfillCur(cur);
+      bump(cur.modes, kind);
+      kvSet('curBattle2', cur);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * 记录一轮战斗响应。rows 为该响应的 textlog 原始行（含 HTML，颜色供掉落折叠用）。
  * 只累加 totals + 当前局；分段（开局/终局）由引擎经 beginBattle/beginRound/endBattle 驱动。
  * 仅在 recordUsage 开启时工作。
  */
 export function recordBattleTurn(rows: string[]): void {
   const opt = snapshotOptions();
   if (!opt.recordUsage) return;
-  const texts = rows.map((r) => stripHtml(r).trim()).filter(Boolean);
-  const { stat: st, drops } = parseTurn(texts);
-  const totals = (kvGet('stats2', true) as Totals | null) ?? emptyTotals();
+  const raw = rows.filter((r) => stripHtml(r).trim());
+  if (raw.length === 0) return;
+  const { stat: st, drops } = parseTurn(raw, (opt as unknown as { dropQuality?: string }).dropQuality ?? '');
+  const totals = backfillTotals((kvGet('stats2', true) as Totals | null) ?? emptyTotals());
   mergeTotals(totals, st);
   kvSet('stats2', totals);
 
-  const cur = (kvGet('curBattle2', true) as CurBattle | null) ?? newCur('?', '?');
+  const cur = backfillCur((kvGet('curBattle2', true) as CurBattle | null) ?? newCur('?', '?'));
   if (cur.rounds === 0 && cur.turns === 0) transition('turn:auto-open', 'turn-without-battle');
   cur.turns++;
   cur.damage += st.damage;
@@ -581,19 +769,26 @@ export function recordBattleTurn(rows: string[]): void {
   cur.monsters ??= 0;
   cur.bosses ??= 0;
   cur.drops.push(...drops);
+  for (const [k, v] of Object.entries(st.damageByType)) bump(cur.damageByType, k, v);
+  for (const [k, v] of Object.entries(st.takenByType)) bump(cur.takenByType, k, v);
+  for (const [k, v] of Object.entries(st.casts)) bump(cur.casts, k, v);
+  for (const [k, v] of Object.entries(st.itemsUsed)) bump(cur.itemsUsed, k, v);
+  for (const [k, v] of Object.entries(st.restoreBySource)) bump(cur.restoreBySource, k, v);
+  for (const [k, v] of Object.entries(st.proficiency)) bump(cur.proficiency, k, v);
   kvSet('curBattle2', cur);
 }
 
 export function getTotals(): Totals {
-  return (kvGet('stats2', true) as Totals | null) ?? emptyTotals();
+  return backfillTotals((kvGet('stats2', true) as Totals | null) ?? emptyTotals());
 }
 
 export function getBattles(): BattleRow[] {
-  return (kvGet('battles2', true) as BattleRow[] | null) ?? [];
+  return ((kvGet('battles2', true) as BattleRow[] | null) ?? []).map(backfillRow);
 }
 
 export function getCurBattle(): CurBattle | null {
-  return kvGet('curBattle2', true) as CurBattle | null;
+  const cur = kvGet('curBattle2', true) as CurBattle | null;
+  return cur ? backfillCur(cur) : null;
 }
 
 function csvCell(v: string | number): string {
@@ -603,11 +798,12 @@ function csvCell(v: string | number): string {
 
 /** 单场列表导出 CSV（时间正序，Excel 可直接打开，UTF-8 BOM）。 */
 export function battlesToCsv(rows: BattleRow[]): string {
-  const head = ['time', 'type', 'result', 'rounds', 'turns', 'damage', 'taken', 'kills', 'monster', 'boss', 'exp', 'credit', 'drops'];
+  const head = ['time', 'type', 'code', 'result', 'rounds', 'turns', 'damage', 'taken', 'kills', 'monster', 'boss', 'exp', 'credit', 'drops'];
   const lines = rows.map((b) =>
     [
       csvCell(new Date(b.startedAt).toLocaleString()),
       b.type ?? '?',
+      csvCell(b.code ?? ''),
       b.result ?? '?',
       b.rounds ?? 0,
       b.turns,

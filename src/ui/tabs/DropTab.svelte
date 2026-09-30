@@ -8,7 +8,10 @@
   let rows = $state<BattleRow[]>([]);
 
   function refresh() {
-    rows = getBattles();
+    const all = getBattles();
+    const q = ($options.dropQuality ?? '').trim();
+    // 数字档位在记录侧已过滤（normalizeDrop），展示侧只对文本做子串过滤
+    rows = q !== '' && !/^\d+$/.test(q) ? all.filter((b) => b.drops.some((d) => d.toLowerCase().includes(q.toLowerCase()))) : all;
   }
   function clear() {
     clearStats();
