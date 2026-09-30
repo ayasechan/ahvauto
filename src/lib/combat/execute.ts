@@ -5,22 +5,38 @@ import type { Action } from './types';
 export function describeAction(a: Action, names: Record<string, string> = {}): string {
   const nm = (id: string): string => names[id] ?? id;
   switch (a.kind) {
-    case 'none': return '等待';
-    case 'gem': return '宝石';
-    case 'item': return `物品 ${a.key}`;
-    case 'defend': return 'Defend';
-    case 'focus': return 'Focus';
-    case 'spirit': return a.on ? '开 Spirit' : '关 Spirit';
-    case 'scroll': return `卷轴 ${nm(a.id)}`;
-    case 'buff': return `Buff ${nm(a.id)}`;
-    case 'draught': return `药剂 ${nm(a.id)}`;
-    case 'infusion': return `魔药 ${nm(a.id)}`;
-    case 'imperil': return `Imperil → ${a.target}`;
-    case 'debuff': return `Debuff ${nm(a.id)} → ${a.target}`;
-    case 'magic': return `魔法 ${nm(a.id)} → ${a.target}`;
-    case 'weapon': return `${a.key} → ${a.target}`;
-    case 'attack': return `普攻 → ${a.target}`;
-    case 'halt': return '暂停(异常)';
+    case 'none':
+      return '等待';
+    case 'gem':
+      return '宝石';
+    case 'item':
+      return `物品 ${a.key}`;
+    case 'defend':
+      return 'Defend';
+    case 'focus':
+      return 'Focus';
+    case 'spirit':
+      return a.on ? '开 Spirit' : '关 Spirit';
+    case 'scroll':
+      return `卷轴 ${nm(a.id)}`;
+    case 'buff':
+      return `Buff ${nm(a.id)}`;
+    case 'draught':
+      return `药剂 ${nm(a.id)}`;
+    case 'infusion':
+      return `魔药 ${nm(a.id)}`;
+    case 'imperil':
+      return `Imperil → ${a.target}`;
+    case 'debuff':
+      return `Debuff ${nm(a.id)} → ${a.target}`;
+    case 'magic':
+      return `魔法 ${nm(a.id)} → ${a.target}`;
+    case 'weapon':
+      return `${a.key} → ${a.target}`;
+    case 'attack':
+      return `普攻 → ${a.target}`;
+    case 'halt':
+      return '暂停(异常)';
   }
 }
 

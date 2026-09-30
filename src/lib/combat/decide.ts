@@ -1,5 +1,12 @@
 import type { HvOptions } from '../types';
-import { BUFF_LIB, SCROLL_LIB, INFUSION_LIB, DRAUGHT_LIB, DEBUFF_SKILL_IDS, DEBUFF_WEIGHT_IMGS } from '../tables';
+import {
+  BUFF_LIB,
+  SCROLL_LIB,
+  INFUSION_LIB,
+  DRAUGHT_LIB,
+  DEBUFF_SKILL_IDS,
+  DEBUFF_WEIGHT_IMGS,
+} from '../tables';
 import type { Snapshot, DecideResult } from './types';
 import { orderTargets, resolveTarget } from './snapshot';
 import { evalContext, checkExpr } from './context';
@@ -76,7 +83,9 @@ const RULES: Rule[] = [
   {
     name: 'defend',
     decide: ({ opt, ec }) =>
-      opt.main.defend && checkExpr(opt.main.defendCondition, ec) ? { action: { kind: 'defend' } } : null,
+      opt.main.defend && checkExpr(opt.main.defendCondition, ec)
+        ? { action: { kind: 'defend' } }
+        : null,
   },
   {
     name: 'scroll',
@@ -206,7 +215,9 @@ const RULES: Rule[] = [
         if (!skillId || !opt.debuff.enabledMap[key]) continue;
         if (!snap.skills[skillId] || !checkExpr(opt.debuff.conditions[key], ec)) continue;
         if (tm.marks.includes(DEBUFF_WEIGHT_IMGS[key])) continue;
-        if (!debuffSlotOk(tm.markCount, tm.lastTurns, opt.debuff.turns[key], opt.debuff.turnAlert)) {
+        if (
+          !debuffSlotOk(tm.markCount, tm.lastTurns, opt.debuff.turns[key], opt.debuff.turnAlert)
+        ) {
           return { action: { kind: 'halt', message: HALT_MSG } };
         }
         return { action: { kind: 'debuff', id: skillId, target } };
@@ -239,21 +250,63 @@ const RULES: Rule[] = [
       if (!skipMagic && snap.attackStatus !== 0) {
         if (checkExpr(opt.main.highSkillCondition, ec) && snap.skills[`1${snap.attackStatus}3`]) {
           magicId = `1${snap.attackStatus}3`;
-        } else if (checkExpr(opt.main.middleSkillCondition, ec) && snap.skills[`1${snap.attackStatus}2`]) {
+        } else if (
+          checkExpr(opt.main.middleSkillCondition, ec) &&
+          snap.skills[`1${snap.attackStatus}2`]
+        ) {
           magicId = `1${snap.attackStatus}2`;
         } else if (snap.skills[`1${snap.attackStatus}1`]) {
           magicId = `1${snap.attackStatus}1`;
         }
       }
       if (opt.skill.enabled) {
-        const order = opt.skill.order.length > 0 ? opt.skill.order : ['OFC', 'FRD', 'T3', 'T2', 'T1'];
+        const order =
+          opt.skill.order.length > 0 ? opt.skill.order : ['OFC', 'FRD', 'T3', 'T2', 'T1'];
         const style = snap.fightingStyle;
-        const lib: Record<string, { flag: boolean; cond: string; id: string; oc: number; otos: boolean; key: string }> = {
-          OFC: { flag: opt.skill.ofc, cond: opt.skill.ofcCondition, id: '1111', oc: 8, otos: opt.skill.otosOFC, key: 'OFC' },
-          FRD: { flag: opt.skill.frd, cond: opt.skill.frdCondition, id: '1101', oc: 4, otos: opt.skill.otosFRD, key: 'FRD' },
-          T3: { flag: opt.skill.t3, cond: opt.skill.t3Condition, id: `2${style}03`, oc: 2, otos: opt.skill.otosT3, key: 'T3' },
-          T2: { flag: opt.skill.t2, cond: opt.skill.t2Condition, id: `2${style}02`, oc: 2, otos: opt.skill.otosT2, key: 'T2' },
-          T1: { flag: opt.skill.t1, cond: opt.skill.t1Condition, id: `2${style}01`, oc: 2, otos: opt.skill.otosT1, key: 'T1' },
+        const lib: Record<
+          string,
+          { flag: boolean; cond: string; id: string; oc: number; otos: boolean; key: string }
+        > = {
+          OFC: {
+            flag: opt.skill.ofc,
+            cond: opt.skill.ofcCondition,
+            id: '1111',
+            oc: 8,
+            otos: opt.skill.otosOFC,
+            key: 'OFC',
+          },
+          FRD: {
+            flag: opt.skill.frd,
+            cond: opt.skill.frdCondition,
+            id: '1101',
+            oc: 4,
+            otos: opt.skill.otosFRD,
+            key: 'FRD',
+          },
+          T3: {
+            flag: opt.skill.t3,
+            cond: opt.skill.t3Condition,
+            id: `2${style}03`,
+            oc: 2,
+            otos: opt.skill.otosT3,
+            key: 'T3',
+          },
+          T2: {
+            flag: opt.skill.t2,
+            cond: opt.skill.t2Condition,
+            id: `2${style}02`,
+            oc: 2,
+            otos: opt.skill.otosT2,
+            key: 'T2',
+          },
+          T1: {
+            flag: opt.skill.t1,
+            cond: opt.skill.t1Condition,
+            id: `2${style}01`,
+            oc: 2,
+            otos: opt.skill.otosT1,
+            key: 'T1',
+          },
         };
         for (const key of order) {
           const entry = lib[key];
@@ -264,11 +317,22 @@ const RULES: Rule[] = [
           if (!target) continue;
           if (opt.skill.mercifulBlow && style === '2' && key === 'T3') {
             const weak = snap.monsters.find(
-              (m) => m.maxHp > 0 && m.hpNow / m.maxHp < 0.25 && m.marks.includes('wpn_bleed') && m.clickable,
+              (m) =>
+                m.maxHp > 0 &&
+                m.hpNow / m.maxHp < 0.25 &&
+                m.marks.includes('wpn_bleed') &&
+                m.clickable,
             );
-            if (weak) return { action: { kind: 'weapon', id: entry.id, key, target: weak.id }, consumeOnce: key };
+            if (weak)
+              return {
+                action: { kind: 'weapon', id: entry.id, key, target: weak.id },
+                consumeOnce: key,
+              };
           }
-          return { action: { kind: 'weapon', id: entry.id, key, target }, consumeOnce: entry.otos ? key : undefined };
+          return {
+            action: { kind: 'weapon', id: entry.id, key, target },
+            consumeOnce: entry.otos ? key : undefined,
+          };
         }
       }
       if (magicId) {
@@ -293,17 +357,9 @@ export function shouldEmergencyPause(hp: number, enabled: boolean, floor: number
  * 主入口：按规则表顺序求值，首个命中即决策。纯函数，可单测。
  * fin 为集火目标 id（调用方按权重算好传入）。
  */
-export function decide(
-  snap: Snapshot,
-  opt: HvOptions,
-  otos: Record<string, number>,
-): DecideResult {
+export function decide(snap: Snapshot, opt: HvOptions, otos: Record<string, number>): DecideResult {
   const ec = evalContext(snap);
-  const fin = orderTargets(
-    snap.monsters,
-    opt.rule.weights ?? {},
-    opt.rule.reverse,
-  )[0];
+  const fin = orderTargets(snap.monsters, opt.rule.weights ?? {}, opt.rule.reverse)[0];
   const ctx = { snap, opt, ec, aux: { otos }, fin: fin ?? null };
   for (const rule of RULES) {
     const r = rule.decide(ctx);

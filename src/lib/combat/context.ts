@@ -24,7 +24,8 @@ export function evalContext(snap: Snapshot): EvalContext {
     vars,
     funcs: {
       isCd: (id: Value): Value => {
-        if (typeof id !== 'number' || !Number.isFinite(id)) throw new Error('isCd 参数必须是技能 id 数字');
+        if (typeof id !== 'number' || !Number.isFinite(id))
+          throw new Error('isCd 参数必须是技能 id 数字');
         return snap.skills[String(id)] ? 0 : 1;
       },
       buffTurn: (img: Value): Value => {

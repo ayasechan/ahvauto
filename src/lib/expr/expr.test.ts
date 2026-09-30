@@ -31,14 +31,17 @@ const ctx: EvalContext = {
 
 const t = (expr: string): boolean => evaluateExpression(expr, ctx);
 const throws = (expr: string, part: string): void => {
-  assert.throws(() => evaluateExpression(expr, ctx), (e: unknown) => {
-    assert.ok(e instanceof Error);
-    assert.ok(
-      (e as Error).message.includes(part),
-      `错误信息应包含 \`${part}\`，实际：${(e as Error).message}`,
-    );
-    return true;
-  });
+  assert.throws(
+    () => evaluateExpression(expr, ctx),
+    (e: unknown) => {
+      assert.ok(e instanceof Error);
+      assert.ok(
+        (e as Error).message.includes(part),
+        `错误信息应包含 \`${part}\`，实际：${(e as Error).message}`,
+      );
+      return true;
+    },
+  );
 };
 
 describe('优先级与结合', () => {
@@ -176,7 +179,10 @@ describe('老格式迁移', () => {
   it('三元组翻译', () => {
     assert.equal(groupsToExpr({ 0: ['hp,1,50'] }, VARS, lookup), '(hp > 50)');
     assert.equal(groupsToExpr({ 0: ['_isCd_411,5,0'] }, VARS, lookup), '(isCd(411) == 0)');
-    assert.equal(groupsToExpr({ 0: ['_buffTurn_haste,3,2'] }, VARS, lookup), '(buffTurn("haste") >= 2)');
+    assert.equal(
+      groupsToExpr({ 0: ['_buffTurn_haste,3,2'] }, VARS, lookup),
+      '(buffTurn("haste") >= 2)',
+    );
     assert.equal(groupsToExpr({ 0: ["roundType,5,'ar'"] }, VARS, lookup), '(roundType == "ar")');
     assert.equal(
       groupsToExpr({ 0: ['hp,1,50'], 1: ['mp,2,20'] }, VARS, lookup),

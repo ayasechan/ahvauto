@@ -30,7 +30,9 @@ try {
     const active = await cdp.ev<string | null>(
       'document.querySelector("#hvAABox .hvAATabmenu>button.active")?.textContent?.trim()',
     );
-    const content = await cdp.ev<string>('document.querySelector("#hvAABox .hvAATab")?.textContent ?? ""');
+    const content = await cdp.ev<string>(
+      'document.querySelector("#hvAABox .hvAATab")?.textContent ?? ""',
+    );
     const ok = active === name && content.includes(sig);
     if (ok) pass++;
     console.log(`${ok ? 'OK  ' : 'FAIL'} ${name}`);

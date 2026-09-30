@@ -133,10 +133,10 @@
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = `ahvauto-battle-${stamp()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
     } catch {
       alert('导出失败');
     }
@@ -174,7 +174,13 @@
     <button type="button" onclick={exportCfg}>{L('a.export')}</button>
     <button type="button" onclick={importCfg}>{L('a.import')}</button>
     <button type="button" onclick={importLegacy}>{L('a.importLegacy')}</button>
-    <input type="file" accept="application/json,.json" hidden bind:this={cfgFile} onchange={onCfgFile} />
+    <input
+      type="file"
+      accept="application/json,.json"
+      hidden
+      bind:this={cfgFile}
+      onchange={onCfgFile}
+    />
   </div>
   <div class="row">
     <label><input type="checkbox" bind:checked={$options.main.debug} />{L('a.debug')}</label>
@@ -183,9 +189,16 @@
     <b>{L('a.backups')}</b>
     <ul>
       {#each Object.keys(backups) as code}
-        <li>{code}
+        <li>
+          {code}
           <button type="button" onclick={() => restore(code)}>{L('a.restore')}</button>
-          <button type="button" onclick={() => { delete backups[code]; saveBackups(); }}>{L('ui.delete')}</button>
+          <button
+            type="button"
+            onclick={() => {
+              delete backups[code];
+              saveBackups();
+            }}>{L('ui.delete')}</button
+          >
         </li>
       {/each}
     </ul>
@@ -196,12 +209,16 @@
     <button type="button" onclick={clearLogs}>{L('ui.clear')}</button>
     <div class="logview">
       {#each kvLogs as e}
-        <div class="logline {e.level}"><span class="ts">{new Date(e.t).toLocaleTimeString()}</span> level={e.level} {toLogfmt(e)}</div>
+        <div class="logline {e.level}">
+          <span class="ts">{new Date(e.t).toLocaleTimeString()}</span> level={e.level}
+          {toLogfmt(e)}
+        </div>
       {/each}
     </div>
   </div>
   <div class="row">
-    <b>{L('a.rec')}</b> (IDB + gzip, {recCount < 0 ? '?' : recCount} {L('a.recCount')})
+    <b>{L('a.rec')}</b> (IDB + gzip, {recCount < 0 ? '?' : recCount}
+    {L('a.recCount')})
     <button type="button" onclick={refreshRecCount}>{L('ui.refresh')}</button>
     <button type="button" onclick={exportRec}>{L('a.recExport')}</button>
     <button type="button" onclick={exportTurnsFile}>回合</button>
@@ -211,12 +228,39 @@
 </div>
 
 <style>
-  .row { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; margin: 0 0 12px; padding: 12px; }
-  .url { width: 50%; }
-  .logview { max-height: 200px; overflow: auto; background: #111; color: #ddd; font-size: 12px; padding: 4px; }
-  .logline { white-space: pre-wrap; word-break: break-all; }
-  .logline .ts { color: #888; }
-  .logline.warning { color: #ffcc00; }
-  .logline.error, .logline.fatal { color: #ff6666; }
-  .logline.debug { color: #999; }
+  .row {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    margin: 0 0 12px;
+    padding: 12px;
+  }
+  .url {
+    width: 50%;
+  }
+  .logview {
+    max-height: 200px;
+    overflow: auto;
+    background: #111;
+    color: #ddd;
+    font-size: 12px;
+    padding: 4px;
+  }
+  .logline {
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .logline .ts {
+    color: #888;
+  }
+  .logline.warning {
+    color: #ffcc00;
+  }
+  .logline.error,
+  .logline.fatal {
+    color: #ff6666;
+  }
+  .logline.debug {
+    color: #999;
+  }
 </style>

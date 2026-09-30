@@ -1,6 +1,27 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseTurn, stripHtml, battlesToCsv, beginBattle, beginRound, endBattle, recordBattleTurn, getBattles, getTotals, getCurBattle, clearStats, recState, addCost, addKills, recordMode, normalizeDrop, dropColorKind, takenAvg, takenPhysAvg, takenMagAvg } from './stats';
+import {
+  parseTurn,
+  stripHtml,
+  battlesToCsv,
+  beginBattle,
+  beginRound,
+  endBattle,
+  recordBattleTurn,
+  getBattles,
+  getTotals,
+  getCurBattle,
+  clearStats,
+  recState,
+  addCost,
+  addKills,
+  recordMode,
+  normalizeDrop,
+  dropColorKind,
+  takenAvg,
+  takenPhysAvg,
+  takenMagAvg,
+} from './stats';
 import type { BattleRow, Totals, CurBattle } from './stats';
 import { options, kvSet } from './store';
 
@@ -103,7 +124,9 @@ describe('parseTurn 真实数据', () => {
     assert.equal(s.takenCount, 1);
   });
   it('护盾吸收：残伤计承伤，吸收量另计（残伤 spirit→魔法组）', () => {
-    const { stat: s } = parseTurn(['Your spirit shield absorbs 648 points of damage from the attack into 11 points of spirit damage.']);
+    const { stat: s } = parseTurn([
+      'Your spirit shield absorbs 648 points of damage from the attack into 11 points of spirit damage.',
+    ]);
     assert.equal(s.taken, 11);
     assert.deepEqual(s.takenByType, { spirit: 11 });
     assert.equal(s.absorbed, 648);
@@ -216,13 +239,54 @@ describe('parseTurn 真实数据', () => {
   });
   it('battlesToCsv 转义与 BOM（含 code/monster/boss 列）', () => {
     const rows: BattleRow[] = [
-      { key: '09/27', startedAt: 0, endedAt: 1, type: 'ar', code: 'AR 1/35', result: 'victory', rounds: 3, turns: 9, damage: 100, taken: 5, exp: 10, credit: 2, kills: 1, monsters: 8, bosses: 1, drops: [], modes: {}, detail: null },
-      { key: '09/27', startedAt: 1, endedAt: 2, type: 'ba', code: 'BA 1/1', result: 'defeat', rounds: 1, turns: 10, damage: 200, taken: 6, exp: 20, credit: 0, kills: 2, monsters: 3, bosses: 0, drops: ['a,b', 'c"d'], modes: {}, detail: null },
+      {
+        key: '09/27',
+        startedAt: 0,
+        endedAt: 1,
+        type: 'ar',
+        code: 'AR 1/35',
+        result: 'victory',
+        rounds: 3,
+        turns: 9,
+        damage: 100,
+        taken: 5,
+        exp: 10,
+        credit: 2,
+        kills: 1,
+        monsters: 8,
+        bosses: 1,
+        drops: [],
+        modes: {},
+        detail: null,
+      },
+      {
+        key: '09/27',
+        startedAt: 1,
+        endedAt: 2,
+        type: 'ba',
+        code: 'BA 1/1',
+        result: 'defeat',
+        rounds: 1,
+        turns: 10,
+        damage: 200,
+        taken: 6,
+        exp: 20,
+        credit: 0,
+        kills: 2,
+        monsters: 3,
+        bosses: 0,
+        drops: ['a,b', 'c"d'],
+        modes: {},
+        detail: null,
+      },
     ];
     const csv = battlesToCsv(rows);
     assert.equal(csv.charCodeAt(0), 0xfeff);
     const lines = csv.split('\n');
-    assert.equal(lines[0].replace(/^\uFEFF/, ''), 'time,type,code,result,rounds,turns,damage,taken,kills,monster,boss,exp,credit,drops');
+    assert.equal(
+      lines[0].replace(/^\uFEFF/, ''),
+      'time,type,code,result,rounds,turns,damage,taken,kills,monster,boss,exp,credit,drops',
+    );
     assert.ok(lines[1].includes(',ar,AR 1/35,victory,3,9,100,5,1,8,1,10,2,'));
     assert.ok(lines[2].includes('"a,b; c""d"'));
   });
@@ -291,19 +355,30 @@ describe('parseTurn 真实数据', () => {
     assert.equal(dropColorKind('plain text'), '');
   });
   it('红装折叠 Equipment of 首词＋档位/文本过滤', () => {
-    assert.deepEqual(normalizeDrop('Peerless Sword of Doom', 'equip', ''), ['Equipment of Peerless']);
-    assert.deepEqual(normalizeDrop('Peerless Sword of Doom', 'equip', '6'), ['Equipment of Peerless']);
+    assert.deepEqual(normalizeDrop('Peerless Sword of Doom', 'equip', ''), [
+      'Equipment of Peerless',
+    ]);
+    assert.deepEqual(normalizeDrop('Peerless Sword of Doom', 'equip', '6'), [
+      'Equipment of Peerless',
+    ]);
     assert.equal(normalizeDrop('Average Sword of Doom', 'equip', '6'), null);
     assert.equal(normalizeDrop('Peerless Sword of Doom', 'equip', 'Epic'), null);
-    assert.deepEqual(normalizeDrop('Peerless Sword of Doom', 'equip', 'Peerless'), ['Equipment of Peerless']);
+    assert.deepEqual(normalizeDrop('Peerless Sword of Doom', 'equip', 'Peerless'), [
+      'Equipment of Peerless',
+    ]);
   });
   it('水晶 Nx 展开，Credit 不进 drops', () => {
-    assert.deepEqual(normalizeDrop('2x Crystal of Fire', 'crystal'), ['Crystal of Fire', 'Crystal of Fire']);
+    assert.deepEqual(normalizeDrop('2x Crystal of Fire', 'crystal'), [
+      'Crystal of Fire',
+      'Crystal of Fire',
+    ]);
     assert.deepEqual(normalizeDrop('Crystal of Fire', 'crystal'), ['Crystal of Fire']);
     assert.equal(normalizeDrop('127 Credits', 'credit'), null);
   });
   it('红装行经 parseTurn 折叠（含 HTML 颜色）', () => {
-    const { drops } = parseTurn(['Goblin dropped <span style="color:#FF0000">[Peerless Sword of Doom]</span>']);
+    const { drops } = parseTurn([
+      'Goblin dropped <span style="color:#FF0000">[Peerless Sword of Doom]</span>',
+    ]);
     assert.deepEqual(drops, ['Equipment of Peerless']);
   });
   it('recordMode 累计动作模式（totals＋cur 双写）', () => {
@@ -343,7 +418,24 @@ describe('parseTurn 真实数据', () => {
     assert.deepEqual(t.modes, {});
     assert.equal(t.takenPhysCount, 0);
     assert.equal(t.takenMagCount, 0);
-    kvSet('battles2', [{ key: 'k', startedAt: 7, type: 'ar', result: 'victory', rounds: 1, turns: 1, damage: 1, taken: 0, exp: 0, credit: 0, kills: 0, monsters: 0, bosses: 0, drops: [] }]);
+    kvSet('battles2', [
+      {
+        key: 'k',
+        startedAt: 7,
+        type: 'ar',
+        result: 'victory',
+        rounds: 1,
+        turns: 1,
+        damage: 1,
+        taken: 0,
+        exp: 0,
+        credit: 0,
+        kills: 0,
+        monsters: 0,
+        bosses: 0,
+        drops: [],
+      },
+    ]);
     const b = getBattles()[0];
     assert.equal(b.code, '');
     assert.equal(b.endedAt, 7);

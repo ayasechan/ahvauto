@@ -1,7 +1,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { decide, shouldEmergencyPause } from './decide';
-import { describeAction } from './execute';import { orderTargets, resolveTarget } from './snapshot';
+import { describeAction } from './execute';
+import { orderTargets, resolveTarget } from './snapshot';
 import { evalContext, checkExpr } from './context';
 import { freshOtos } from './types';
 import type { Snapshot, SnapMonster } from './types';
@@ -10,19 +11,44 @@ import type { HvOptions } from '../types';
 
 function snap(over: Partial<Snapshot> = {}): Snapshot {
   return {
-    hp: 100, mp: 100, sp: 100, oc: 100, turn: 1,
-    roundNow: 1, roundAll: 1, roundType: 'ar', attackStatus: 6,
-    monsters: [], monsterAlive: 0, bossAll: 0, bossAlive: 0,
-    buffs: [], skills: {}, skillNames: {}, gem: null, spiritOn: true, channeling: false,
-    etherTapX2: false, etherTapExpiring: false, fightingStyle: '5',
+    hp: 100,
+    mp: 100,
+    sp: 100,
+    oc: 100,
+    turn: 1,
+    roundNow: 1,
+    roundAll: 1,
+    roundType: 'ar',
+    attackStatus: 6,
+    monsters: [],
+    monsterAlive: 0,
+    bossAll: 0,
+    bossAlive: 0,
+    buffs: [],
+    skills: {},
+    skillNames: {},
+    gem: null,
+    spiritOn: true,
+    channeling: false,
+    etherTapX2: false,
+    etherTapExpiring: false,
+    fightingStyle: '5',
     ...over,
   };
 }
 
 function mon(id: string, hpNow = 1000, extra: Partial<SnapMonster> = {}): SnapMonster {
   return {
-    id, name: '', alive: hpNow !== Infinity, hpNow, maxHp: 1000,
-    marks: [], markCount: 0, lastTurns: 0, clickable: true, ...extra,
+    id,
+    name: '',
+    alive: hpNow !== Infinity,
+    hpNow,
+    maxHp: 1000,
+    marks: [],
+    markCount: 0,
+    lastTurns: 0,
+    clickable: true,
+    ...extra,
   };
 }
 
@@ -36,17 +62,23 @@ describe('decide 优先级与规则', () => {
   it('宝石：血量达标吃，否则放行', () => {
     const o = opt();
     assert.deepEqual(go(snap({ gem: 'Health Gem', hp: 30 }), o).action, { kind: 'gem' });
-    assert.deepEqual(go(snap({ gem: 'Health Gem', hp: 90, monsters: [mon('1')], monsterAlive: 1 }), o).action, {
-      kind: 'attack',
-      target: '1',
-    });
+    assert.deepEqual(
+      go(snap({ gem: 'Health Gem', hp: 90, monsters: [mon('1')], monsterAlive: 1 }), o).action,
+      {
+        kind: 'attack',
+        target: '1',
+      },
+    );
   });
   it('Mystic Gem 无条件吃', () => {
     assert.equal(go(snap({ gem: 'Mystic Gem' }), opt()).action.kind, 'gem');
   });
   it('物品按顺序取首个可用', () => {
     const o = opt();
-    o.item.order = [{ key: 'HP', id: '11195' }, { key: 'MP', id: '11295' }];
+    o.item.order = [
+      { key: 'HP', id: '11195' },
+      { key: 'MP', id: '11295' },
+    ];
     o.item.enabled = { HP: false, MP: true };
     o.item.conditions = {};
     const r = go(snap({ skills: { '11295': true } }), o);
@@ -167,7 +199,10 @@ describe('decide 优先级与规则', () => {
     assert.deepEqual(r.action, { kind: 'magic', id: '163', target: '1' });
   });
   it('物理模式跳过魔法，直达普攻', () => {
-    const r = go(snap({ attackStatus: 0, monsters: [mon('1')], monsterAlive: 1, skills: {} }), opt());
+    const r = go(
+      snap({ attackStatus: 0, monsters: [mon('1')], monsterAlive: 1, skills: {} }),
+      opt(),
+    );
     assert.deepEqual(r.action, { kind: 'attack', target: '1' });
   });
   it('武器：OC 不足/Spirit 关/OTOS 用过都跳过', () => {
@@ -183,7 +218,10 @@ describe('decide 优先级与规则', () => {
     used.OFC = 1;
     assert.equal(decide({ ...base, oc: 50 }, o, used).action.kind, 'attack');
     assert.deepEqual(decide({ ...base, oc: 50 }, o, freshOtos()).action, {
-      kind: 'weapon', id: '1111', key: 'OFC', target: '1',
+      kind: 'weapon',
+      id: '1111',
+      key: 'OFC',
+      target: '1',
     });
   });
   it('武器可放时覆盖魔法（与原版实效一致）', () => {
@@ -193,7 +231,10 @@ describe('decide 优先级与规则', () => {
     o.skill.order = ['OFC', 'FRD', 'T3', 'T2', 'T1'];
     o.skill.ofc = true;
     const s = snap({
-      turn: 5, oc: 50, monsters: [mon('1')], monsterAlive: 1,
+      turn: 5,
+      oc: 50,
+      monsters: [mon('1')],
+      monsterAlive: 1,
       skills: { '163': true, '1111': true },
     });
     assert.deepEqual(go(s, o).action, { kind: 'weapon', id: '1111', key: 'OFC', target: '1' });
@@ -307,7 +348,8 @@ describe('orderTargets/resolveTarget', () => {
   });
 });
 
-describe('shouldEmergencyPause 保底线', () => {  it('跌破开停机，关闭/NaN 不触发', () => {
+describe('shouldEmergencyPause 保底线', () => {
+  it('跌破开停机，关闭/NaN 不触发', () => {
     assert.equal(shouldEmergencyPause(10, true, 15), true);
     assert.equal(shouldEmergencyPause(15, true, 15), true);
     assert.equal(shouldEmergencyPause(16, true, 15), false);
@@ -361,7 +403,10 @@ describe('describeAction 标签', () => {
       describeAction({ kind: 'magic', id: '163', target: '1' }, { '163': 'Ragnarok' }),
       '魔法 Ragnarok → 1',
     );
-    assert.equal(describeAction({ kind: 'weapon', id: '1111', key: 'OFC', target: '1' }), 'OFC → 1');
+    assert.equal(
+      describeAction({ kind: 'weapon', id: '1111', key: 'OFC', target: '1' }),
+      'OFC → 1',
+    );
     assert.equal(describeAction({ kind: 'attack', target: '3' }), '普攻 → 3');
     assert.equal(describeAction({ kind: 'halt', message: 'x' }), '暂停(异常)');
   });

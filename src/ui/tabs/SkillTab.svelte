@@ -7,7 +7,9 @@
   const ORDER = ['OFC', 'FRD', 'T3', 'T2', 'T1'] as const;
   function toggle(k: string, ev: Event) {
     const on = (ev.target as HTMLInputElement).checked;
-    $options.skill.order = on ? [...$options.skill.order, k] : $options.skill.order.filter((x) => x !== k);
+    $options.skill.order = on
+      ? [...$options.skill.order, k]
+      : $options.skill.order.filter((x) => x !== k);
   }
   function move(i: number, d: -1 | 1) {
     const arr = [...$options.skill.order];
@@ -46,7 +48,13 @@
     {/if}
     <div style="margin-top: 8px">
       {#each ORDER as k}
-        <label><input type="checkbox" checked={$options.skill.order.includes(k)} onchange={(e) => toggle(k, e)} />{k}</label>
+        <label
+          ><input
+            type="checkbox"
+            checked={$options.skill.order.includes(k)}
+            onchange={(e) => toggle(k, e)}
+          />{k}</label
+        >
       {/each}
     </div>
   </div>
@@ -75,9 +83,19 @@
     <label><input type="checkbox" bind:checked={$options.skill.otosT1} />{L('sk.once')}</label>
     <ConditionEditor bind:expr={$options.skill.t1Condition} />
   </div>
-  <div class="row"><label><input type="checkbox" bind:checked={$options.skill.mercifulBlow} />{L('sk.merciful')}</label></div>
+  <div class="row">
+    <label
+      ><input type="checkbox" bind:checked={$options.skill.mercifulBlow} />{L('sk.merciful')}</label
+    >
+  </div>
 </div>
 
 <style>
-  .row { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; margin: 0 0 12px; padding: 12px; }
+  .row {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    margin: 0 0 12px;
+    padding: 12px;
+  }
 </style>

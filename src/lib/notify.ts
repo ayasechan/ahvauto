@@ -6,9 +6,7 @@ import { renderTemplate } from './template';
 import type { WebhookVars } from './template';
 
 /** 油猴提供的跨域 XHR（@grant GM_xmlhttpRequest，由构建自动收集＋显式声明）。 */
-declare const GM_xmlhttpRequest: (
-  details: GmXmlhttpRequestOption<'text', undefined>,
-) => unknown;
+declare const GM_xmlhttpRequest: (details: GmXmlhttpRequestOption<'text', undefined>) => unknown;
 
 type NotifyKind = AlarmKind | 'Test';
 
@@ -89,10 +87,13 @@ export async function sendTelegram(kind: AlarmKind, text: string, force = false)
   const botToken = typeof tg?.botToken === 'string' ? tg.botToken.trim() : '';
   const chatId = normalizeTelegramChatId(tg?.chatId);
   if (!botToken || !chatId) throw new Error('telegram 未配置 botToken/chatId');
-  const res = await postText(`https://api.telegram.org/bot${botToken}/sendMessage`, JSON.stringify({
-    chat_id: chatId,
-    text,
-  }));
+  const res = await postText(
+    `https://api.telegram.org/bot${botToken}/sendMessage`,
+    JSON.stringify({
+      chat_id: chatId,
+      text,
+    }),
+  );
   if (res.status < 200 || res.status >= 300) throw new Error(`telegram HTTP ${res.status}`);
   try {
     const data = JSON.parse(res.text) as { ok?: boolean; description?: string };
@@ -109,7 +110,12 @@ export function webhookVars(kind: AlarmKind, title: string, text: string): Webho
 }
 
 /** 自定义 Webhook（油猴 XHR）：body 模板经 {var} 替换后原样 POST。 */
-export async function sendWebhook(kind: AlarmKind, title: string, text: string, force = false): Promise<void> {
+export async function sendWebhook(
+  kind: AlarmKind,
+  title: string,
+  text: string,
+  force = false,
+): Promise<void> {
   const wh = snapshotOptions().alarm.webhook;
   if (!force && (!wh?.enabled || !wh.kinds?.[kind])) return;
   if (!wh?.url) throw new Error('webhook 未配置 URL');

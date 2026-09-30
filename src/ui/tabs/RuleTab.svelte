@@ -12,11 +12,18 @@
   </div>
   {#each W as k}
     <div class="row">
-      {k} {L('ru.weight')}: <input class="num" type="number" bind:value={$options.rule.weights[k]} />
+      {k}
+      {L('ru.weight')}: <input class="num" type="number" bind:value={$options.rule.weights[k]} />
     </div>
   {/each}
 </div>
 
 <style>
-  .row { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; margin: 0 0 12px; padding: 12px; }
+  .row {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    margin: 0 0 12px;
+    padding: 12px;
+  }
 </style>

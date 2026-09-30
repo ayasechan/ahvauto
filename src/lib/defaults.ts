@@ -70,7 +70,13 @@ export function defaultOptions(): HvOptions {
     },
     item: { order: [], enabled: {}, conditions: blank(ITEM_KEYS) },
     channel: { enabled: false, first: {}, useSecond: false, secondOrder: [] },
-    buff: { enabled: false, order: [], condition: '', enabledMap: {}, conditions: blank(BUFF_COND_KEYS) },
+    buff: {
+      enabled: false,
+      order: [],
+      condition: '',
+      enabledMap: {},
+      conditions: blank(BUFF_COND_KEYS),
+    },
     debuff: {
       enabled: false,
       order: [],

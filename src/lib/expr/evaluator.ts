@@ -52,12 +52,17 @@ function show(v: Value): string {
 function resolvePath(vars: Record<string, unknown>, path: string[], pos: number): Value {
   let cur: unknown = vars;
   for (const seg of path) {
-    if (typeof cur !== 'object' || cur === null || !Object.prototype.hasOwnProperty.call(cur, seg)) {
+    if (
+      typeof cur !== 'object' ||
+      cur === null ||
+      !Object.prototype.hasOwnProperty.call(cur, seg)
+    ) {
       throw new UnknownNameError(path.join('.'), pos);
     }
     cur = (cur as Record<string, unknown>)[seg];
   }
-  if (!isValue(cur)) throw new ExprEvalError(`变量 \`${path.join('.')}\` 不是数字/字符串/布尔值`, pos);
+  if (!isValue(cur))
+    throw new ExprEvalError(`变量 \`${path.join('.')}\` 不是数字/字符串/布尔值`, pos);
   return cur;
 }
 
@@ -103,7 +108,10 @@ export function evaluateAst(node: AST, ctx: EvalContext): Value {
         ? ctx.funcs[node.name]
         : undefined;
       if (typeof fn !== 'function') {
-        const pool: Candidate[] = Object.keys(ctx.funcs).map((name) => ({ name, kind: '函数' as const }));
+        const pool: Candidate[] = Object.keys(ctx.funcs).map((name) => ({
+          name,
+          kind: '函数' as const,
+        }));
         throw new ExprEvalError(formatSuggestion(node.name, pool, '函数'), node.pos);
       }
       const args = node.args.map((a) => evaluateAst(a, ctx));
@@ -127,9 +135,12 @@ export function evaluateAst(node: AST, ctx: EvalContext): Value {
       const l = num(evaluateAst(node.left, ctx), node.pos, '算术');
       const r = num(evaluateAst(node.right, ctx), node.pos, '算术');
       switch (node.op) {
-        case 'plus': return l + r;
-        case 'minus': return l - r;
-        case 'star': return l * r;
+        case 'plus':
+          return l + r;
+        case 'minus':
+          return l - r;
+        case 'star':
+          return l * r;
         case 'slash':
           if (r === 0) throw new ExprEvalError('除数不能为零', node.pos);
           return l / r;
@@ -143,12 +154,18 @@ export function evaluateAst(node: AST, ctx: EvalContext): Value {
       const l = evaluateAst(node.left, ctx);
       const r = evaluateAst(node.right, ctx);
       switch (node.op) {
-        case 'eq': return typeof l === typeof r && l === r;
-        case 'ne': return !(typeof l === typeof r && l === r);
-        case 'le': return num(l, node.pos, '比较') <= num(r, node.pos, '比较');
-        case 'ge': return num(l, node.pos, '比较') >= num(r, node.pos, '比较');
-        case 'lt': return num(l, node.pos, '比较') < num(r, node.pos, '比较');
-        case 'gt': return num(l, node.pos, '比较') > num(r, node.pos, '比较');
+        case 'eq':
+          return typeof l === typeof r && l === r;
+        case 'ne':
+          return !(typeof l === typeof r && l === r);
+        case 'le':
+          return num(l, node.pos, '比较') <= num(r, node.pos, '比较');
+        case 'ge':
+          return num(l, node.pos, '比较') >= num(r, node.pos, '比较');
+        case 'lt':
+          return num(l, node.pos, '比较') < num(r, node.pos, '比较');
+        case 'gt':
+          return num(l, node.pos, '比较') > num(r, node.pos, '比较');
       }
       break;
     }

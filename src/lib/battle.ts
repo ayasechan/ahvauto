@@ -7,7 +7,15 @@ import { logger } from './logger';
 import { installRecordBridge, recordTurn, handleRec } from './recorder';
 import { pause, resume, after } from './fsm';
 import { requestRetry, httpGet, sleep, todayKey } from './http';
-import { beginBattle, beginRound, endBattle, addCost, addKills, getTotals, recordMode } from './stats';
+import {
+  beginBattle,
+  beginRound,
+  endBattle,
+  addCost,
+  addKills,
+  getTotals,
+  recordMode,
+} from './stats';
 import type { Totals, CurBattle } from './stats';
 import type { Action } from './combat/types';
 import { readSnapshot, resolveTarget } from './combat/snapshot';
@@ -103,19 +111,26 @@ export async function newRound(): Promise<void> {
   }
   let roundType = (kvGet('roundType') as string | null) ?? '';
   if (!roundType) {
-    if (!/^Initializing/.test(last)) roundType = '';
-    else if (/^Initializing arena challenge/.test(last) && (Number(last.match(/\d+/)?.[0]) <= 35)) roundType = 'ar';
-    else if (/^Initializing arena challenge/.test(last)) roundType = 'rb';
-    else if (/^Initializing random encounter/.test(last)) {
+    if (!last.startsWith('Initializing')) roundType = '';
+    else if (
+      last.startsWith('Initializing arena challenge') &&
+      Number(last.match(/\d+/)?.[0]) <= 35
+    )
+      roundType = 'ar';
+    else if (last.startsWith('Initializing arena challenge')) roundType = 'rb';
+    else if (last.startsWith('Initializing random encounter')) {
       roundType = 'ba';
       if (opt.main.encounter) {
-        const enc = (kvGet('encounter', true) as { lastTime: number; time: number } | null) ?? { lastTime: 0, time: 0 };
+        const enc = (kvGet('encounter', true) as { lastTime: number; time: number } | null) ?? {
+          lastTime: 0,
+          time: 0,
+        };
         enc.lastTime = Date.now();
         enc.time += 1;
         kvSet('encounter', enc);
       }
-    } else if (/^Initializing Item World/.test(last)) roundType = 'iw';
-    else if (/^Initializing Grindfest/.test(last)) roundType = 'gr';
+    } else if (last.startsWith('Initializing Item World')) roundType = 'iw';
+    else if (last.startsWith('Initializing Grindfest')) roundType = 'gr';
     else roundType = '';
     kvSet('roundType', roundType);
   }
@@ -144,14 +159,21 @@ export async function newRound(): Promise<void> {
       prevHp = hp;
       status.push({ order: id, id: id === 9 ? 0 : id + 1, hp });
     }
-    kvSet('monsterStatus', status.map((s) => s.hp));
-    kvSet('monsterBase', status.map((s) => s.hp));
+    kvSet(
+      'monsterStatus',
+      status.map((s) => s.hp),
+    );
+    kvSet(
+      'monsterBase',
+      status.map((s) => s.hp),
+    );
     patchBattle({
       monsterStatus: status.map((s) => s.hp),
       monsterBase: status.map((s) => s.hp),
     });
     const round = last.match(/\(Round (\d+) \/ (\d+)\)/);
-    const [roundNow, roundAll] = roundType !== 'ba' && round ? [Number(round[1]), Number(round[2])] : [1, 1];
+    const [roundNow, roundAll] =
+      roundType !== 'ba' && round ? [Number(round[1]), Number(round[2])] : [1, 1];
     kvSet('roundNow', String(roundNow));
     kvSet('roundAll', String(roundAll));
     patchBattle({ roundNow, roundAll });
@@ -189,7 +211,8 @@ function battleInfo(): void {
     `<br>攻击模式: ${names[b.attackStatus] ?? ''}` +
     `<br>敌人: ${b.monsterAlive}/${b.monsterAll}` +
     (hist.length > 0
-      ? '<br>——<br>' + hist.map((h) => `Turn ${h.turn} [${tt(`r.${h.rule}`)}] ${h.action}`).join('<br>')
+      ? '<br>——<br>' +
+        hist.map((h) => `Turn ${h.turn} [${tt(`r.${h.rule}`)}] ${h.action}`).join('<br>')
       : '');
   document.title = `${b.turn}||${b.runSpeed}||${b.roundNow}/${b.roundAll}||${b.monsterAlive}/${b.monsterAll}`;
 }
@@ -280,24 +303,20 @@ export function getStaminaLog(): Record<string, number> {
 /** 遭遇战计数读（newRound 记账，供 Usage 面板展示；与 ui-agent 约定签名） */
 export function getEncounter(): { lastTime: number; time: number } {
   try {
-    return (kvGet('encounter', true) as { lastTime: number; time: number } | null) ?? { lastTime: 0, time: 0 };
+    return (
+      (kvGet('encounter', true) as { lastTime: number; time: number } | null) ?? {
+        lastTime: 0,
+        time: 0,
+      }
+    );
   } catch {
     return { lastTime: 0, time: 0 };
   }
 }
 
-
-
-
-
-
-
-
-
 /** 单怪 debuff 位检查：不满 6 个，或最后一个剩余回合达标，或关闭了告警 */
 
 /** 给所有敌人补 Imperil（原 allImperiled：先隔 3 遍历一遍，再顺序遍历） */
-
 
 /** 战斗主循环：每 turn 只做一个动作，原 main() */
 export async function main(): Promise<void> {
@@ -333,39 +352,31 @@ function readLastSend(): number {
  * 2. 25 秒 textlog 无增长 → 整页重载（原版各失败路径同理）。
  */
 function armWatchdog(sendBefore: number, logBefore: number): void {
-  after(
-    'watchdog-retry',
-    8000,
-    () => {
-      try {
-        if (isDisabled()) return;
-        if (qs('#btcp')) return;
-        if (readLastSend() !== sendBefore) return;
-        logger.warning('no request sent after action, retry target click');
-        const snap = readSnapshot(get(battle).monsterBase);
-        const tid = resolveTarget(snap.monsters, undefined);
-        if (tid) click(`#mkey_${tid}`);
-      } catch {
-        /* ignore */
-      }
-    },
-  );
-  after(
-    'watchdog-reload',
-    25000,
-    () => {
-      try {
-        if (isDisabled()) return;
-        if (qs('#btcp')) return;
-        if (qsa('#textlog>tbody>tr>td').length !== logBefore) return;
-        if (readLastSend() !== sendBefore) return;
-        logger.warning('no battle progress in 25s, reload');
-        goto();
-      } catch {
-        /* ignore */
-      }
-    },
-  );
+  after('watchdog-retry', 8000, () => {
+    try {
+      if (isDisabled()) return;
+      if (qs('#btcp')) return;
+      if (readLastSend() !== sendBefore) return;
+      logger.warning('no request sent after action, retry target click');
+      const snap = readSnapshot(get(battle).monsterBase);
+      const tid = resolveTarget(snap.monsters, undefined);
+      if (tid) click(`#mkey_${tid}`);
+    } catch {
+      /* ignore */
+    }
+  });
+  after('watchdog-reload', 25000, () => {
+    try {
+      if (isDisabled()) return;
+      if (qs('#btcp')) return;
+      if (qsa('#textlog>tbody>tr>td').length !== logBefore) return;
+      if (readLastSend() !== sendBefore) return;
+      logger.warning('no battle progress in 25s, reload');
+      goto();
+    } catch {
+      /* ignore */
+    }
+  });
 }
 
 /** 调试面（仅 debug 开启时写入）：CDP 可读 step/lastError，定位 stall */
@@ -414,7 +425,9 @@ async function mainInner(dbg: DebugSurface, trace: boolean): Promise<void> {
   patchBattle({ end: false });
   // JSON 序列化会把 Infinity 丢成 null，重载后必须还原，否则死亡判定失效
   const norm = (a: unknown): number[] | null =>
-    Array.isArray(a) ? a.map((v) => (v === null || v === undefined ? Infinity : (v as number))) : null;
+    Array.isArray(a)
+      ? a.map((v) => (v === null || v === undefined ? Infinity : (v as number)))
+      : null;
   const saved = norm(kvGet('monsterStatus', true));
   const savedBase = norm(kvGet('monsterBase', true));
   const b0 = get(battle);
@@ -448,12 +461,21 @@ async function mainInner(dbg: DebugSurface, trace: boolean): Promise<void> {
   step('decide');
   const decided = decide(snap, opt, get(battle).otos);
   if (decided.consumeOnce) {
-    patchBattle({ otos: { ...get(battle).otos, [decided.consumeOnce]: (get(battle).otos[decided.consumeOnce] ?? 0) + 1 } });
+    patchBattle({
+      otos: {
+        ...get(battle).otos,
+        [decided.consumeOnce]: (get(battle).otos[decided.consumeOnce] ?? 0) + 1,
+      },
+    });
   }
   step(decided.rule ?? 'none');
   try {
     const hist = debugSurface().history;
-    hist.push({ turn: snap.turn, rule: decided.rule ?? 'none', action: describeAction(decided.action, snap.skillNames) });
+    hist.push({
+      turn: snap.turn,
+      rule: decided.rule ?? 'none',
+      action: describeAction(decided.action, snap.skillNames),
+    });
     if (hist.length > 20) hist.splice(0, hist.length - 20);
   } catch {
     /* ignore */
@@ -490,10 +512,16 @@ export function installReloader(): void {
   eventStart.id = 'eventStart';
   eventStart.onclick = () => {
     if (opt.main.delayAlert) {
-      (eventStart as unknown as { _t1?: number })._t1 = window.setTimeout(() => void setAlarm('Common'), opt.main.delayAlertTime * 1000);
+      (eventStart as unknown as { _t1?: number })._t1 = window.setTimeout(
+        () => void setAlarm('Common'),
+        opt.main.delayAlertTime * 1000,
+      );
     }
     if (opt.main.delayReload) {
-      (eventStart as unknown as { _t2?: number })._t2 = window.setTimeout(goto, opt.main.delayReloadTime * 1000);
+      (eventStart as unknown as { _t2?: number })._t2 = window.setTimeout(
+        goto,
+        opt.main.delayReloadTime * 1000,
+      );
     }
   };
   document.body.appendChild(eventStart);
@@ -511,68 +539,79 @@ export function installReloader(): void {
       };
       try {
         mark('ee-start');
-      const s = eventStart as unknown as { _t1?: number; _t2?: number };
-      if (s._t1) clearTimeout(s._t1);
-      if (s._t2) clearTimeout(s._t2);
-      const now = Date.now();
-      patchBattle({ runSpeed: Number((1000 / Math.max(1, now - get(battle).timeNow)).toFixed(2)), timeNow: now });
-      const monsterDead = qsa('img[src*="nbardead"]').length;
-      const b = get(battle);
-      patchBattle({ monsterAlive: b.monsterAll - monsterDead });
-      const o = snapshotOptions();
-      if (qs('#btcp')) {
-        const nb = get(battle);
-        if (nb.monsterAlive > 0) {
-          await setAlarm('Defeat');
-          recordEndKills();
-          endBattle('defeat');
-          kvDel('roundType');
-          kvDel('monsterStatus');
-          kvDel('monsterBase');
-        } else if (nb.roundNow !== nb.roundAll) {
-          qs('#pane_completion')?.removeChild(qs('#btcp')!);
-          let data: Document;
-          try {
-            data = await requestRetry(() => httpGet<Document>(location.href));
-          } catch (e) {
-            logger.error('next round fetch failed, reload: {err}', { err: String(e) });
-            goto();
-            return;
-          }
-          if (qs('#riddlecounter', data)) {
-            if (o.main.riddlePopup && !window.opener) {
-              window.open(location.href, 'riddleWindow', 'resizable,scrollbars,width=1241,height=707');
+        const s = eventStart as unknown as { _t1?: number; _t2?: number };
+        if (s._t1) clearTimeout(s._t1);
+        if (s._t2) clearTimeout(s._t2);
+        const now = Date.now();
+        patchBattle({
+          runSpeed: Number((1000 / Math.max(1, now - get(battle).timeNow)).toFixed(2)),
+          timeNow: now,
+        });
+        const monsterDead = qsa('img[src*="nbardead"]').length;
+        const b = get(battle);
+        patchBattle({ monsterAlive: b.monsterAll - monsterDead });
+        const o = snapshotOptions();
+        if (qs('#btcp')) {
+          const nb = get(battle);
+          if (nb.monsterAlive > 0) {
+            await setAlarm('Defeat');
+            recordEndKills();
+            endBattle('defeat');
+            kvDel('roundType');
+            kvDel('monsterStatus');
+            kvDel('monsterBase');
+          } else if (nb.roundNow !== nb.roundAll) {
+            qs('#pane_completion')?.removeChild(qs('#btcp')!);
+            let data: Document;
+            try {
+              data = await requestRetry(() => httpGet<Document>(location.href));
+            } catch (e) {
+              logger.error('next round fetch failed, reload: {err}', { err: String(e) });
+              goto();
               return;
             }
-            goto();
-            return;
+            if (qs('#riddlecounter', data)) {
+              if (o.main.riddlePopup && !window.opener) {
+                window.open(
+                  location.href,
+                  'riddleWindow',
+                  'resizable,scrollbars,width=1241,height=707',
+                );
+                return;
+              }
+              goto();
+              return;
+            }
+            const right = qs('#battle_right', data);
+            const left = qs('#battle_left', data);
+            if (right && left) {
+              qs('#battle_main')?.replaceChild(document.adoptNode(right), qs('#battle_right')!);
+              qs('#battle_main')?.replaceChild(document.adoptNode(left), qs('#battle_left')!);
+            }
+            const w = window as unknown as {
+              battle?: unknown;
+              Battle?: new () => unknown;
+              clear_infopane?: () => void;
+            };
+            if (w.Battle) {
+              w.battle = new w.Battle();
+              (w.battle as { clear_infopane?: () => void }).clear_infopane?.();
+            }
+            await newRound();
+            await main();
+          } else {
+            await setAlarm('Victory');
+            recordEndKills();
+            endBattle('victory');
+            kvDel('roundType');
+            kvDel('monsterStatus');
+            kvDel('monsterBase');
+            setTimeout(goto, 3000);
           }
-          const right = qs('#battle_right', data);
-          const left = qs('#battle_left', data);
-          if (right && left) {
-            qs('#battle_main')?.replaceChild(document.adoptNode(right), qs('#battle_right')!);
-            qs('#battle_main')?.replaceChild(document.adoptNode(left), qs('#battle_left')!);
-          }
-          const w = window as unknown as { battle?: unknown; Battle?: new () => unknown; clear_infopane?: () => void };
-          if (w.Battle) {
-            w.battle = new w.Battle();
-            (w.battle as { clear_infopane?: () => void }).clear_infopane?.();
-          }
-          await newRound();
-          await main();
         } else {
-          await setAlarm('Victory');
-          recordEndKills();
-          endBattle('victory');
-          kvDel('roundType');
-          kvDel('monsterStatus');
-          kvDel('monsterBase');
-          setTimeout(goto, 3000);
+          mark('ee-main');
+          await main();
         }
-      } else {
-        mark('ee-main');
-        await main();
-      }
       } catch (e) {
         try {
           debugSurface().lastError = `eventEnd: ${String(e)}`;
@@ -590,84 +629,98 @@ export function installReloader(): void {
   sessionStorage[NO_SPELL_DELAY_KEY] = String(opt.main.noSpellDelay);
   // 页世界钩子经 unsafeWindow/window 直接赋值，真闭包：常量直接引用，无序列化陷阱。
   const w = pageScope();
-    w['api_call'] = function (b: XMLHttpRequest, a: { mode: string; skill: number }, d: () => void): void {
-      const spellDelay = Number(sessionStorage.getItem(SPELL_DELAY_KEY) ?? 200);
-      const noSpellDelay = Number(sessionStorage.getItem(NO_SPELL_DELAY_KEY) ?? 30);
-      (window as unknown as Record<string, unknown>)['info'] = a;
-      // 发包序号：req/res 同号，录制侧按 seq 配对。存页面全局，reload 清零。
-      let seq = 0;
+  w['api_call'] = function (
+    b: XMLHttpRequest,
+    a: { mode: string; skill: number },
+    d: () => void,
+  ): void {
+    const spellDelay = Number(sessionStorage.getItem(SPELL_DELAY_KEY) ?? 200);
+    const noSpellDelay = Number(sessionStorage.getItem(NO_SPELL_DELAY_KEY) ?? 30);
+    (window as unknown as Record<string, unknown>)['info'] = a;
+    // 发包序号：req/res 同号，录制侧按 seq 配对。存页面全局，reload 清零。
+    let seq = 0;
+    try {
+      const w2 = window as unknown as { __hvaaSeq?: number };
+      seq = (w2.__hvaaSeq ?? 0) + 1;
+      w2.__hvaaSeq = seq;
+    } catch {
+      /* ignore */
+    }
+    try {
+      const h = (
+        window as unknown as { __hvaa?: { apiCalls?: number; lastReq?: string; lastSend?: number } }
+      ).__hvaa;
+      if (h) {
+        h.apiCalls = (h.apiCalls ?? 0) + 1;
+        h.lastReq = JSON.stringify(a).slice(0, 120);
+        h.lastSend = Date.now();
+      }
+    } catch {
+      /* 观测不影响战斗 */
+    }
+    try {
+      handleRec('req', a, seq);
+    } catch {
+      /* 录制上报失败不影响战斗 */
+    }
+    try {
+      (b as unknown as Record<string, unknown>).__hvaaSeq = seq;
+    } catch {
+      /* ignore */
+    }
+    b.open('POST', (w['MAIN_URL'] as string) + 'json');
+    b.setRequestHeader('Content-Type', 'application/json');
+    b.withCredentials = true;
+    b.onreadystatechange = d;
+    b.onload = () => {
       try {
-        const w2 = window as unknown as { __hvaaSeq?: number };
-        seq = (w2.__hvaaSeq ?? 0) + 1;
-        w2.__hvaaSeq = seq;
+        const h = (window as unknown as { __hvaa?: { fired?: number } }).__hvaa;
+        if (h) h.fired = (h.fired ?? 0) + 1;
       } catch {
         /* ignore */
       }
-      try {
-        const h = (window as unknown as { __hvaa?: { apiCalls?: number; lastReq?: string; lastSend?: number } }).__hvaa;
-        if (h) {
-          h.apiCalls = (h.apiCalls ?? 0) + 1;
-          h.lastReq = JSON.stringify(a).slice(0, 120);
-          h.lastSend = Date.now();
-        }
-      } catch {
-        /* 观测不影响战斗 */
-      }
-      try {
-        handleRec('req', a, seq);
-      } catch {
-        /* 录制上报失败不影响战斗 */
-      }
-      try {
-        (b as unknown as Record<string, unknown>).__hvaaSeq = seq;
-      } catch {
-        /* ignore */
-      }
-      b.open('POST', (w['MAIN_URL'] as string) + 'json');
-      b.setRequestHeader('Content-Type', 'application/json');
-      b.withCredentials = true;
-      b.onreadystatechange = d;
-      b.onload = () => {
+      document.getElementById('eventEnd')?.click();
+    };
+    document.getElementById('eventStart')?.click();
+    const base = a.mode === 'magic' && a.skill >= 200 ? spellDelay : noSpellDelay;
+    if (base <= 0) b.send(JSON.stringify(a));
+    else setTimeout(() => b.send(JSON.stringify(a)), (base * (Math.random() * 100 + 50)) / 100);
+  };
+  w['api_response'] = function (b: {
+    readyState: number;
+    status: number;
+    responseText: string;
+  }): unknown {
+    const seq = (b as unknown as Record<string, unknown>).__hvaaSeq as number | undefined;
+    if (b.readyState === 4) {
+      if (b.status === 200) {
+        const a = JSON.parse(b.responseText) as {
+          login?: unknown;
+          error?: unknown;
+          reload?: unknown;
+        };
         try {
-          const h = (window as unknown as { __hvaa?: { fired?: number } }).__hvaa;
-          if (h) h.fired = (h.fired ?? 0) + 1;
+          handleRec('res', { status: b.status, body: a }, seq ?? 0);
+        } catch {
+          /* 录制上报失败不影响战斗 */
+        }
+        if (a.login !== undefined) {
+          (window.top as Window).location.href = w['login_url'] as string;
+        } else {
+          if (a.error || a.reload) location.href = location.search;
+          return a;
+        }
+      } else {
+        try {
+          handleRec('res', { status: b.status, body: null }, seq ?? 0);
         } catch {
           /* ignore */
         }
-        document.getElementById('eventEnd')?.click();
-      };
-      document.getElementById('eventStart')?.click();
-      const base = a.mode === 'magic' && a.skill >= 200 ? spellDelay : noSpellDelay;
-      if (base <= 0) b.send(JSON.stringify(a));
-      else setTimeout(() => b.send(JSON.stringify(a)), (base * (Math.random() * 100 + 50)) / 100);
-    };
-    w['api_response'] = function (b: { readyState: number; status: number; responseText: string }): unknown {
-      const seq = (b as unknown as Record<string, unknown>).__hvaaSeq as number | undefined;
-      if (b.readyState === 4) {
-        if (b.status === 200) {
-          const a = JSON.parse(b.responseText) as { login?: unknown; error?: unknown; reload?: unknown };
-          try {
-            handleRec('res', { status: b.status, body: a }, seq ?? 0);
-          } catch {
-            /* 录制上报失败不影响战斗 */
-          }
-          if (a.login !== undefined) {
-            (window.top as Window).location.href = (w['login_url'] as string);
-          } else {
-            if (a.error || a.reload) location.href = location.search;
-            return a;
-          }
-        } else {
-          try {
-            handleRec('res', { status: b.status, body: null }, seq ?? 0);
-          } catch {
-            /* ignore */
-          }
-          location.href = location.search;
-        }
+        location.href = location.search;
       }
-      return false;
-    };
+    }
+    return false;
+  };
 }
 
 export { options };

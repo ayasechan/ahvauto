@@ -1,6 +1,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { gzipStr, gunzip, keysToDelete, decodeRecordRow, decodeTurnRow, handleRec } from './recorder';
+import {
+  gzipStr,
+  gunzip,
+  keysToDelete,
+  decodeRecordRow,
+  decodeTurnRow,
+  handleRec,
+} from './recorder';
 
 describe('recorder gzip', () => {
   it('回环', async () => {

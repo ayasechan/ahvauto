@@ -1,6 +1,13 @@
 import type { HvOptions } from './types';
 import type { AttackStatus } from './types';
-import { defaultOptions, VERSION, ITEM_KEYS, BUFF_COND_KEYS, DEBUFF_COND_KEYS, SCROLL_COND_KEYS } from './defaults';
+import {
+  defaultOptions,
+  VERSION,
+  ITEM_KEYS,
+  BUFF_COND_KEYS,
+  DEBUFF_COND_KEYS,
+  SCROLL_COND_KEYS,
+} from './defaults';
 import { BATTLE_VAR_NAMES, groupsToExpr } from './expr/migrate';
 import type { ConditionGroups } from './types';
 
@@ -32,7 +39,12 @@ const numMap = (v: unknown): Record<string, number> => {
   return out;
 };
 const csv = (v: unknown): string[] =>
-  typeof v === 'string' ? v.split(',').map((s) => s.trim()).filter(Boolean) : [];
+  typeof v === 'string'
+    ? v
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
 
 function cond(v: unknown, old: Raw): string {
   if (typeof v === 'string') return v;
@@ -40,7 +52,9 @@ function cond(v: unknown, old: Raw): string {
     try {
       return groupsToExpr(v as ConditionGroups, VARS, (name) => {
         const ov = old[name];
-        return typeof ov === 'number' || typeof ov === 'string' || typeof ov === 'boolean' ? ov : undefined;
+        return typeof ov === 'number' || typeof ov === 'string' || typeof ov === 'boolean'
+          ? ov
+          : undefined;
       });
     } catch {
       return '';
@@ -49,12 +63,13 @@ function cond(v: unknown, old: Raw): string {
   return '';
 }
 
-
 /** 旧脚本（v2.x，hvAA-option）是否可识别 */
 export function isLegacyOption(v: unknown): v is Raw {
   if (typeof v !== 'object' || v === null) return false;
   const o = v as Raw;
-  return typeof o.version === 'string' && (o.version as string).startsWith('2.') && 'attackStatus' in o;
+  return (
+    typeof o.version === 'string' && (o.version as string).startsWith('2.') && 'attackStatus' in o
+  );
 }
 
 /** 旧配置 → 新 HvOptions（含权重、条件翻译）。只读旧对象，不写回。 */
@@ -62,8 +77,13 @@ export function importLegacyOption(old: Raw): HvOptions {
   const d = defaultOptions();
   const attackStatus = num(old.attackStatus, -1);
   const attack: AttackStatus =
-    attackStatus === 0 || attackStatus === 1 || attackStatus === 2 || attackStatus === 3 ||
-      attackStatus === 4 || attackStatus === 5 || attackStatus === 6
+    attackStatus === 0 ||
+    attackStatus === 1 ||
+    attackStatus === 2 ||
+    attackStatus === 3 ||
+    attackStatus === 4 ||
+    attackStatus === 5 ||
+    attackStatus === 6
       ? attackStatus
       : -1;
   const langRaw = str(old.lang, '0');
@@ -128,7 +148,9 @@ export function importLegacyOption(old: Raw): HvOptions {
     item: {
       order: itemNames.map((key, i) => ({ key, id: itemIds[i] ?? '' })).filter((o) => o.id !== ''),
       enabled: boolMap(old.item),
-      conditions: Object.fromEntries(ITEM_KEYS.map((k) => [k, cond((old as Raw)[`item${k}Condition`], old)])),
+      conditions: Object.fromEntries(
+        ITEM_KEYS.map((k) => [k, cond((old as Raw)[`item${k}Condition`], old)]),
+      ),
     },
     channel: {
       enabled: bool(old.channelSkillSwitch),
@@ -141,7 +163,9 @@ export function importLegacyOption(old: Raw): HvOptions {
       order: csv(old.buffSkillOrderValue),
       condition: cond(old.buffSkillCondition, old),
       enabledMap: boolMap(old.buffSkill),
-      conditions: Object.fromEntries(BUFF_COND_KEYS.map((k) => [k, cond((old as Raw)[`buffSkill${k}Condition`], old)])),
+      conditions: Object.fromEntries(
+        BUFF_COND_KEYS.map((k) => [k, cond((old as Raw)[`buffSkill${k}Condition`], old)]),
+      ),
     },
     debuff: {
       enabled: bool(old.debuffSkillSwitch),
@@ -149,7 +173,9 @@ export function importLegacyOption(old: Raw): HvOptions {
       allIm: bool(old.debuffSkillAllIm),
       condition: cond(old.debuffSkillCondition, old),
       enabledMap: boolMap(old.debuffSkill),
-      conditions: Object.fromEntries(DEBUFF_COND_KEYS.map((k) => [k, cond((old as Raw)[`debuffSkill${k}Condition`], old)])),
+      conditions: Object.fromEntries(
+        DEBUFF_COND_KEYS.map((k) => [k, cond((old as Raw)[`debuffSkill${k}Condition`], old)]),
+      ),
       turnAlert: bool(old.debuffSkillTurnAlert),
       turns: numMap(old.debuffSkillTurn),
     },
@@ -185,7 +211,9 @@ export function importLegacyOption(old: Raw): HvOptions {
       first: bool(old.scrollFirst),
       condition: cond(old.scrollCondition, old),
       enabledMap: boolMap(old.scroll),
-      conditions: Object.fromEntries(SCROLL_COND_KEYS.map((k) => [k, cond((old as Raw)[`scroll${k}Condition`], old)])),
+      conditions: Object.fromEntries(
+        SCROLL_COND_KEYS.map((k) => [k, cond((old as Raw)[`scroll${k}Condition`], old)]),
+      ),
     },
     infusion: {
       enabled: bool(old.infusionSwitch),
@@ -200,10 +228,9 @@ export function importLegacyOption(old: Raw): HvOptions {
         Victory: bool((old.audioEnable as Raw | undefined)?.Victory),
       },
       audio: Object.fromEntries(
-        Object.entries(typeof old.audio === 'object' && old.audio !== null ? (old.audio as Raw) : {}).map(([k, v]) => [
-          k,
-          typeof v === 'string' ? v : '',
-        ]),
+        Object.entries(
+          typeof old.audio === 'object' && old.audio !== null ? (old.audio as Raw) : {},
+        ).map(([k, v]) => [k, typeof v === 'string' ? v : '']),
       ),
       telegram: d.alarm.telegram,
       webhook: d.alarm.webhook,

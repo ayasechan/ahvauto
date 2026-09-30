@@ -1,6 +1,9 @@
 /** DOM 小工具：替代原 gE/cE/isOn */
 
-export function qs<T extends Element = Element>(sel: string, root: ParentNode = document): T | null {
+export function qs<T extends Element = Element>(
+  sel: string,
+  root: ParentNode = document,
+): T | null {
   if (!sel.startsWith('.') && !sel.startsWith('#') && !sel.includes(' ') && !sel.includes('[')) {
     const byId = (root === document ? document.getElementById(sel) : null) as T | null;
     if (byId) return byId;

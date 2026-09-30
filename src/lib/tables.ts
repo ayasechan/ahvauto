@@ -32,8 +32,20 @@ export interface ScrollDef extends SkillDef {
 }
 
 export const SCROLL_LIB: Record<string, ScrollDef> = {
-  Go: { id: '13299', img: '', name: 'Scroll of the Gods', mult: 3, imgs: ['absorb', 'shadowveil', 'sparklife'] },
-  Av: { id: '13199', img: '', name: 'Scroll of the Avatar', mult: 2, imgs: ['haste', 'protection'] },
+  Go: {
+    id: '13299',
+    img: '',
+    name: 'Scroll of the Gods',
+    mult: 3,
+    imgs: ['absorb', 'shadowveil', 'sparklife'],
+  },
+  Av: {
+    id: '13199',
+    img: '',
+    name: 'Scroll of the Avatar',
+    mult: 2,
+    imgs: ['haste', 'protection'],
+  },
   Pr: { id: '13111', img: '', name: 'Scroll of Protection', mult: 1, imgs: ['protection'] },
   Sw: { id: '13101', img: '', name: 'Scroll of Swiftness', mult: 1, imgs: ['haste'] },
   Li: { id: '13221', img: '', name: 'Scroll of Life', mult: 1, imgs: ['sparklife'] },

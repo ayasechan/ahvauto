@@ -4,12 +4,25 @@ import { ITEM_IDS, BUFF_LIB, DRAUGHT_LIB, DEBUFF_LIB, SCROLL_LIB } from '../tabl
 
 /** 战斗变量名表（与 conditions.ts battleCtx 的 key 一致，漂移由单测守护）。 */
 export const BATTLE_VAR_NAMES = [
-  'hp', 'mp', 'sp', 'oc',
-  'monsterAll', 'monsterAlive', 'bossAll', 'bossAlive',
-  'roundNow', 'roundAll', 'roundLeft', 'roundType', 'attackStatus', 'turn',
+  'hp',
+  'mp',
+  'sp',
+  'oc',
+  'monsterAll',
+  'monsterAlive',
+  'bossAll',
+  'bossAlive',
+  'roundNow',
+  'roundAll',
+  'roundLeft',
+  'roundType',
+  'attackStatus',
+  'turn',
 ];
 
-const BATTLE_VARS: Record<string, true> = Object.fromEntries(BATTLE_VAR_NAMES.map((k) => [k, true]));
+const BATTLE_VARS: Record<string, true> = Object.fromEntries(
+  BATTLE_VAR_NAMES.map((k) => [k, true]),
+);
 
 /** 老操作符编号 → 新表达式符号 */
 const OP_SYMBOL: Record<string, string> = {
@@ -59,7 +72,11 @@ function tokenToExpr(token: string, vars: Record<string, true>, lookup: Lookup):
  * 老格式 {组号: ["a,op,b"]} 翻译成表达式：组内 and、组间 or。
  * 脏数据（三元组残缺、未知操作符、翻译失败）翻成 `false`，与原版静默不通过一致。
  */
-export function groupsToExpr(parms: ConditionGroups, vars: Record<string, true>, lookup: Lookup): string {
+export function groupsToExpr(
+  parms: ConditionGroups,
+  vars: Record<string, true>,
+  lookup: Lookup,
+): string {
   const groups = Object.keys(parms)
     .map(Number)
     .sort((a, b) => a - b)
@@ -96,17 +113,25 @@ export function migrateCond(v: unknown, vars: Record<string, true>, lookup: Look
 }
 
 const MAIN_CONDS = [
-  'middleSkillCondition', 'highSkillCondition',
-  'turnOnSSCondition', 'turnOffSSCondition',
-  'defendCondition', 'focusCondition',
-  'etherTapCondition', 'fleeCondition',
+  'middleSkillCondition',
+  'highSkillCondition',
+  'turnOnSSCondition',
+  'turnOffSSCondition',
+  'defendCondition',
+  'focusCondition',
+  'etherTapCondition',
+  'fleeCondition',
 ];
 const SKILL_CONDS = ['ofcCondition', 'frdCondition', 't3Condition', 't2Condition', 't1Condition'];
 
 function migrateRecord(rec: unknown, vars: Record<string, true>, lookup: Lookup): void {
   if (typeof rec !== 'object' || rec === null) return;
   for (const k of Object.keys(rec as Record<string, unknown>)) {
-    (rec as Record<string, unknown>)[k] = migrateCond((rec as Record<string, unknown>)[k], vars, lookup);
+    (rec as Record<string, unknown>)[k] = migrateCond(
+      (rec as Record<string, unknown>)[k],
+      vars,
+      lookup,
+    );
   }
 }
 
@@ -135,7 +160,8 @@ function backfillAlarm(raw: Record<string, unknown>): void {
     if (target === 'telegram') {
       if (typeof t.botToken === 'string') t.botToken = t.botToken.trim();
       else t.botToken = '';
-      if (typeof t.chatId === 'number' && Number.isFinite(t.chatId)) t.chatId = String(Math.trunc(t.chatId));
+      if (typeof t.chatId === 'number' && Number.isFinite(t.chatId))
+        t.chatId = String(Math.trunc(t.chatId));
       else if (typeof t.chatId === 'string') t.chatId = t.chatId.trim();
       else t.chatId = '';
     } else {
@@ -179,7 +205,8 @@ export function migrateOptions(raw: Record<string, unknown>): void {
   }
   const debuff = raw.debuff as Record<string, unknown> | undefined;
   if (debuff) {
-    if ('condition' in debuff) debuff.condition = migrateCond(debuff.condition, BATTLE_VARS, lookup);
+    if ('condition' in debuff)
+      debuff.condition = migrateCond(debuff.condition, BATTLE_VARS, lookup);
     migrateRecord(debuff.conditions, BATTLE_VARS, lookup);
     backfill(debuff.conditions, Object.keys(DEBUFF_LIB));
   }
@@ -191,7 +218,8 @@ export function migrateOptions(raw: Record<string, unknown>): void {
   }
   const scroll = raw.scroll as Record<string, unknown> | undefined;
   if (scroll) {
-    if ('condition' in scroll) scroll.condition = migrateCond(scroll.condition, BATTLE_VARS, lookup);
+    if ('condition' in scroll)
+      scroll.condition = migrateCond(scroll.condition, BATTLE_VARS, lookup);
     migrateRecord(scroll.conditions, BATTLE_VARS, lookup);
     backfill(scroll.conditions, Object.keys(SCROLL_LIB));
   }

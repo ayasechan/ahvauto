@@ -44,7 +44,8 @@ export function battleVars(): BattleVars {
 
 /** isCd(<id>) : 可用=0 / CD中=1 */
 function isCd(id: Value): Value {
-  if (typeof id !== 'number' || !Number.isFinite(id)) throw new Error(`isCd 参数必须是技能 id 数字`);
+  if (typeof id !== 'number' || !Number.isFinite(id))
+    throw new Error(`isCd 参数必须是技能 id 数字`);
   const key = String(id);
   if (Number(key) > 10000) return qs(`.bti3>div[onmouseover*="${key}"]`) ? 0 : 1;
   const node = document.getElementById(key);

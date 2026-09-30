@@ -26,11 +26,16 @@
   <div class="row">
     <b>{L('ch.first')}</b><br />
     {#each KEYS as k}
-      <label><input type="checkbox" bind:checked={$options.channel.first[k]} />{BUFF_LIB[k].name}</label>
+      <label
+        ><input type="checkbox" bind:checked={$options.channel.first[k]} />{BUFF_LIB[k].name}</label
+      >
     {/each}
   </div>
   <div class="row">
-    <label><input type="checkbox" bind:checked={$options.channel.useSecond} /><b>{L('ch.then')}</b></label>
+    <label
+      ><input type="checkbox" bind:checked={$options.channel.useSecond} /><b>{L('ch.then')}</b
+      ></label
+    >
     <select bind:value={newKey}>
       <option value="Cu">Cure</option>
       <option value="FC">Full-Cure</option>
@@ -41,10 +46,17 @@
     <button type="button" onclick={addSecond}>{L('ui.add')}</button>
     <ol>
       {#each $options.channel.secondOrder as o, i}
-        <li>{o.key} ({o.id})
+        <li>
+          {o.key} ({o.id})
           <button type="button" onclick={() => move(i, -1)}>↑</button>
           <button type="button" onclick={() => move(i, 1)}>↓</button>
-          <button type="button" onclick={() => ($options.channel.secondOrder = $options.channel.secondOrder.filter((_, j) => j !== i))}>{L('ui.delete')}</button>
+          <button
+            type="button"
+            onclick={() =>
+              ($options.channel.secondOrder = $options.channel.secondOrder.filter(
+                (_, j) => j !== i,
+              ))}>{L('ui.delete')}</button
+          >
         </li>
       {/each}
     </ol>
@@ -52,5 +64,11 @@
 </div>
 
 <style>
-  .row { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; margin: 0 0 12px; padding: 12px; }
+  .row {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    margin: 0 0 12px;
+    padding: 12px;
+  }
 </style>

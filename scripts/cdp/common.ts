@@ -86,7 +86,9 @@ export async function connect(url: string): Promise<Cdp> {
     onDialog: (h) => dialogHandlers.push(h),
     shot: async (file: string) => {
       const { writeFileSync } = await import('node:fs');
-      const { data } = (await send('Page.captureScreenshot', { format: 'png' })) as { data: string };
+      const { data } = (await send('Page.captureScreenshot', { format: 'png' })) as {
+        data: string;
+      };
       writeFileSync(file, Buffer.from(data, 'base64'));
       return file;
     },

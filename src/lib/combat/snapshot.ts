@@ -3,7 +3,7 @@ import type { Snapshot, SnapMonster, PaneBuff } from './types';
 import { DEBUFF_WEIGHT_IMGS } from '../tables';
 
 function numWidth(sel: string, base: number): number {
-  return ((qs(sel) as HTMLElement | null)?.offsetWidth ?? 0) / base * 100;
+  return (((qs(sel) as HTMLElement | null)?.offsetWidth ?? 0) / base) * 100;
 }
 
 /** 血条宽度 → hpNow（与游戏 120px 满格一致），死怪 Infinity */
@@ -38,18 +38,22 @@ export function orderTargets(
   const hps = alive.map((m) => m.hpNow);
   const lo = hps.length > 0 ? Math.min(...hps) : 1;
   const hi = hps.length > 0 ? Math.max(...hps) : 1;
-  const first = monsters.filter((m) => m.hpNow !== Infinity && isPriorityTarget(m.name)).map((m) => m.id);
+  const first = monsters
+    .filter((m) => m.hpNow !== Infinity && isPriorityTarget(m.name))
+    .map((m) => m.id);
   const rest = [...monsters]
     .filter((m) => !first.includes(m.id))
     .map((m) => {
-      let w = m.hpNow === Infinity
-        ? Infinity
-        : reverse
-          ? (hi / Math.max(1, m.hpNow)) * 10
-          : (m.hpNow / Math.max(1, lo)) * 10;
+      let w =
+        m.hpNow === Infinity
+          ? Infinity
+          : reverse
+            ? (hi / Math.max(1, m.hpNow)) * 10
+            : (m.hpNow / Math.max(1, lo)) * 10;
       for (const mark of m.marks) {
         for (const key of Object.keys(DEBUFF_WEIGHT_IMGS)) {
-          if (mark === DEBUFF_WEIGHT_IMGS[key]) w += reverse ? -(weights[key] ?? 0) : (weights[key] ?? 0);
+          if (mark === DEBUFF_WEIGHT_IMGS[key])
+            w += reverse ? -(weights[key] ?? 0) : (weights[key] ?? 0);
         }
       }
       return { id: m.id, weight: w };
@@ -88,7 +92,8 @@ function readMonster(
 ): SnapMonster {
   const id = String(idx === 9 ? 0 : idx + 1);
   const hpNow = monsterHp(base, bar);
-  const name = bar?.closest('div.btm1')?.querySelector('div.btm3 > div > div')?.textContent?.trim() ?? '';
+  const name =
+    bar?.closest('div.btm1')?.querySelector('div.btm3 > div > div')?.textContent?.trim() ?? '';
   const imgs = box ? box.querySelectorAll('img') : [];
   const marks: string[] = [];
   for (const img of imgs) {
@@ -142,7 +147,9 @@ export function readSnapshot(base: number[]): Snapshot {
     const element = node as HTMLElement;
     if (/^\d+$/.test(element.id) && element.id.length >= 3) {
       skills[element.id] = element.style.opacity !== '0.5';
-      const nm = (element.getAttribute('onmouseover') ?? '').match(/set_infopane_spell\('(.*?)'/)?.[1];
+      const nm = (element.getAttribute('onmouseover') ?? '').match(
+        /set_infopane_spell\('(.*?)'/,
+      )?.[1];
       if (nm) skillNames[element.id] = nm;
     }
   }
@@ -180,7 +187,9 @@ export function readSnapshot(base: number[]): Snapshot {
     spiritOn: !!qs('#ckey_spirit[src*="spirit_a"]'),
     channeling: buffs.some((b) => b.src.includes('channeling')),
     etherTapX2: buffs.some((b) => b.name.includes('Ether Tap (x2)')),
-    etherTapExpiring: buffs.some((b) => b.src.includes('wpn_et') && b.bid.includes('effect_expire')),
+    etherTapExpiring: buffs.some(
+      (b) => b.src.includes('wpn_et') && b.bid.includes('effect_expire'),
+    ),
     fightingStyle: '1',
   };
 }
@@ -191,7 +200,11 @@ export function firstClickable(monsters: SnapMonster[]): string | null {
 }
 
 /** 首选 id 可点则用，否则顺延活怪（纯） */
-export function resolveTarget(monsters: SnapMonster[], preferred: string | undefined): string | null {
-  if (preferred && monsters.some((m) => m.id === preferred && m.alive && m.clickable)) return preferred;
+export function resolveTarget(
+  monsters: SnapMonster[],
+  preferred: string | undefined,
+): string | null {
+  if (preferred && monsters.some((m) => m.id === preferred && m.alive && m.clickable))
+    return preferred;
   return firstClickable(monsters);
 }

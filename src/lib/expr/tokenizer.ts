@@ -1,10 +1,29 @@
 // EBNF 见 parser.ts 头部注释。本文件只做词法切分。
 export type TokenKind =
-  | 'num' | 'str' | 'true' | 'false' | 'ident'
-  | 'and' | 'or' | 'not'
-  | 'eq' | 'ne' | 'le' | 'ge' | 'lt' | 'gt'
-  | 'plus' | 'minus' | 'star' | 'slash' | 'percent'
-  | 'lparen' | 'rparen' | 'comma' | 'dot' | 'eof';
+  | 'num'
+  | 'str'
+  | 'true'
+  | 'false'
+  | 'ident'
+  | 'and'
+  | 'or'
+  | 'not'
+  | 'eq'
+  | 'ne'
+  | 'le'
+  | 'ge'
+  | 'lt'
+  | 'gt'
+  | 'plus'
+  | 'minus'
+  | 'star'
+  | 'slash'
+  | 'percent'
+  | 'lparen'
+  | 'rparen'
+  | 'comma'
+  | 'dot'
+  | 'eof';
 
 export interface Token {
   kind: TokenKind;
@@ -100,29 +119,69 @@ export function tokenize(input: string): Token[] {
     }
     const two = input.slice(i, i + 2);
     if (two === '==' || two === '!=' || two === '<=' || two === '>=') {
-      const kind: TokenKind = two === '==' ? 'eq' : two === '!=' ? 'ne' : two === '<=' ? 'le' : 'ge';
+      const kind: TokenKind =
+        two === '==' ? 'eq' : two === '!=' ? 'ne' : two === '<=' ? 'le' : 'ge';
       out.push({ kind, pos: i });
       i += 2;
       continue;
     }
     switch (c) {
-      case '<': out.push({ kind: 'lt', pos: i }); i++; continue;
-      case '>': out.push({ kind: 'gt', pos: i }); i++; continue;
-      case '+': out.push({ kind: 'plus', pos: i }); i++; continue;
-      case '-': out.push({ kind: 'minus', pos: i }); i++; continue;
-      case '*': out.push({ kind: 'star', pos: i }); i++; continue;
-      case '/': out.push({ kind: 'slash', pos: i }); i++; continue;
-      case '%': out.push({ kind: 'percent', pos: i }); i++; continue;
-      case '(': out.push({ kind: 'lparen', pos: i }); i++; continue;
-      case ')': out.push({ kind: 'rparen', pos: i }); i++; continue;
-      case ',': out.push({ kind: 'comma', pos: i }); i++; continue;
-      case '.': out.push({ kind: 'dot', pos: i }); i++; continue;
-      case '&': err(i, "不支持 `&&`，请用 `and`");
-      case '|': err(i, "不支持 `||`，请用 `or`");
-      case '!': err(i, "不支持 `!`，请用 `not`");
-      case '=': err(i, "不支持单个 `=`，比较相等请用 `==`（已是严格相等）");
-      case "'": err(i, '字符串请用双引号，如 "ar"');
-      default: err(i, `不支持的字符 \`${c}\``);
+      case '<':
+        out.push({ kind: 'lt', pos: i });
+        i++;
+        continue;
+      case '>':
+        out.push({ kind: 'gt', pos: i });
+        i++;
+        continue;
+      case '+':
+        out.push({ kind: 'plus', pos: i });
+        i++;
+        continue;
+      case '-':
+        out.push({ kind: 'minus', pos: i });
+        i++;
+        continue;
+      case '*':
+        out.push({ kind: 'star', pos: i });
+        i++;
+        continue;
+      case '/':
+        out.push({ kind: 'slash', pos: i });
+        i++;
+        continue;
+      case '%':
+        out.push({ kind: 'percent', pos: i });
+        i++;
+        continue;
+      case '(':
+        out.push({ kind: 'lparen', pos: i });
+        i++;
+        continue;
+      case ')':
+        out.push({ kind: 'rparen', pos: i });
+        i++;
+        continue;
+      case ',':
+        out.push({ kind: 'comma', pos: i });
+        i++;
+        continue;
+      case '.':
+        out.push({ kind: 'dot', pos: i });
+        i++;
+        continue;
+      case '&':
+        err(i, '不支持 `&&`，请用 `and`');
+      case '|':
+        err(i, '不支持 `||`，请用 `or`');
+      case '!':
+        err(i, '不支持 `!`，请用 `not`');
+      case '=':
+        err(i, '不支持单个 `=`，比较相等请用 `==`（已是严格相等）');
+      case "'":
+        err(i, '字符串请用双引号，如 "ar"');
+      default:
+        err(i, `不支持的字符 \`${c}\``);
     }
   }
   out.push({ kind: 'eof', pos: i });

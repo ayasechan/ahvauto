@@ -105,7 +105,10 @@ try {
     if (take <= 0) break;
     const b: Batch = await cdp.ev<Batch>(batchExpr(upperExcl, take, sinceSeq), true);
     for (const row of b.rows) {
-      appendFileSync(out, `${first ? ' ' : ',\n '}${JSON.stringify(row, null, 1).replace(/\n/g, '\n ')}`);
+      appendFileSync(
+        out,
+        `${first ? ' ' : ',\n '}${JSON.stringify(row, null, 1).replace(/\n/g, '\n ')}`,
+      );
       first = false;
     }
     written += b.rows.length;

@@ -11,7 +11,10 @@
     const all = getBattles();
     const q = ($options.dropQuality ?? '').trim();
     // 数字档位在记录侧已过滤（normalizeDrop），展示侧只对文本做子串过滤
-    rows = q !== '' && !/^\d+$/.test(q) ? all.filter((b) => b.drops.some((d) => d.toLowerCase().includes(q.toLowerCase()))) : all;
+    rows =
+      q !== '' && !/^\d+$/.test(q)
+        ? all.filter((b) => b.drops.some((d) => d.toLowerCase().includes(q.toLowerCase())))
+        : all;
   }
   function clear() {
     clearStats();
@@ -27,17 +30,41 @@
     <button type="button" onclick={clear}>{L('ui.clear')}</button>
   </div>
   <table>
-    <thead><tr><th>{L('d.h.battle')}</th><th>Turns</th><th>DMG</th><th>{L('d.h.exp')}</th><th>{L('d.h.credit')}</th><th>Kills</th><th>Monster</th><th>Boss</th><th>{L('d.h.items')}</th></tr></thead>
+    <thead
+      ><tr
+        ><th>{L('d.h.battle')}</th><th>Turns</th><th>DMG</th><th>{L('d.h.exp')}</th><th
+          >{L('d.h.credit')}</th
+        ><th>Kills</th><th>Monster</th><th>Boss</th><th>{L('d.h.items')}</th></tr
+      ></thead
+    >
     <tbody>
       {#each rows as v}
-        <tr><td>{v.key}</td><td>{v.turns}</td><td>{v.damage}</td><td>{v.exp}</td><td>{v.credit}</td><td>{v.kills}</td><td>{v.monsters ?? 0}</td><td>{v.bosses ?? 0}</td><td>{v.drops.join('; ')}</td></tr>
+        <tr
+          ><td>{v.key}</td><td>{v.turns}</td><td>{v.damage}</td><td>{v.exp}</td><td>{v.credit}</td
+          ><td>{v.kills}</td><td>{v.monsters ?? 0}</td><td>{v.bosses ?? 0}</td><td
+            >{v.drops.join('; ')}</td
+          ></tr
+        >
       {/each}
     </tbody>
   </table>
 </div>
 
 <style>
-  .row { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; margin: 0 0 12px; padding: 12px; }
-  table { border-collapse: collapse; margin: 0 auto; }
-  td, th { border: 1px solid #000; padding: 2px 6px; }
+  .row {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    margin: 0 0 12px;
+    padding: 12px;
+  }
+  table {
+    border-collapse: collapse;
+    margin: 0 auto;
+  }
+  td,
+  th {
+    border: 1px solid #000;
+    padding: 2px 6px;
+  }
 </style>

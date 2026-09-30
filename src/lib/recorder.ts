@@ -93,19 +93,27 @@ export async function recordBattleEvent(
     if (!snapshotOptions().main.debug) return;
     await withSeqLock(seq, async () => {
       const db = await openDb();
-    if (kind === 'req') {
-      const data = await gzipStr(JSON.stringify({ seq, tReq: Date.now(), req: payload }));
-      await putRow(db, STORE, { seq, tReq: Date.now(), req: payload, data });
-    } else {
-      const now = Date.now();
-      const prev = await getRow(db, seq);
-      const tReq = prev?.tReq ?? now;
-      const data = await gzipStr(
-        JSON.stringify({ seq, tReq, req: prev?.req, tRes: now, res: payload, rttMs: now - tReq }),
-      );
-      await putRow(db, STORE, { seq, tReq, req: prev?.req, tRes: now, res: payload, rttMs: now - tReq, data });
-    }
-    await evictOld(db, STORE, CAP);
+      if (kind === 'req') {
+        const data = await gzipStr(JSON.stringify({ seq, tReq: Date.now(), req: payload }));
+        await putRow(db, STORE, { seq, tReq: Date.now(), req: payload, data });
+      } else {
+        const now = Date.now();
+        const prev = await getRow(db, seq);
+        const tReq = prev?.tReq ?? now;
+        const data = await gzipStr(
+          JSON.stringify({ seq, tReq, req: prev?.req, tRes: now, res: payload, rttMs: now - tReq }),
+        );
+        await putRow(db, STORE, {
+          seq,
+          tReq,
+          req: prev?.req,
+          tRes: now,
+          res: payload,
+          rttMs: now - tReq,
+          data,
+        });
+      }
+      await evictOld(db, STORE, CAP);
     });
   } catch {
     /* 录制失败不影响战斗 */
@@ -241,8 +249,7 @@ function readRawBatch(
   batchSize: number,
 ): Promise<{ key: number; value: unknown }[]> {
   return new Promise((resolve, reject) => {
-    const range =
-      lower === undefined ? null : IDBKeyRange.lowerBound(lower, exclusive);
+    const range = lower === undefined ? null : IDBKeyRange.lowerBound(lower, exclusive);
     const req = db.transaction(store, 'readonly').objectStore(store).openCursor(range);
     const out: { key: number; value: unknown }[] = [];
     req.onsuccess = () => {
@@ -320,7 +327,7 @@ export function handleRec(kind: string, payload: unknown, seq = 0): void {
     try {
       const body = (payload as { body?: unknown }).body as { textlog?: unknown[] } | undefined;
       const raw = Array.isArray(body?.textlog) ? body.textlog : [];
-      const rows = raw.map((r) => (typeof r === 'string' ? r : (r as { t?: string }).t ?? ''));
+      const rows = raw.map((r) => (typeof r === 'string' ? r : ((r as { t?: string }).t ?? '')));
       if (rows.length > 0) recordBattleTurn(rows);
     } catch {
       /* 统计失败不影响战斗 */

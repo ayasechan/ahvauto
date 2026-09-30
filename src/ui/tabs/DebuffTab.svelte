@@ -9,7 +9,9 @@
 
   function toggleOrder(k: string, ev: Event) {
     const on = (ev.target as HTMLInputElement).checked;
-    $options.debuff.order = on ? [...$options.debuff.order, k] : $options.debuff.order.filter((x) => x !== k);
+    $options.debuff.order = on
+      ? [...$options.debuff.order, k]
+      : $options.debuff.order.filter((x) => x !== k);
   }
   function move(i: number, d: -1 | 1) {
     const arr = [...$options.debuff.order];
@@ -24,7 +26,9 @@
 </script>
 
 <div>
-  <div class="row"><b>{L('db.need')}</b><ConditionEditor bind:expr={$options.debuff.condition} /></div>
+  <div class="row">
+    <b>{L('db.need')}</b><ConditionEditor bind:expr={$options.debuff.condition} />
+  </div>
   <div class="row">
     <b>{L('it.order')}</b><span class="hint">{L('od.seq')}</span><br />
     {#if $options.debuff.order.length === 0}
@@ -43,7 +47,13 @@
     {/if}
     <div style="margin-top: 8px">
       {#each KEYS as k}
-        <label><input type="checkbox" checked={$options.debuff.order.includes(k)} onchange={(e) => toggleOrder(k, e)} />{DEBUFF_LIB[k]?.name ?? k}</label>
+        <label
+          ><input
+            type="checkbox"
+            checked={$options.debuff.order.includes(k)}
+            onchange={(e) => toggleOrder(k, e)}
+          />{DEBUFF_LIB[k]?.name ?? k}</label
+        >
       {/each}
     </div>
   </div>
@@ -52,19 +62,32 @@
   </div>
   {#each KEYS as k}
     <div class="row">
-      <label><input type="checkbox" bind:checked={$options.debuff.enabledMap[k]} /><b>{DEBUFF_LIB[k]?.name ?? k}</b></label>
+      <label
+        ><input type="checkbox" bind:checked={$options.debuff.enabledMap[k]} /><b
+          >{DEBUFF_LIB[k]?.name ?? k}</b
+        ></label
+      >
       <ConditionEditor bind:expr={$options.debuff.conditions[k]} />
     </div>
   {/each}
   <div class="row">
     {L('db.turns')}:
-    <label><input type="checkbox" bind:checked={$options.debuff.turnAlert} />{L('db.turnAlert')}</label><br />
+    <label
+      ><input type="checkbox" bind:checked={$options.debuff.turnAlert} />{L('db.turnAlert')}</label
+    ><br />
     {#each KEYS as k}
-      {DEBUFF_LIB[k]?.name ?? k}: <input class="num" type="number" bind:value={$options.debuff.turns[k]} />
+      {DEBUFF_LIB[k]?.name ?? k}:
+      <input class="num" type="number" bind:value={$options.debuff.turns[k]} />
     {/each}
   </div>
 </div>
 
 <style>
-  .row { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; margin: 0 0 12px; padding: 12px; }
+  .row {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    margin: 0 0 12px;
+    padding: 12px;
+  }
 </style>

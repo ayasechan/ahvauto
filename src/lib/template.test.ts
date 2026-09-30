@@ -14,7 +14,10 @@ const VARS: WebhookVars = {
 describe('renderTemplate', () => {
   it('替换全部 5 个变量', () => {
     const out = renderTemplate('{kind}|{title}|{text}|{url}|{time}', VARS);
-    assert.equal(out, 'Defeat|ahvauto 战败|line1\nline2|https://hentaiverse.org/?s=Battle&ss=ba|2026-09-29T00:00:00.000Z');
+    assert.equal(
+      out,
+      'Defeat|ahvauto 战败|line1\nline2|https://hentaiverse.org/?s=Battle&ss=ba|2026-09-29T00:00:00.000Z',
+    );
   });
   it('同一变量出现多次全换，不误伤 JSON 双花括号', () => {
     const out = renderTemplate('{"kind":"{kind}","x":{},"more":"{kind}"}', VARS);

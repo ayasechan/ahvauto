@@ -25,14 +25,22 @@ try {
     hasNavbar: await cdp.ev<boolean>('!!document.querySelector("#navbar")'),
     hasRiddle: await cdp.ev<boolean>('!!document.querySelector("#riddlecounter")'),
     hasTextlog: await cdp.ev<boolean>('!!document.querySelector("#textlog")'),
-    localKeys: await cdp.ev<string[]>('Object.keys(localStorage).filter(k => k.startsWith("hvAA"))'),
+    localKeys: await cdp.ev<string[]>(
+      'Object.keys(localStorage).filter(k => k.startsWith("hvAA"))',
+    ),
     stamina: await cdp.ev<string | null>(
       'document.querySelector("#stamina_readout")?.textContent?.trim()?.slice(0,120) ?? null',
     ),
     hvAABox: await cdp.ev<boolean>('!!document.querySelector("#hvAABox")'),
     hvAABox2: await cdp.ev<boolean>('!!document.querySelector("#hvAABox2")'),
   };
-  report.mode = report.hasRiddle ? 'riddle' : !report.hasNavbar ? 'battle?' : report.hasTextlog ? 'field?' : 'other';
+  report.mode = report.hasRiddle
+    ? 'riddle'
+    : !report.hasNavbar
+      ? 'battle?'
+      : report.hasTextlog
+        ? 'field?'
+        : 'other';
   const optRaw = await cdp.ev<string | null>('localStorage.getItem("hvAA-option") ?? null');
   if (optRaw) {
     try {

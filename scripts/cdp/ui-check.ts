@@ -21,10 +21,10 @@ try {
   const groups = await cdp.ev<string[]>(
     '[...document.querySelectorAll("#hvAABox .hvAAGroup")].map(e => e.textContent)',
   );
-  const v2hint = await cdp.ev<boolean>(
-    '!!document.querySelector("#hvAABox .hvAATabmenu>span")',
+  const v2hint = await cdp.ev<boolean>('!!document.querySelector("#hvAABox .hvAATabmenu>span")');
+  console.log(
+    JSON.stringify({ url, title, btnHtml, boxExists, boxCss, crumbs, groups, v2hint }, null, 1),
   );
-  console.log(JSON.stringify({ url, title, btnHtml, boxExists, boxCss, crumbs, groups, v2hint }, null, 1));
   await cdp.shot('logs/ui-check.png');
   console.log('shot -> logs/ui-check.png');
 } finally {

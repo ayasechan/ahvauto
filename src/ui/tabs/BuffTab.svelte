@@ -10,7 +10,9 @@
 
   function toggleOrder(k: string, ev: Event) {
     const on = (ev.target as HTMLInputElement).checked;
-    $options.buff.order = on ? [...$options.buff.order, k] : $options.buff.order.filter((x) => x !== k);
+    $options.buff.order = on
+      ? [...$options.buff.order, k]
+      : $options.buff.order.filter((x) => x !== k);
   }
   function move(i: number, d: -1 | 1) {
     const arr = [...$options.buff.order];
@@ -25,7 +27,9 @@
 </script>
 
 <div>
-  <div class="row"><b>{L('bf.need')}</b><ConditionEditor bind:expr={$options.buff.condition} /></div>
+  <div class="row">
+    <b>{L('bf.need')}</b><ConditionEditor bind:expr={$options.buff.condition} />
+  </div>
   <div class="row">
     <b>{L('it.order')}</b><span class="hint">{L('od.seq')}</span><br />
     {#if $options.buff.order.length === 0}
@@ -44,18 +48,34 @@
     {/if}
     <div style="margin-top: 8px">
       {#each KEYS as k}
-        <label><input type="checkbox" checked={$options.buff.order.includes(k)} onchange={(e) => toggleOrder(k, e)} />{BUFF_LIB[k].name}</label>
+        <label
+          ><input
+            type="checkbox"
+            checked={$options.buff.order.includes(k)}
+            onchange={(e) => toggleOrder(k, e)}
+          />{BUFF_LIB[k].name}</label
+        >
       {/each}
     </div>
   </div>
   {#each [...DKEYS, ...KEYS] as k}
     <div class="row">
-      <label><input type="checkbox" bind:checked={$options.buff.enabledMap[k]} /><b>{DRAUGHT_LIB[k]?.name ?? BUFF_LIB[k]?.name ?? k}</b></label>
+      <label
+        ><input type="checkbox" bind:checked={$options.buff.enabledMap[k]} /><b
+          >{DRAUGHT_LIB[k]?.name ?? BUFF_LIB[k]?.name ?? k}</b
+        ></label
+      >
       <ConditionEditor bind:expr={$options.buff.conditions[k]} />
     </div>
   {/each}
 </div>
 
 <style>
-  .row { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; margin: 0 0 12px; padding: 12px; }
+  .row {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    margin: 0 0 12px;
+    padding: 12px;
+  }
 </style>

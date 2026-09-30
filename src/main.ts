@@ -126,7 +126,12 @@ onEnter('battle', () => {
   mountPauseButton();
   bindPauseHotkey();
   installReloader();
-  battle.update((b) => ({ ...b, attackStatus: opt.main.attackStatus, timeNow: Date.now(), runSpeed: 1 }));
+  battle.update((b) => ({
+    ...b,
+    attackStatus: opt.main.attackStatus,
+    timeNow: Date.now(),
+    runSpeed: 1,
+  }));
   void (async () => {
     await newRound();
     await main();

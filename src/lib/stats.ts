@@ -129,7 +129,15 @@ const emptyTurn = (): TurnStat => ({
   buffs: {},
 });
 
-const emptyTotals = (): Totals => ({ ...emptyTurn(), turns: 0, battles: 0, monsters: 0, bosses: 0, modes: {}, startedAt: 0 });
+const emptyTotals = (): Totals => ({
+  ...emptyTurn(),
+  turns: 0,
+  battles: 0,
+  monsters: 0,
+  bosses: 0,
+  modes: {},
+  startedAt: 0,
+});
 
 const bump = (rec: Record<string, number>, key: string, n = 1): void => {
   rec[key] = (rec[key] ?? 0) + n;
@@ -193,7 +201,8 @@ function restoreSource(text: string, ctx: RuleCtx): string {
   return 'unknown';
 }
 
-const avgDiv = (total: number, count: number): number => (count > 0 ? Math.round(total / count) : 0);
+const avgDiv = (total: number, count: number): number =>
+  count > 0 ? Math.round(total / count) : 0;
 
 /** 承伤均值读时算（老 hurt._avg/_pavg/_mavg 口径：round(总量/次数)，无样本为 0） */
 export function takenAvg(s: Pick<TurnStat, 'taken' | 'takenCount'>): number {
@@ -444,7 +453,16 @@ const RULES: Rule[] = [
  * - 未知颜色：不断言品质，原样返回（纯文本行行为不变）。
  * - Credit 行返回 null（另有 credit 规则记账，不进 drops）。
  */
-export const DROP_QUALITY = ['Crude', 'Fair', 'Average', 'Superior', 'Exquisite', 'Magnificent', 'Legendary', 'Peerless'];
+export const DROP_QUALITY = [
+  'Crude',
+  'Fair',
+  'Average',
+  'Superior',
+  'Exquisite',
+  'Magnificent',
+  'Legendary',
+  'Peerless',
+];
 
 export function normalizeDrop(name: string, colorKind: string, dropQuality = ''): string[] | null {
   if (/credits?/i.test(name)) return null;
@@ -489,7 +507,13 @@ export function dropColorKind(raw: string): string {
 
 /** 纯函数：解析一轮（一次响应）的 textlog 行 → 统计＋掉落名（raw 保留 HTML 以取掉落颜色）。 */
 export function parseTurn(lines: string[], dropQuality = ''): { stat: TurnStat; drops: string[] } {
-  const ctx: RuleCtx = { stat: emptyTurn(), drops: [], lastAction: null, colorKind: '', dropQuality };
+  const ctx: RuleCtx = {
+    stat: emptyTurn(),
+    drops: [],
+    lastAction: null,
+    colorKind: '',
+    dropQuality,
+  };
   for (const raw of lines) {
     ctx.colorKind = dropColorKind(raw);
     const t = stripHtml(raw).trim();
@@ -753,7 +777,10 @@ export function recordBattleTurn(rows: string[]): void {
   if (!opt.recordUsage) return;
   const raw = rows.filter((r) => stripHtml(r).trim());
   if (raw.length === 0) return;
-  const { stat: st, drops } = parseTurn(raw, (opt as unknown as { dropQuality?: string }).dropQuality ?? '');
+  const { stat: st, drops } = parseTurn(
+    raw,
+    (opt as unknown as { dropQuality?: string }).dropQuality ?? '',
+  );
   const totals = backfillTotals((kvGet('stats2', true) as Totals | null) ?? emptyTotals());
   mergeTotals(totals, st);
   kvSet('stats2', totals);
@@ -798,7 +825,22 @@ function csvCell(v: string | number): string {
 
 /** 单场列表导出 CSV（时间正序，Excel 可直接打开，UTF-8 BOM）。 */
 export function battlesToCsv(rows: BattleRow[]): string {
-  const head = ['time', 'type', 'code', 'result', 'rounds', 'turns', 'damage', 'taken', 'kills', 'monster', 'boss', 'exp', 'credit', 'drops'];
+  const head = [
+    'time',
+    'type',
+    'code',
+    'result',
+    'rounds',
+    'turns',
+    'damage',
+    'taken',
+    'kills',
+    'monster',
+    'boss',
+    'exp',
+    'credit',
+    'drops',
+  ];
   const lines = rows.map((b) =>
     [
       csvCell(new Date(b.startedAt).toLocaleString()),

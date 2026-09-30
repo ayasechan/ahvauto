@@ -21,7 +21,13 @@ export type AST =
   | { type: 'and'; left: AST; right: AST; pos: number }
   | { type: 'not'; expr: AST; pos: number }
   | { type: 'cmp'; op: 'eq' | 'ne' | 'le' | 'ge' | 'lt' | 'gt'; left: AST; right: AST; pos: number }
-  | { type: 'arith'; op: 'plus' | 'minus' | 'star' | 'slash' | 'percent'; left: AST; right: AST; pos: number }
+  | {
+      type: 'arith';
+      op: 'plus' | 'minus' | 'star' | 'slash' | 'percent';
+      left: AST;
+      right: AST;
+      pos: number;
+    }
   | { type: 'neg'; expr: AST; pos: number }
   | { type: 'num'; value: number; pos: number }
   | { type: 'str'; value: string; pos: number }
@@ -98,11 +104,25 @@ class Parser {
     this.depthGuard(depth, this.peek().pos);
     const left = this.additive(depth + 1);
     const t = this.peek();
-    if (t.kind === 'eq' || t.kind === 'ne' || t.kind === 'le' || t.kind === 'ge' || t.kind === 'lt' || t.kind === 'gt') {
+    if (
+      t.kind === 'eq' ||
+      t.kind === 'ne' ||
+      t.kind === 'le' ||
+      t.kind === 'ge' ||
+      t.kind === 'lt' ||
+      t.kind === 'gt'
+    ) {
       this.next();
       const right = this.additive(depth + 1);
       const t2 = this.peek();
-      if (t2.kind === 'eq' || t2.kind === 'ne' || t2.kind === 'le' || t2.kind === 'ge' || t2.kind === 'lt' || t2.kind === 'gt') {
+      if (
+        t2.kind === 'eq' ||
+        t2.kind === 'ne' ||
+        t2.kind === 'le' ||
+        t2.kind === 'ge' ||
+        t2.kind === 'lt' ||
+        t2.kind === 'gt'
+      ) {
         throw new ExprSyntaxError('不支持链式比较，请用 and 连接', t2.pos);
       }
       return { type: 'cmp', op: t.kind, left, right, pos: t.pos };
@@ -145,10 +165,14 @@ class Parser {
     this.depthGuard(depth, this.peek().pos);
     const t = this.next();
     switch (t.kind) {
-      case 'num': return { type: 'num', value: t.numVal ?? 0, pos: t.pos };
-      case 'str': return { type: 'str', value: t.strVal ?? '', pos: t.pos };
-      case 'true': return { type: 'bool', value: true, pos: t.pos };
-      case 'false': return { type: 'bool', value: false, pos: t.pos };
+      case 'num':
+        return { type: 'num', value: t.numVal ?? 0, pos: t.pos };
+      case 'str':
+        return { type: 'str', value: t.strVal ?? '', pos: t.pos };
+      case 'true':
+        return { type: 'bool', value: true, pos: t.pos };
+      case 'false':
+        return { type: 'bool', value: false, pos: t.pos };
       case 'lparen': {
         const e = this.orExpr(depth + 1);
         this.expect('rparen', '`)`');
@@ -185,11 +209,16 @@ class Parser {
 
 function describe(t: Token): string {
   switch (t.kind) {
-    case 'eof': return '输入结束';
-    case 'num': return String(t.numVal);
-    case 'str': return `"${t.strVal}"`;
-    case 'ident': return t.name ?? '';
-    default: return t.kind;
+    case 'eof':
+      return '输入结束';
+    case 'num':
+      return String(t.numVal);
+    case 'str':
+      return `"${t.strVal}"`;
+    case 'ident':
+      return t.name ?? '';
+    default:
+      return t.kind;
   }
 }
 

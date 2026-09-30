@@ -22,7 +22,6 @@ export function riddleAlert(): void {
   );
 }
 
-
 interface EncounterCache {
   dateNow: string;
   time: number;
@@ -43,9 +42,10 @@ function staminaNow(): number | null {
 export function encounterCheck(): void {
   const opt = snapshotOptions();
   const now = Date.now();
-  const cache = (kvGet('encounter', true) as EncounterCache | null)?.dateNow === todayKey()
-    ? ((kvGet('encounter', true) as EncounterCache | null) ?? { dateNow: todayKey(), time: 0 })
-    : { dateNow: todayKey(), time: 0 };
+  const cache =
+    (kvGet('encounter', true) as EncounterCache | null)?.dateNow === todayKey()
+      ? ((kvGet('encounter', true) as EncounterCache | null) ?? { dateNow: todayKey(), time: 0 })
+      : { dateNow: todayKey(), time: 0 };
   if (!cache.lastTime || (now - cache.lastTime >= 30 * 60 * 1000 && cache.time < 24)) {
     const stamina = staminaNow();
     if (opt.main.restoreStamina && stamina !== null && stamina <= opt.main.staminaLow) {
@@ -71,7 +71,7 @@ export function encounterCheck(): void {
   }
   const mins = Math.floor((now - (cache.lastTime ?? now)) / 1000 / 60);
   link.innerHTML = `${mins}分钟前`;
-  after('encounter', ((1 * 60 * 1000 * (Math.random() * 20 + 90)) / 100), encounterCheck);
+  after('encounter', (1 * 60 * 1000 * (Math.random() * 20 + 90)) / 100, encounterCheck);
 }
 
 /**
@@ -79,7 +79,10 @@ export function encounterCheck(): void {
  * 注意 init_battle 第二参数是 entry cost（入场费），不是 token；
  * 函数定义处的 init_battle(id, entrycost) 因首参非数字被自然排除。
  */
-export function parseBattleForm(html: string): { postoken: string | null; ids: Record<string, string> } {
+export function parseBattleForm(html: string): {
+  postoken: string | null;
+  ids: Record<string, string>;
+} {
   const postoken = html.match(/name="postoken" value="([^"]+)"/)?.[1] ?? null;
   const ids: Record<string, string> = {};
   for (const m of html.matchAll(/init_battle\((\d+)(?:,([^)]+))?\)/g)) {
@@ -88,7 +91,9 @@ export function parseBattleForm(html: string): { postoken: string | null; ids: R
   return { postoken, ids };
 }
 
-async function fetchBattleForm(href: string): Promise<{ postoken: string; ids: Record<string, string> } | null> {
+async function fetchBattleForm(
+  href: string,
+): Promise<{ postoken: string; ids: Record<string, string> } | null> {
   const html = await requestRetry(() => httpGet<string>(`?s=Battle&ss=${href}`, 'html'));
   const parsed = parseBattleForm(html);
   return parsed.postoken ? { postoken: parsed.postoken, ids: parsed.ids } : null;
@@ -137,7 +142,13 @@ export async function idleArena(): Promise<void> {
   if (!opt.main.idleArena) return;
   let cache = (kvGet('arena', true) as ArenaCache | null) ?? null;
   if (!cache || cache.date !== todayKey()) {
-    cache = { date: todayKey(), gr: opt.main.idleArenaGrTime, token: {}, array: undefined, isOk: false };
+    cache = {
+      date: todayKey(),
+      gr: opt.main.idleArenaGrTime,
+      token: {},
+      array: undefined,
+      isOk: false,
+    };
     try {
       const [gr, ar, rb] = await Promise.all([
         fetchBattleForm('gr'),
@@ -160,8 +171,10 @@ export async function idleArena(): Promise<void> {
   if (cache.isOk) return;
   const stamina = staminaNow();
   if (
-    opt.main.restoreStamina && stamina !== null &&
-    stamina <= opt.main.staminaLow && stamina < 85
+    opt.main.restoreStamina &&
+    stamina !== null &&
+    stamina <= opt.main.staminaLow &&
+    stamina < 85
   ) {
     try {
       await requestRetry(() => httpPost(location.href, 'recover=stamina'));

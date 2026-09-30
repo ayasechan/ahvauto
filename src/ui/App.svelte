@@ -57,8 +57,16 @@
   }
 
   const GROUPS: { title: string; tabs: typeof TABS }[] = [
-    { title: '战斗设置', tabs: TABS.filter((t) => ['Main', 'Channel', 'Buff', 'Debuff', 'Skill', 'Rule', 'Alarm'].includes(t.name)) },
-    { title: '物品消耗', tabs: TABS.filter((t) => ['Item', 'Scroll', 'Infusion'].includes(t.name)) },
+    {
+      title: '战斗设置',
+      tabs: TABS.filter((t) =>
+        ['Main', 'Channel', 'Buff', 'Debuff', 'Skill', 'Rule', 'Alarm'].includes(t.name),
+      ),
+    },
+    {
+      title: '物品消耗',
+      tabs: TABS.filter((t) => ['Item', 'Scroll', 'Infusion'].includes(t.name)),
+    },
     { title: '监控数据', tabs: TABS.filter((t) => ['Drop', 'Usage'].includes(t.name)) },
     { title: '系统', tabs: TABS.filter((t) => ['About', 'Feedback'].includes(t.name)) },
   ];
@@ -79,7 +87,9 @@
         <option value="1">繁體中文</option>
         <option value="2">English</option>
       </select>
-      <button type="button" class="hvAAClose" onclick={() => ($panelOpen = false)}>{tr($options.lang, 'ui.close')}</button>
+      <button type="button" class="hvAAClose" onclick={() => ($panelOpen = false)}
+        >{tr($options.lang, 'ui.close')}</button
+      >
     </div>
     <div class="hvAATablist">
       <div class="hvAATabmenu" role="tablist">
@@ -120,39 +130,112 @@
 
 <style>
   #hvAABox {
-    left: calc(50% - 480px); top: 40px; font-size: 14px; z-index: 99999;
-    width: 960px; max-height: 86vh; overflow: hidden; position: fixed; text-align: left;
-    background-color: var(--hv-panel); border: 1px solid var(--hv-line); border-radius: 12px;
-    font-family: 'Microsoft Yahei', 'Noto Sans TC', sans-serif; color: var(--hv-t1);
+    left: calc(50% - 480px);
+    top: 40px;
+    font-size: 14px;
+    z-index: 99999;
+    width: 960px;
+    max-height: 86vh;
+    overflow: hidden;
+    position: fixed;
+    text-align: left;
+    background-color: var(--hv-panel);
+    border: 1px solid var(--hv-line);
+    border-radius: 12px;
+    font-family: 'Microsoft Yahei', 'Noto Sans TC', sans-serif;
+    color: var(--hv-t1);
     box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18);
   }
   .hvAACenter {
-    display: flex; align-items: center; gap: 10px; padding: 10px 16px;
-    border-bottom: 1px solid var(--hv-line); text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--hv-line);
+    text-align: left;
   }
-  .hvAACenter h1 { display: inline; font-size: 16px; margin: 0 8px 0 0; }
-  .hvAACenter select { margin-left: auto; }
-  .hvAATablist { position: relative; display: flex; max-height: calc(86vh - 57px); }
+  .hvAACenter h1 {
+    display: inline;
+    font-size: 16px;
+    margin: 0 8px 0 0;
+  }
+  .hvAACenter select {
+    margin-left: auto;
+  }
+  .hvAATablist {
+    position: relative;
+    display: flex;
+    max-height: calc(86vh - 57px);
+  }
   .hvAATabmenu {
-    width: 208px; flex: none; display: flex; flex-direction: column; gap: 2px;
-    padding: 12px 10px; overflow-y: auto; min-height: 0;
-    border-right: 1px solid var(--hv-line); background: var(--hv-side);
+    width: 208px;
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 10px;
+    overflow-y: auto;
+    min-height: 0;
+    border-right: 1px solid var(--hv-line);
+    background: var(--hv-side);
   }
-  .hvAAGroup { font-size: 11px; color: var(--hv-t3); font-weight: 700; padding: 8px 8px 2px; }
+  .hvAAGroup {
+    font-size: 11px;
+    color: var(--hv-t3);
+    font-weight: 700;
+    padding: 8px 8px 2px;
+  }
   .hvAATabmenu > button {
-    display: flex; align-items: center; gap: 6px; padding: 7px 10px;
-    border: 1px solid transparent; font-size: 13px;
-    border-radius: 8px; background-color: transparent; color: var(--hv-t2); cursor: pointer; text-align: left;
-    white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    border: 1px solid transparent;
+    font-size: 13px;
+    border-radius: 8px;
+    background-color: transparent;
+    color: var(--hv-t2);
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
   }
-  .hvAATabmenu > button:hover { background: var(--hv-primary-soft); color: var(--hv-primary); }
-  .hvAATabmenu > button.active { background: var(--hv-primary); color: #fff; font-weight: 700; }
-  .hvAAContent { flex: 1; min-width: 0; background: var(--hv-bg); padding: 12px 16px 16px; overflow: hidden; display: flex; flex-direction: column; }
-  .hvAACrumb { font-size: 12px; color: var(--hv-t3); }
-  .hvAATitle { font-size: 18px; font-weight: 800; margin: 2px 0 10px; }
+  .hvAATabmenu > button:hover {
+    background: var(--hv-primary-soft);
+    color: var(--hv-primary);
+  }
+  .hvAATabmenu > button.active {
+    background: var(--hv-primary);
+    color: #fff;
+    font-weight: 700;
+  }
+  .hvAAContent {
+    flex: 1;
+    min-width: 0;
+    background: var(--hv-bg);
+    padding: 12px 16px 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .hvAACrumb {
+    font-size: 12px;
+    color: var(--hv-t3);
+  }
+  .hvAATitle {
+    font-size: 18px;
+    font-weight: 800;
+    margin: 2px 0 10px;
+  }
   .hvAATab {
-    flex: 1; min-height: 0; overflow: auto; padding: 2px;
-    color: var(--hv-t1); background-color: transparent; border: none;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 2px;
+    color: var(--hv-t1);
+    background-color: transparent;
+    border: none;
   }
   .hvAATab :global(.row) {
     background: var(--hv-card) !important;
@@ -161,5 +244,7 @@
     margin: 0 0 12px !important;
     padding: 12px !important;
   }
-  .hvAATab :global(.row) :global(b) { font-size: 13px; }
+  .hvAATab :global(.row) :global(b) {
+    font-size: 13px;
+  }
 </style>

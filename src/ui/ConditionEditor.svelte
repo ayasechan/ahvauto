@@ -44,35 +44,70 @@
     rows="2"
     placeholder={tr($options.lang, 'ed.ph')}
     class:bad={error !== ''}
-    spellcheck={false}
-  ></textarea>
+    spellcheck={false}></textarea>
   {#if error === ''}
-    <div class="ok">{(expr ?? '').trim() ? tr($options.lang, 'ed.ok') : tr($options.lang, 'ed.empty')}</div>
+    <div class="ok">
+      {(expr ?? '').trim() ? tr($options.lang, 'ed.ok') : tr($options.lang, 'ed.empty')}
+    </div>
   {:else}
     <div class="err">✗ {error}</div>
   {/if}
   <div class="hints">
     {#each EXPR_HINTS as h}
-      <button type="button" title="插入 {h.insert}" onclick={() => insert(h.insert)}>{h.label}</button>
+      <button type="button" title="插入 {h.insert}" onclick={() => insert(h.insert)}
+        >{h.label}</button
+      >
     {/each}
   </div>
 </div>
 
 <style>
-  .cond { margin-top: 6px; }
+  .cond {
+    margin-top: 6px;
+  }
   .cond textarea {
-    width: 100%; box-sizing: border-box; font-family: ui-monospace, monospace;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: ui-monospace, monospace;
     background: var(--hv-input, #f1f5f9);
-    border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px;
-    color: #1e293b; resize: vertical;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: #1e293b;
+    resize: vertical;
   }
-  .cond textarea.bad { border-color: #fca5a5; background: #fef2f2; outline: 2px solid #fecaca; }
-  .ok { color: #16a34a; font-size: 12px; margin-top: 4px; }
-  .err { color: #dc2626; font-size: 12px; margin-top: 4px; }
-  .hints { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .cond textarea.bad {
+    border-color: #fca5a5;
+    background: #fef2f2;
+    outline: 2px solid #fecaca;
+  }
+  .ok {
+    color: #16a34a;
+    font-size: 12px;
+    margin-top: 4px;
+  }
+  .err {
+    color: #dc2626;
+    font-size: 12px;
+    margin-top: 4px;
+  }
+  .hints {
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
   .hints button {
-    margin: 0; font-size: 12px; border-radius: 999px;
-    border: 1px solid #bfdbfe; background: #eef2ff; color: #2563eb; padding: 2px 10px;
+    margin: 0;
+    font-size: 12px;
+    border-radius: 999px;
+    border: 1px solid #bfdbfe;
+    background: #eef2ff;
+    color: #2563eb;
+    padding: 2px 10px;
   }
-  .hints button:hover { background: #dbeafe; color: #1d4ed8; }
+  .hints button:hover {
+    background: #dbeafe;
+    color: #1d4ed8;
+  }
 </style>
