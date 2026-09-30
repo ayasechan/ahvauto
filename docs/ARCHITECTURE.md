@@ -22,6 +22,8 @@
   覆盖有效），响应→`eventEnd`→统计→`main()` 下一轮。发包三道门会被游戏静默吞，
   看门狗（8s 补点／25s 重载）兜底。
 - **UI**（`src/ui/`）：Svelte 14 页设置面板＋战斗内状态条。详见下。
+- **分层约束**：纯逻辑（`combat/decide`、`expr`、`stats`）配单测；DOM 只在
+  `snapshot.ts`/`execute.ts`/`battle.ts`/`meta.ts` 碰。
 
 ## 目录结构
 
@@ -47,7 +49,7 @@ src/
     tables.ts        # 静态 ID 表（技能/物品/卷轴/魔药）
     conditions.ts    # 老格式兼容＋编辑器提示
     logger.ts        # logtape＋console/kv 双 sink（logfmt）
-    i18n.ts          # 简/繁/英三语字典
+    i18n.ts        # 简/繁/英三语字典（key 三端保持同步）
   ui/
     App.svelte       # 面板外壳＋14 tab 菜单（button 实现）
     ConditionEditor.svelte  # 条件文本编辑器（即时编译校验）
@@ -58,16 +60,16 @@ scripts/cdp/         # 浏览器运维脚本（TS，npx tsx 运行，详见其 R
 
 ## 存储（铁律：`hvAA-` 只读，`ahvauto-` 读写）
 
-| 位置 | 内容 |
-|---|---|
-| `hvAA-option`（旧） | 原版配置，只读，“关于→导入旧配置”手动导入 |
-| `ahvauto-option` | 新配置（表达式字符串版条件） |
-| `ahvauto-disabled` | 暂停位 |
-| `ahvauto-roundType/roundNow/roundAll/monsterStatus/monsterBase` | 战斗上下文 |
-| `ahvauto-stats2/battles2/curBattle2` | 数据收集（总数/单场/进行中） |
-| `ahvauto-arena/encounter` | 竞技场队列＋token／遭遇战计数 |
-| `ahvauto-logs/backup` | 运行日志环形缓冲／配置备份 |
-| IDB `ahvauto-debug` | `records`（请求/响应配对，keyPath seq）、`turns`（回合现场） |
+| 位置                                                            | 内容                                                         |
+| --------------------------------------------------------------- | ------------------------------------------------------------ |
+| `hvAA-option`（旧）                                             | 原版配置，只读，“关于→导入旧配置”手动导入                    |
+| `ahvauto-option`                                                | 新配置（表达式字符串版条件）                                 |
+| `ahvauto-disabled`                                              | 暂停位                                                       |
+| `ahvauto-roundType/roundNow/roundAll/monsterStatus/monsterBase` | 战斗上下文                                                   |
+| `ahvauto-stats2/battles2/curBattle2`                            | 数据收集（总数/单场/进行中）                                 |
+| `ahvauto-arena/encounter`                                       | 竞技场队列＋token／遭遇战计数                                |
+| `ahvauto-logs/backup`                                           | 运行日志环形缓冲／配置备份                                   |
+| IDB `ahvauto-debug`                                             | `records`（请求/响应配对，keyPath seq）、`turns`（回合现场） |
 
 注意：游戏页把 `localStorage.setItem` 包了一层丢弃 `hvAA*` key，
 全仓一律直接赋值（`store.ts` 有注释）。

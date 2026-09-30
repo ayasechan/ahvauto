@@ -3,14 +3,16 @@
 目标：本地 Chrome（`--remote-debugging-port=12422`）上已打开的 hentaiverse 页面。
 目标页自动发现（URL 含 `hentaiverse.org`），可用 `CDP_URL` / `CDP_PAGE_WS` 覆盖。
 
-| 脚本 | 用法 | 说明 |
-|---|---|---|
-| `recon.ts` | `npx tsx scripts/cdp/recon.ts` | 只读：页面模式、关键开关、textlog 尾巴 |
-| `battle-log.ts` | `npx tsx scripts/cdp/battle-log.ts [输出]` | 只读：textlog 全文快照，默认存 `logs/` |
-| `export-records.ts` | `npx tsx scripts/cdp/export-records.ts [输出] [--limit N] [--since-seq S]` | 只读：IDB 战斗记录分页导出（倒序游标＋分批落盘，默认最新 1000 条存 `logs/`） |
-| `ops.ts` | `backup [输出]` / `verify` / `refresh` / `screenshot <文件>` / `inject <js> [css]` | 备份 localStorage、断言暂停、刷新页、截图、注入预览 bundle |
-| `tabs.ts` | `npx tsx scripts/cdp/tabs.ts` | 14 个 tab 逐一切换＋内容签名校验 |
-| `inject-full.ts` | `npx tsx scripts/cdp/inject-full.ts [bundle]` | 注入完整 userscript（先断言暂停，弹窗自动 dismiss） |
+| 脚本                | 用法                                                                               | 说明                                                                         |
+| ------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `recon.ts`          | `npx tsx scripts/cdp/recon.ts`                                                     | 只读：页面模式、关键开关、textlog 尾巴                                       |
+| `battle-log.ts`     | `npx tsx scripts/cdp/battle-log.ts [输出]`                                         | 只读：textlog 全文快照，默认存 `logs/`                                       |
+| `export-records.ts` | `npx tsx scripts/cdp/export-records.ts [输出] [--limit N] [--since-seq S]`         | 只读：IDB 战斗记录分页导出（倒序游标＋分批落盘，默认最新 1000 条存 `logs/`） |
+| `ops.ts`            | `backup [输出]` / `verify` / `refresh` / `screenshot <文件>` / `inject <js> [css]` | 备份 localStorage、断言暂停、刷新页、截图、注入预览 bundle                   |
+| `tabs.ts`           | `npx tsx scripts/cdp/tabs.ts`                                                      | 14 个 tab 逐一切换＋内容签名校验                                             |
+| `inject-full.ts`    | `npx tsx scripts/cdp/inject-full.ts [bundle]`                                      | 注入完整 userscript（先断言暂停，弹窗自动 dismiss）                          |
+
+查游戏行为先读 `hvc.js`/页 DOM（只读）；一次可控单动作实验胜过十个猜测。
 
 安全铁律（写进脚本的不变量）：
 

@@ -7,10 +7,10 @@
 
 ## 常驻后台进程
 
-| 进程 | 启动 | 作用 |
-|---|---|---|
-| `npm run dev`（vite :5173） | `setsid nohup npm run dev > logs/dev-server.log 2>&1 < /dev/null &` | VM dev 版（`server:` 安装）热更新源。改 `src/` 即触发页面 reload，新代码直接生效，**不用重装脚本** |
-| `vite build --watch` | `setsid nohup npx vite build --watch > logs/build-watch.log 2>&1 < /dev/null &` | `src/` 变动自动重编 `dist/ahvauto.user.js`（生产安装包） |
+| 进程                        | 启动                                                                            | 作用                                                                                               |
+| --------------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `npm run dev`（vite :5173） | `setsid nohup npm run dev > logs/dev-server.log 2>&1 < /dev/null &`             | VM dev 版（`server:` 安装）热更新源。改 `src/` 即触发页面 reload，新代码直接生效，**不用重装脚本** |
+| `vite build --watch`        | `setsid nohup npx vite build --watch > logs/build-watch.log 2>&1 < /dev/null &` | `src/` 变动自动重编 `dist/ahvauto.user.js`（生产安装包）                                           |
 
 验证 dev 联通：改完 reload 页面，看右上悬浮钮文字——`hvAA·dev`＝当前源码，`hvAA`＝旧包。
 
@@ -19,9 +19,13 @@
 ```bash
 npm test    # 单元测试（tsc 编译到 /tmp + node --test，零依赖）
 npm run check   # svelte-check + tsc（0 errors 方可合）
+npm run lint / npm run fmt:check   # 只读检查（oxlint / oxfmt）
+npm run lint:fix / npm run fmt     # 落盘修复
 npm run build   # 生产打包 dist/
 npx tsx scripts/cdp/<脚本>.ts   # 浏览器运维（见 scripts/cdp/README.md）
 ```
+
+提交走 conventional commits（英文）；不提交 `logs/`、`dist/`、`__tmp-*`。
 
 `npm test` 说明：测试经 tsc 编译后跑；`stats.test.ts` 等依赖 localStorage 的用例跑在
 `node --localstorage-file=/tmp/hvaa-test-ls.json` 真存储上（Node 26 原生 global 盖掉 stub，
@@ -47,6 +51,7 @@ npx tsx scripts/cdp/<脚本>.ts   # 浏览器运维（见 scripts/cdp/README.md�
 - IDB `ahvauto-debug`：`records`（请求/响应配对，keyPath seq，v4）、`turns`（每回合快照＋规则＋动作）。
   ⚠️ 外部工具 open IDB **不许带版本号**（会空提交版本跳过升级，v2 就是这么坏的）。
 - `ahvauto-logs`：logtape 日志（含 `fsm boot -> battle`、`rec begin/end` 转移）。
+- 门控：`main.debug` 开才写 IDB 录制；数据统计门控 `recordUsage`。
 - `logs/`：战斗快照、录制导出、localStorage 备份（不出仓库）。
 
 ## 已知的坑（别再踩）
@@ -61,3 +66,4 @@ npx tsx scripts/cdp/<脚本>.ts   # 浏览器运维（见 scripts/cdp/README.md�
 8. 发包三道门（忙/已锁/在途）会静默吞点击——看门狗（8s 补点／25s 重载）是最终兜底。
 9. `delayReload`（用户配置 30s）调试期会掀桌子（reload 清注入态）；常驻版无此问题。
 10. CDP `evaluate` 偶发把游戏页自身未捕获异常算到结果头上——`common.ts` 只在无有效值时才抛。
+11. 全仓禁 `eval`/`new Function`（CSP + 外来陌生配置）。

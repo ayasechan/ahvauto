@@ -7,18 +7,18 @@
 
 ## 决策规则表（`combat/decide.ts`，顺序即优先级）
 
-| # | 规则 | 触发 |
-|---|---|---|
-| 1 | gem | 宝石阈值（Health≤hp1 / Mana≤mp1 / Spirit≤sp1，Mystic 无条件） |
-| 2 | item | 用户顺序首个“启用＋条件通过＋有货/可用” |
-| 3 | defend | 开关＋条件 |
-| 4 | scroll | 开关＋条件＋轮次类型＋对应 buff 缺失（`scrollFirst` 勾选只认 `_scroll` 后缀） |
-| 5 | channel | 仅 Channeling 窗口：按 Buff 顺序补缺 → 第二顺序 → ReBuff 最早过期（含 Cloak of Fallen 特例） |
-| 6 | buff | 按顺序补缺失 Buff；再补药剂/花瓶/口香糖 |
-| 7 | infusion | 非物理＋开关＋条件＋对应魔药缺失 |
-| 8 | imperil | 开关＋`debuffSkillAllIm`＋有怪没挂 Imperil（隔 3 遍历＋顺序遍历） |
-| 9 | deskill | 按顺序给集火目标补缺失 Debuff（含 6 格上限检查，失败弹框暂停） |
-| 10 | attack | focus → Spirit 开关 →（EtherTap 跳过魔法）→ 高/中/低阶魔法 → 武器链 → 普攻兜底 |
+| #   | 规则     | 触发                                                                                         |
+| --- | -------- | -------------------------------------------------------------------------------------------- |
+| 1   | gem      | 宝石阈值（Health≤hp1 / Mana≤mp1 / Spirit≤sp1，Mystic 无条件）                                |
+| 2   | item     | 用户顺序首个“启用＋条件通过＋有货/可用”                                                      |
+| 3   | defend   | 开关＋条件                                                                                   |
+| 4   | scroll   | 开关＋条件＋轮次类型＋对应 buff 缺失（`scrollFirst` 勾选只认 `_scroll` 后缀）                |
+| 5   | channel  | 仅 Channeling 窗口：按 Buff 顺序补缺 → 第二顺序 → ReBuff 最早过期（含 Cloak of Fallen 特例） |
+| 6   | buff     | 按顺序补缺失 Buff；再补药剂/花瓶/口香糖                                                      |
+| 7   | infusion | 非物理＋开关＋条件＋对应魔药缺失                                                             |
+| 8   | imperil  | 开关＋`debuffSkillAllIm`＋有怪没挂 Imperil（隔 3 遍历＋顺序遍历）                            |
+| 9   | deskill  | 按顺序给集火目标补缺失 Debuff（含 6 格上限检查，失败弹框暂停）                               |
+| 10  | attack   | focus → Spirit 开关 →（EtherTap 跳过魔法）→ 高/中/低阶魔法 → 武器链 → 普攻兜底               |
 
 `focus`/`spirit` 在 attack 规则内部最先处理（与原版 `attack()` 内序一致）。
 
