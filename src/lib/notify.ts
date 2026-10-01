@@ -4,6 +4,7 @@ import type { AlarmKind } from './types';
 import { logger } from './logger';
 import { renderTemplate } from './template';
 import type { WebhookVars } from './template';
+import { alertId } from './dom-ids';
 
 /** 油猴提供的跨域 XHR（@grant GM_xmlhttpRequest，由构建自动收集＋显式声明）。 */
 declare const GM_xmlhttpRequest: (details: GmXmlhttpRequestOption<'text', undefined>) => unknown;
@@ -143,10 +144,10 @@ const DEFAULT_AUDIO: Record<NotifyKind, string> = {
 };
 
 function ensureAudio(kind: NotifyKind, src: string): HTMLAudioElement {
-  let audio = document.getElementById(`hvAAAlert-${kind}`) as HTMLAudioElement | null;
+  let audio = document.getElementById(alertId(kind)) as HTMLAudioElement | null;
   if (!audio) {
     audio = document.createElement('audio');
-    audio.id = `hvAAAlert-${kind}`;
+    audio.id = alertId(kind);
     document.body.appendChild(audio);
   }
   const url = src || DEFAULT_AUDIO[kind];

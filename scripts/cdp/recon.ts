@@ -10,8 +10,8 @@ interface Report {
   mode?: string;
   localKeys?: string[];
   stamina?: string | null;
-  hvAABox?: boolean;
-  hvAABox2?: boolean;
+  ahvautoPanel?: boolean;
+  ahvautoPause?: boolean;
   optFlags?: Record<string, unknown>;
   optParse?: string;
   textlogTail?: string[];
@@ -31,8 +31,8 @@ try {
     stamina: await cdp.ev<string | null>(
       'document.querySelector("#stamina_readout")?.textContent?.trim()?.slice(0,120) ?? null',
     ),
-    hvAABox: await cdp.ev<boolean>('!!document.querySelector("#hvAABox")'),
-    hvAABox2: await cdp.ev<boolean>('!!document.querySelector("#hvAABox2")'),
+    ahvautoPanel: await cdp.ev<boolean>('!!document.querySelector("#ahvauto-panel")'),
+    ahvautoPause: await cdp.ev<boolean>('!!document.querySelector("#ahvauto-pause")'),
   };
   report.mode = report.hasRiddle
     ? 'riddle'

@@ -17,7 +17,7 @@ try {
   } else if (cmd === 'verify') {
     await assertPaused(cdp);
     const state = await cdp.ev<string>(
-      `JSON.stringify({disabled:localStorage.getItem(${JSON.stringify(DISABLED_KEY)}),panel:!!document.querySelector("#hvAABox"),title:document.title})`,
+      `JSON.stringify({disabled:localStorage.getItem(${JSON.stringify(DISABLED_KEY)}),panel:!!document.querySelector("#ahvauto-panel"),title:document.title})`,
     );
     console.log(`paused ok: ${state}`);
   } else if (cmd === 'refresh') {
@@ -42,12 +42,15 @@ try {
     if (cssFile) {
       const css = readFileSync(cssFile, 'utf8');
       await cdp.ev<boolean>(
-        `(()=>{let s=document.getElementById("hvaa-inject-css");if(!s){s=document.createElement("style");s.id="hvaa-inject-css";document.head.appendChild(s);}s.textContent=${JSON.stringify(css)};return true;})()`,
+        `(()=>{let s=document.getElementById("ahvauto-inject-css");if(!s){s=document.createElement("style");s.id="ahvauto-inject-css";document.head.appendChild(s);}s.textContent=${JSON.stringify(css)};return true;})()`,
       );
     }
     const js = readFileSync(arg, 'utf8');
     await cdp.ev(js, true);
-    console.log('inject ok, panel:', await cdp.ev<boolean>('!!document.querySelector("#hvAABox")'));
+    console.log(
+      'inject ok, panel:',
+      await cdp.ev<boolean>('!!document.querySelector("#ahvauto-panel")'),
+    );
   } else {
     throw new Error(`unknown cmd: ${cmd} (backup|verify|refresh|screenshot|inject)`);
   }

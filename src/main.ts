@@ -1,5 +1,6 @@
 import { mount } from 'svelte';
 import App from './ui/App.svelte';
+import { HOST_ID, FAB_CLASS, PAUSE_BOX_ID } from './lib/dom-ids';
 import { panelOpen, options, snapshotOptions, battle, kvDel, isDisabled } from './lib/store';
 import { initLogger, setLogLevel, logger } from './lib/logger';
 import { qs, el } from './lib/dom';
@@ -13,23 +14,23 @@ import { transition, onEnter, after } from './lib/fsm';
 mount(App, {
   target: (() => {
     const host = document.createElement('div');
-    host.id = 'hvaa-svelte-host';
+    host.id = HOST_ID;
     document.body.append(host);
     return host;
   })(),
 });
 
 function mountButton(): void {
-  if (qs('.hvAAButton')) return;
+  if (qs(`.${FAB_CLASS}`)) return;
   const style = document.head.appendChild(el('style'));
   style.textContent =
-    '.hvAAButton{position:fixed;top:4px;right:4px;z-index:99999;cursor:pointer;' +
+    `.${FAB_CLASS}{position:fixed;top:4px;right:4px;z-index:99999;cursor:pointer;` +
     'width:36px;height:36px;border-radius:8px;background:#5C0D11;color:#fff;' +
     'font:bold 12px/36px sans-serif;text-align:center;box-shadow:0 0 4px #000;}';
   const btn = document.body.appendChild(el('div'));
-  btn.className = 'hvAAButton';
+  btn.className = FAB_CLASS;
   btn.title = 'ahvauto';
-  btn.textContent = 'hvAA·dev';
+  btn.textContent = 'ahvauto·dev';
   btn.onclick = () => panelOpen.update((v) => !v);
 }
 
@@ -37,7 +38,7 @@ function mountPauseButton(): void {
   const box = qs('#battle_main');
   if (!box) return;
   const box2 = box.appendChild(el('div'));
-  box2.id = 'hvAABox2';
+  box2.id = PAUSE_BOX_ID;
   if (!snapshotOptions().main.pauseButton) return;
   const button = box2.appendChild(el('button'));
   button.className = 'pauseChange';

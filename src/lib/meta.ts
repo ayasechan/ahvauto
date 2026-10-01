@@ -2,6 +2,7 @@ import { kvGet, kvSet, kvDel, snapshotOptions } from './store';
 import { qs, el } from './dom';
 import { httpGet, httpPost, requestRetry, todayKey } from './http';
 import { setAlarm } from './notify';
+import { alertId } from './dom-ids';
 import { logger } from './logger';
 import { after } from './fsm';
 import type { ArenaCache } from './types';
@@ -16,7 +17,7 @@ export function riddleAlert(): void {
   document.addEventListener(
     'keydown',
     () => {
-      (document.getElementById('hvAAAlert-Riddle') as HTMLAudioElement | null)?.pause();
+      (document.getElementById(alertId('Riddle')) as HTMLAudioElement | null)?.pause();
     },
     { once: true },
   );

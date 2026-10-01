@@ -23,12 +23,13 @@ import { decide, shouldEmergencyPause } from './combat/decide';
 import { executeAction, describeAction } from './combat/execute';
 import { tt } from './i18n';
 import { SPELL_DELAY_KEY, NO_SPELL_DELAY_KEY } from './storage-keys';
+import { LOG_CLASS, PAUSE_BOX_ID } from './dom-ids';
 
 function patchBattle(partial: Partial<import('./types').BattleState>): void {
   battle.update((b) => ({ ...b, ...partial }));
 }
 
-/** 带观测的点击：debug 开启时把目标记到 __hvaa.lastAction */
+/** 带观测的点击：debug 开启时把目标记到 __ahvauto.lastAction */
 function click(sel: string | Element | null): boolean {
   if (typeof sel === 'string') debugAct(sel);
   else if (sel) debugAct(`#${(sel as Element).id || (sel as Element).tagName}`);
@@ -192,12 +193,12 @@ export async function newRound(): Promise<void> {
 
 function battleInfo(): void {
   const b = get(battle);
-  let log = qs('.hvAALog');
+  let log = qs(`.${LOG_CLASS}`);
   if (!log) {
-    const box = qs('#hvAABox2');
+    const box = qs(`#${PAUSE_BOX_ID}`);
     if (!box) return;
     log = box.appendChild(el('div'));
-    log.className = 'hvAALog';
+    log.className = LOG_CLASS;
   }
   const names = ['物理', '火', '冰', '雷', '风', '圣', '暗'];
   const hist = (debugSurface().history ?? []).slice(-10).reverse();
@@ -331,7 +332,7 @@ export async function main(): Promise<void> {
 /** 读页世界钩子记录的最近一次 api_call 发送时间（无则为 0） */
 function readLastSend(): number {
   try {
-    return (window as unknown as { __hvaa?: DebugSurface }).__hvaa?.lastSend ?? 0;
+    return (window as unknown as { __ahvauto?: DebugSurface }).__ahvauto?.lastSend ?? 0;
   } catch {
     return 0;
   }
@@ -396,9 +397,9 @@ export interface DebugSurface {
 }
 
 function debugSurface(): DebugSurface {
-  const w = window as unknown as { __hvaa?: DebugSurface };
-  if (!w.__hvaa)
-    w.__hvaa = {
+  const w = window as unknown as { __ahvauto?: DebugSurface };
+  if (!w.__ahvauto)
+    w.__ahvauto = {
       step: '',
       lastError: '',
       lastAction: '',
@@ -408,8 +409,8 @@ function debugSurface(): DebugSurface {
       lastSend: 0,
       fired: 0,
     };
-  if (!w.__hvaa.history) w.__hvaa.history = [];
-  return w.__hvaa;
+  if (!w.__ahvauto.history) w.__ahvauto.history = [];
+  return w.__ahvauto;
 }
 
 export function debugAct(action: string): void {
@@ -647,14 +648,14 @@ export function installReloader(): void {
     // 发包序号：req/res 同号，录制侧按 seq 配对。存页面全局，reload 清零。
     let seq = 0;
     try {
-      const w2 = window as unknown as { __hvaaSeq?: number };
-      seq = (w2.__hvaaSeq ?? 0) + 1;
-      w2.__hvaaSeq = seq;
+      const w2 = window as unknown as { __ahvautoSeq?: number };
+      seq = (w2.__ahvautoSeq ?? 0) + 1;
+      w2.__ahvautoSeq = seq;
     } catch {
       /* ignore */
     }
     try {
-      const h = (window as unknown as { __hvaa?: DebugSurface }).__hvaa;
+      const h = (window as unknown as { __ahvauto?: DebugSurface }).__ahvauto;
       if (h) {
         h.apiCalls += 1;
         h.lastReq = JSON.stringify(a).slice(0, 120);
@@ -669,7 +670,7 @@ export function installReloader(): void {
       /* 录制上报失败不影响战斗 */
     }
     try {
-      (b as unknown as Record<string, unknown>).__hvaaSeq = seq;
+      (b as unknown as Record<string, unknown>).__ahvautoSeq = seq;
     } catch {
       /* ignore */
     }
@@ -679,7 +680,7 @@ export function installReloader(): void {
     b.onreadystatechange = d;
     b.onload = () => {
       try {
-        const h = (window as unknown as { __hvaa?: DebugSurface }).__hvaa;
+        const h = (window as unknown as { __ahvauto?: DebugSurface }).__ahvauto;
         if (h) h.fired += 1;
       } catch {
         /* ignore */
@@ -696,7 +697,7 @@ export function installReloader(): void {
     status: number;
     responseText: string;
   }): unknown {
-    const seq = (b as unknown as Record<string, unknown>).__hvaaSeq as number | undefined;
+    const seq = (b as unknown as Record<string, unknown>).__ahvautoSeq as number | undefined;
     if (b.readyState === 4) {
       if (b.status === 200) {
         const a = JSON.parse(b.responseText) as {

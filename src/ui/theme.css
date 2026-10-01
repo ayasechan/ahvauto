@@ -1,5 +1,5 @@
 /* ahvauto 浅色清爽设计系统（对标 Penpot 16-DesignSystem） */
-#hvAABox {
+#ahvauto-panel {
   --hv-bg: #edf1f7;
   --hv-panel: #ffffff;
   --hv-side: #ffffff;
@@ -16,7 +16,7 @@
   --hv-input-num: 56px;
 }
 
-#hvAABox .hvAATab button {
+#ahvauto-panel .ahvauto-tab button {
   border-radius: 8px;
   border: 1px solid var(--hv-line);
   background: #fff;
@@ -25,30 +25,30 @@
   padding: 3px 10px;
   font-size: 13px;
 }
-#hvAABox .hvAATab button:hover {
+#ahvauto-panel .ahvauto-tab button:hover {
   border-color: var(--hv-primary);
   color: var(--hv-primary);
 }
 
 /* 侧边导航：未选中透明无边框，选中蓝底白字（ID 优先级，对标 Penpot 01） */
-#hvAABox .hvAATabmenu > button {
+#ahvauto-panel .ahvauto-tabmenu > button {
   border: 1px solid transparent;
   background: transparent;
   color: var(--hv-t2);
 }
-#hvAABox .hvAATabmenu > button:hover {
+#ahvauto-panel .ahvauto-tabmenu > button:hover {
   background: var(--hv-primary-soft);
   color: var(--hv-primary);
   border-color: transparent;
 }
-#hvAABox .hvAATabmenu > button.active {
+#ahvauto-panel .ahvauto-tabmenu > button.active {
   background: var(--hv-primary);
   color: #fff;
   font-weight: 700;
 }
 
 /* 条件编辑器 chips：蓝色胶囊（对标 Penpot 16） */
-#hvAABox .cond .hints button {
+#ahvauto-panel .cond .hints button {
   border-radius: 999px;
   border: 1px solid #bfdbfe;
   background: #eef2ff;
@@ -56,18 +56,18 @@
   padding: 2px 10px;
   font-size: 12px;
 }
-#hvAABox .cond .hints button:hover {
+#ahvauto-panel .cond .hints button:hover {
   background: #dbeafe;
   color: #1d4ed8;
 }
 
 /* 施放顺序：编号胶囊链（对标 Penpot 16 chips） */
-#hvAABox .hvAATab .hint {
+#ahvauto-panel .ahvauto-tab .hint {
   font-size: 12px;
   color: var(--hv-t3);
   margin-left: 6px;
 }
-#hvAABox .hvAATab ol.seq {
+#ahvauto-panel .ahvauto-tab ol.seq {
   list-style: none;
   margin: 8px 0 0;
   padding: 0;
@@ -75,7 +75,7 @@
   flex-wrap: wrap;
   gap: 6px;
 }
-#hvAABox .hvAATab ol.seq li {
+#ahvauto-panel .ahvauto-tab ol.seq li {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -86,7 +86,7 @@
   font-size: 12px;
   color: var(--hv-t1);
 }
-#hvAABox .hvAATab ol.seq li .n {
+#ahvauto-panel .ahvauto-tab ol.seq li .n {
   min-width: 18px;
   height: 18px;
   border-radius: 999px;
@@ -99,24 +99,24 @@
   justify-content: center;
   padding: 0 4px;
 }
-#hvAABox .hvAATab ol.seq li button {
+#ahvauto-panel .ahvauto-tab ol.seq li button {
   border: none;
   background: transparent;
   color: var(--hv-primary);
   padding: 0 4px;
   font-size: 12px;
 }
-#hvAABox .hvAATab ol.seq.ghost li {
+#ahvauto-panel .ahvauto-tab ol.seq.ghost li {
   background: #f1f5f9;
   border-color: var(--hv-line);
   opacity: 0.7;
 }
-#hvAABox .hvAATab ol.seq.ghost li .n {
+#ahvauto-panel .ahvauto-tab ol.seq.ghost li .n {
   background: var(--hv-t3);
 }
 
 /* 头部关闭：蓝主按钮（对标 Penpot 01） */
-#hvAABox button.hvAAClose {
+#ahvauto-panel button.ahvauto-close {
   border-radius: 8px;
   border: 1px solid var(--hv-primary);
   background: var(--hv-primary);
@@ -125,10 +125,10 @@
   padding: 3px 14px;
 }
 
-#hvAABox select,
-#hvAABox input[type='text'],
-#hvAABox input[type='number'],
-#hvAABox textarea {
+#ahvauto-panel select,
+#ahvauto-panel input[type='text'],
+#ahvauto-panel input[type='number'],
+#ahvauto-panel textarea {
   border-radius: var(--hv-radius-input);
   border: 1px solid #cbd5e1;
   background: var(--hv-input);
@@ -136,21 +136,21 @@
   padding: 4px 8px;
   font-size: 13px;
 }
-#hvAABox select:focus,
-#hvAABox input:focus,
-#hvAABox textarea:focus {
+#ahvauto-panel select:focus,
+#ahvauto-panel input:focus,
+#ahvauto-panel textarea:focus {
   outline: 2px solid #bfdbfe;
   border-color: var(--hv-primary);
 }
 
-#hvAABox input[type='checkbox'] {
+#ahvauto-panel input[type='checkbox'] {
   accent-color: var(--hv-primary);
   width: 15px;
   height: 15px;
 }
 
 /* 短数字输入框：各 Tab 共用（scoped 样式不再各自重复定义） */
-#hvAABox .num {
+#ahvauto-panel .num {
   width: var(--hv-input-num);
   text-align: right;
 }

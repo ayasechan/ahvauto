@@ -21,7 +21,7 @@
 - **驱动**（`src/lib/battle.ts`）：劫持 `api_call/api_response`（游戏动态查找，
   覆盖有效），响应→`eventEnd`（DOM 锚点，非导出函数）→统计→`main()` 下一轮。发包三道门会被游戏静默吞，
   看门狗（8s 补点／25s 重载）兜底。
-- **UI**（`src/ui/`）：Svelte 14 页设置面板；战斗内状态条由 `battle.ts:battleInfo` 直写 `.hvAALog`，非 Svelte 组件。详见下。
+- **UI**（`src/ui/`）：Svelte 14 页设置面板；战斗内状态条由 `battle.ts:battleInfo` 直写 `.ahvauto-log`，非 Svelte 组件。详见下。
 - **分层约束**：纯逻辑（`combat/decide`、`expr`、`stats`）配单测；DOM 触点在
   `snapshot.ts`/`execute.ts`/`battle.ts`/`meta.ts`，另有 `conditions.ts`（逃跑轨，读物品栏/效果栏）、`main.ts`（挂载按钮）、`dom.ts` 本体及 `ui/`；条件求值双轨：决策内走 `combat/context.ts`（读快照），逃跑走 `conditions.ts`（读 store/DOM），勿混用。
 
@@ -30,7 +30,6 @@
 ```
 src/
   main.ts            # 入口：页面分流 → fsm transition（boot/field/battle/riddle）
-  preview-ui.ts      # CDP 注入预览入口（临时，用完即删，不进生产 bundle）
   lib/
     battle.ts        # 战斗循环 main/newRound/看门狗/保底停机（eventEnd 为内部 DOM 锚点）
     combat/          # 战斗算法包（纯逻辑＋单测）

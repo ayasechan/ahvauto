@@ -1,4 +1,4 @@
-/** 核心类型：替代原脚本 window.hvAA 全局杂物袋 + localStorage 零散 key */
+/** 核心类型：替代原脚本 window.__ahvauto 全局杂物袋 + localStorage 零散 key */
 
 export type Lang = '0' | '1' | '2';
 

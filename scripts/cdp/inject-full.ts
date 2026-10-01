@@ -13,8 +13,8 @@ try {
   console.log('bundle code bytes:', code.length);
   await cdp.ev(code, true);
   await new Promise((r) => setTimeout(r, 2000));
-  console.log('float button:', await cdp.ev<boolean>('!!document.querySelector(".hvAAButton")'));
-  console.log('pause box:', await cdp.ev<boolean>('!!document.querySelector("#hvAABox2")'));
+  console.log('float button:', await cdp.ev<boolean>('!!document.querySelector(".ahvauto-fab")'));
+  console.log('pause box:', await cdp.ev<boolean>('!!document.querySelector("#ahvauto-pause")'));
   console.log('dialogs dismissed:', JSON.stringify(seen));
 } finally {
   cdp.close();

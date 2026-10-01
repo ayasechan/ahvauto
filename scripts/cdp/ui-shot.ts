@@ -1,7 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import { pickPage, connect } from './common.js';
 
-const target = process.argv[2] ?? '#hvAABox';
+const target = process.argv[2] ?? '#ahvauto-panel';
 const out = process.argv[3] ?? 'logs/ui-panel.png';
 const cdp = await connect(await pickPage());
 try {

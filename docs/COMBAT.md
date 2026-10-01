@@ -49,5 +49,5 @@
 
 ## 面板决策历史
 
-`.hvAALog` 下方显示本轮最近 10 条（最新在上，Turn 号正标倒序展示），换轮清空（缓冲保留 20 条）。
-`window.__hvaa` 同步暴露含 `{step（规则名）/lastError/lastAction/history/nr/apiCalls/lastReq/lastSend/fired}` 供 CDP 取证。
+`.ahvauto-log` 下方显示本轮最近 10 条（最新在上，Turn 号正标倒序展示），换轮清空（缓冲保留 20 条）。
+`window.__ahvauto` 同步暴露含 `{step（规则名）/lastError/lastAction/history/nr/apiCalls/lastReq/lastSend/fired}` 供 CDP 取证。

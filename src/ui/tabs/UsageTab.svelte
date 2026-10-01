@@ -105,7 +105,7 @@
     const blob = new Blob([battlesToCsv(getBattles())], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `hvaa-battles-${Date.now()}.csv`;
+    a.download = `ahvauto-battles-${Date.now()}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();

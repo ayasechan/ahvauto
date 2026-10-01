@@ -12,7 +12,7 @@
 | `npm run dev`（vite :5173） | `setsid nohup npm run dev > logs/dev-server.log 2>&1 < /dev/null &`             | VM dev 版（`server:` 安装）热更新源。改 `src/` 即触发页面 reload，新代码直接生效，**不用重装脚本** |
 | `vite build --watch`        | `setsid nohup npx vite build --watch > logs/build-watch.log 2>&1 < /dev/null &` | `src/` 变动自动重编 `dist/ahvauto.user.js`（生产安装包）                                           |
 
-验证 dev 联通：改完 reload 页面，悬浮钮统一显示 `hvAA·dev`（dev/dist 均此文案，不再用于区分版本；以热更新生效为准）。
+验证 dev 联通：改完 reload 页面，悬浮钮统一显示 `ahvauto·dev`（dev/dist 均此文案，不再用于区分版本；以热更新生效为准）。
 
 ## 常用命令
 
@@ -28,7 +28,7 @@ npx tsx scripts/cdp/<脚本>.ts   # 浏览器运维（见 scripts/cdp/README.md�
 提交走 conventional commits（英文）；不提交 `logs/`、`dist/`、`__tmp-*`。
 
 `npm test` 说明：测试经 tsc 编译后跑；`stats.test.ts` 等依赖 localStorage 的用例跑在
-`node --localstorage-file=/tmp/hvaa-test-ls.json` 真存储上（Node 26 原生 global 盖掉 stub）。
+`node --localstorage-file=/tmp/ahvauto-test-ls.json` 真存储上（Node 26 原生 global 盖掉 stub）。
 `src/**/*.test.ts` 已在 tsconfig exclude，不进打包类型检查。
 
 ## 存储命名空间（铁律）
@@ -47,7 +47,7 @@ npx tsx scripts/cdp/<脚本>.ts   # 浏览器运维（见 scripts/cdp/README.md�
 
 ## 调试面
 
-- `window.__hvaa`：核心字段 `{step（规则名）/lastError/lastAction/history/nr}` ＋页世界钩子附加 `{apiCalls/lastReq/lastSend/fired}`（＋独立序号 `__hvaaSeq`），只读定位 stall。
+- `window.__ahvauto`：核心字段 `{step（规则名）/lastError/lastAction/history/nr}` ＋页世界钩子附加 `{apiCalls/lastReq/lastSend/fired}`（＋独立序号 `__ahvautoSeq`），只读定位 stall。
 - IDB `ahvauto-debug`（v5）：`records`（只存 `{seq,data}` 去冗余 gzip 包，`seq` keyPath，上限 2000）、`turns`（`{t,data}` 决策现场，上限 2000，自增 key）、`logs`（运行日志原文 `{t,level,category,message,props}` 不 gzip，上限 1000，自增 key）；解压得配对体/快照，导出走 JSONL+gzip（面板与 CDP 共 `toJsonlLine`）。
   修剪全部在非战斗页空闲一次完成（`scheduleIdlePrune`→`pruneDebugRecords/pruneBattles`），热路径只追加。
   ⚠️ 外部工具 open IDB **不许带版本号**（会空提交版本跳过升级，v2 就是这么坏的）。
@@ -57,9 +57,9 @@ npx tsx scripts/cdp/<脚本>.ts   # 浏览器运维（见 scripts/cdp/README.md�
 
 ## 已知的坑（别再踩）
 
-1. 游戏页把 `localStorage.setItem` 包了一层，静默丢弃 `hvAA*` 开头 key——`hvAA*` 禁 `setItem`（`preview-ui.ts` 拦截器同理），其余直接赋值（`store.ts` 有注释）。
+1. 游戏页把 `localStorage.setItem` 包了一层，静默丢弃 `hvAA*` 开头 key——`hvAA*` 禁 `setItem`，其余直接赋值（`store.ts` 有注释）。
 2. `Infinity` 过 JSON 变 `null`——读回必须归一化（死亡判定依赖）。
-3. `src` 生产入口（`src/main.ts`，monkey 打包）禁动态 `import()`，会切 SystemJS（页内无 `System` 直接暴毙）——`src/preview-ui.ts`＋`vite.preview.config.ts` 临时预览链（不过 monkey）豁免。
+3. `src` 生产入口（`src/main.ts`，monkey 打包）禁动态 `import()`，会切 SystemJS（页内无 `System` 直接暴毙）。
 4. （已删除：`postMessage` 录制桥已移除，统计走 `handleRec` 直调。）
 5. `bind:` 传 `undefined` 会炸 tab 切换（`props_invalid_value`）——必须预填 key：item/buff/debuff/scroll conditions＋enabledMap、debuff.turns、rule.weights、channel.first/useSecond、scroll.roundTypes/first、alarm.audio/audioEnable/telegram/webhook（`backfill/backfillBool/backfillNum/backfillAlarm`＋单测守护）。
 6. 集火排序恒升序（原版亦然），`ruleReverse` 只反公式不反排序；点目标前验 `onclick`（死怪没有）。

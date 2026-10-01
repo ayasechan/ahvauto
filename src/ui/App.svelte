@@ -79,22 +79,22 @@
 </script>
 
 {#if $panelOpen}
-  <div id="hvAABox" role="dialog" aria-label="ahvauto">
-    <div class="hvAACenter">
+  <div id="ahvauto-panel" role="dialog" aria-label="ahvauto">
+    <div class="ahvauto-center">
       <h1>ahvauto</h1>
       <select bind:value={$options.lang} aria-label={tr($options.lang, 'a.lang')}>
         <option value="0">简体中文</option>
         <option value="1">繁體中文</option>
         <option value="2">English</option>
       </select>
-      <button type="button" class="hvAAClose" onclick={() => ($panelOpen = false)}
+      <button type="button" class="ahvauto-close" onclick={() => ($panelOpen = false)}
         >{tr($options.lang, 'ui.close')}</button
       >
     </div>
-    <div class="hvAATablist">
-      <div class="hvAATabmenu" role="tablist">
+    <div class="ahvauto-tablist">
+      <div class="ahvauto-tabmenu" role="tablist">
         {#each GROUPS as g}
-          <div class="hvAAGroup">{g.title}</div>
+          <div class="ahvauto-group">{g.title}</div>
           {#each g.tabs as t}
             <button
               type="button"
@@ -117,10 +117,10 @@
           {/each}
         {/each}
       </div>
-      <div class="hvAAContent">
-        <div class="hvAACrumb">{crumb()}</div>
-        <div class="hvAATitle">{tr($options.lang, current.labelKey)}</div>
-        <div class="hvAATab" role="tabpanel">
+      <div class="ahvauto-content">
+        <div class="ahvauto-crumb">{crumb()}</div>
+        <div class="ahvauto-title">{tr($options.lang, current.labelKey)}</div>
+        <div class="ahvauto-tab" role="tabpanel">
           <current.comp />
         </div>
       </div>
@@ -129,7 +129,7 @@
 {/if}
 
 <style>
-  #hvAABox {
+  #ahvauto-panel {
     left: calc(50% - 480px);
     top: 40px;
     font-size: 14px;
@@ -146,7 +146,7 @@
     color: var(--hv-t1);
     box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18);
   }
-  .hvAACenter {
+  .ahvauto-center {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -154,20 +154,20 @@
     border-bottom: 1px solid var(--hv-line);
     text-align: left;
   }
-  .hvAACenter h1 {
+  .ahvauto-center h1 {
     display: inline;
     font-size: 16px;
     margin: 0 8px 0 0;
   }
-  .hvAACenter select {
+  .ahvauto-center select {
     margin-left: auto;
   }
-  .hvAATablist {
+  .ahvauto-tablist {
     position: relative;
     display: flex;
     max-height: calc(86vh - 57px);
   }
-  .hvAATabmenu {
+  .ahvauto-tabmenu {
     width: 208px;
     flex: none;
     display: flex;
@@ -179,13 +179,13 @@
     border-right: 1px solid var(--hv-line);
     background: var(--hv-side);
   }
-  .hvAAGroup {
+  .ahvauto-group {
     font-size: 11px;
     color: var(--hv-t3);
     font-weight: 700;
     padding: 8px 8px 2px;
   }
-  .hvAATabmenu > button {
+  .ahvauto-tabmenu > button {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -201,16 +201,16 @@
     text-overflow: ellipsis;
     overflow: hidden;
   }
-  .hvAATabmenu > button:hover {
+  .ahvauto-tabmenu > button:hover {
     background: var(--hv-primary-soft);
     color: var(--hv-primary);
   }
-  .hvAATabmenu > button.active {
+  .ahvauto-tabmenu > button.active {
     background: var(--hv-primary);
     color: #fff;
     font-weight: 700;
   }
-  .hvAAContent {
+  .ahvauto-content {
     flex: 1;
     min-width: 0;
     background: var(--hv-bg);
@@ -219,16 +219,16 @@
     display: flex;
     flex-direction: column;
   }
-  .hvAACrumb {
+  .ahvauto-crumb {
     font-size: 12px;
     color: var(--hv-t3);
   }
-  .hvAATitle {
+  .ahvauto-title {
     font-size: 18px;
     font-weight: 800;
     margin: 2px 0 10px;
   }
-  .hvAATab {
+  .ahvauto-tab {
     flex: 1;
     min-height: 0;
     overflow: auto;
@@ -237,14 +237,14 @@
     background-color: transparent;
     border: none;
   }
-  .hvAATab :global(.row) {
+  .ahvauto-tab :global(.row) {
     background: var(--hv-card) !important;
     border: 1px solid var(--hv-line) !important;
     border-radius: var(--hv-radius-card) !important;
     margin: 0 0 12px !important;
     padding: 12px !important;
   }
-  .hvAATab :global(.row) :global(b) {
+  .ahvauto-tab :global(.row) :global(b) {
     font-size: 13px;
   }
 </style>

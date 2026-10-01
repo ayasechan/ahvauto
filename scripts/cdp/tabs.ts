@@ -24,14 +24,14 @@ let pass = 0;
 try {
   for (const [name, sig] of CASES) {
     await cdp.ev(
-      `(()=>{[...document.querySelectorAll("#hvAABox .hvAATabmenu>button")].find(s=>s.textContent.trim()==="${name}")?.click();})()`,
+      `(()=>{[...document.querySelectorAll("#ahvauto-panel .ahvauto-tabmenu>button")].find(s=>s.textContent.trim()==="${name}")?.click();})()`,
     );
     await new Promise((r) => setTimeout(r, 350));
     const active = await cdp.ev<string | null>(
-      'document.querySelector("#hvAABox .hvAATabmenu>button.active")?.textContent?.trim()',
+      'document.querySelector("#ahvauto-panel .ahvauto-tabmenu>button.active")?.textContent?.trim()',
     );
     const content = await cdp.ev<string>(
-      'document.querySelector("#hvAABox .hvAATab")?.textContent ?? ""',
+      'document.querySelector("#ahvauto-panel .ahvauto-tab")?.textContent ?? ""',
     );
     const ok = active === name && content.includes(sig);
     if (ok) pass++;
