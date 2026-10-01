@@ -1,42 +1,55 @@
-import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { createWriteStream, mkdirSync, statSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { pickPage, connect } from './common.js';
+import { createGzip } from 'node:zlib';
+import { pickPage, connect, type Cdp } from './common.js';
 import { IDB_NAME } from '../../src/lib/storage-keys.js';
-// 导出 IDB 战斗记录（解压）。新形状为配对行 {seq,tReq,req,tRes,res,rttMs}，兼容旧分行。
-// 分页策略：页内倒序 key 游标（openKeyCursor(range,'prev')，since-seq 用
-// IDBKeyRange.lowerBound 下界）按 limit 提前终止；每批 200 条经 CDP 分批回传、
-// append 落盘，避免大数据量下页内 getAll OOM + CDP 回传包爆炸 + 数 GB 整包文件。
+import { toJsonlLine } from '../../src/lib/recorder.js';
+// 导出 IDB 战斗记录为 JSONL+gzip（逐行一对象，可流式读）。
+// records 行 {seq, data} → 解压得配对体 {seq,tReq,req,tRes,res,rttMs}；
+// turns 行 {t, data} → 解压得 {t,round,turn,rule,action,otos,snap}（key 另附为行号）。
+// 分页策略：页内倒序 key 游标按 limit 提前终止；每批 50 条经 CDP 分批回传、
+// node 侧流式 gzip 落盘，避免页内 OOM + CDP 回传包爆炸 + 整包大文件。
 // 只读：readonly 事务、无版本号 open、不点游戏按钮、不写 IDB。
-const BATCH = 200;
-const DEFAULT_LIMIT = 1000;
+const BATCH = 50;
 
-const HELP = `export-records.ts — 分页导出 IDB 战斗记录（只读）
+type Store = 'records' | 'turns';
+
+const HELP = `export-records.ts — 导出 IDB 战斗记录为 JSONL+gzip（只读）
 
 用法：
-  npx tsx scripts/cdp/export-records.ts [输出] [--limit N] [--since-seq S]
+  npx tsx scripts/cdp/export-records.ts [输出前缀] [--store S] [--limit N] [--since-seq S]
 
 参数：
-  [输出]         输出 JSON 文件（默认 logs/battle-records-<ts>.json）
-  --limit N      最多导出 N 条（默认 ${DEFAULT_LIMIT}，须为正整数；按 key 倒序取最新 N 条）
-  --since-seq S  只导出 seq >= S 的记录
+  [输出前缀]     默认 logs/battle-<ts>；实际写 <前缀>-records.jsonl.gz / <前缀>-turns.jsonl.gz
+  --store S      records（请求）| turns（决策）| both（默认）
+  --limit N      每表最多导出 N 条（默认全量，须为正整数；按 key 倒序取最新 N 条）
+  --since-seq S  只导出 key >= S 的记录
   --help, -h     显示本说明
 
 示例：
   npx tsx scripts/cdp/export-records.ts
-  npx tsx scripts/cdp/export-records.ts logs/rec.json --limit 200
-  npx tsx scripts/cdp/export-records.ts logs/rec.json --limit 5000 --since-seq 100
+  npx tsx scripts/cdp/export-records.ts logs/night3 --limit 2000
+  npx tsx scripts/cdp/export-records.ts logs/night3 --store turns
 `;
 
 const raw = process.argv.slice(2);
-let out = `logs/battle-records-${Date.now()}.json`;
-let outSet = false;
-let limit = DEFAULT_LIMIT;
+let prefix = `logs/battle-${Date.now()}`;
+let prefixSet = false;
+let store: Store | 'both' = 'both';
+let limit = Number.POSITIVE_INFINITY;
 let sinceSeq: number | null = null;
 for (let i = 0; i < raw.length; i++) {
   const a = raw[i];
   if (a === '--help' || a === '-h') {
     console.log(HELP);
     process.exit(0);
+  } else if (a === '--store' || a.startsWith('--store=')) {
+    const v = a.startsWith('--store=') ? a.slice('--store='.length) : raw[++i];
+    if (v !== 'records' && v !== 'turns' && v !== 'both') {
+      console.error(`bad --store ${JSON.stringify(v)} (want records|turns|both)`);
+      process.exit(1);
+    }
+    store = v;
   } else if (a === '--limit' || a.startsWith('--limit=')) {
     const v = a.startsWith('--limit=') ? a.slice('--limit='.length) : raw[++i];
     limit = Number(v);
@@ -54,9 +67,9 @@ for (let i = 0; i < raw.length; i++) {
   } else if (a.startsWith('--')) {
     console.error(`unknown flag ${JSON.stringify(a)}\n\n${HELP}`);
     process.exit(1);
-  } else if (!outSet) {
-    out = a;
-    outSet = true;
+  } else if (!prefixSet) {
+    prefix = a;
+    prefixSet = true;
   } else {
     console.error(`unexpected positional ${JSON.stringify(a)}\n\n${HELP}`);
     process.exit(1);
@@ -70,55 +83,94 @@ interface Batch {
 }
 
 // 一批：倒序游标取一批 key（upperExcl 上界专属，用于翻页；sinceSeq 下界包容），
-// 逐 key get + gunzip。无版本号 open（versionless），readonly 事务。
-const batchExpr = (upperExcl: number | null, take: number, since: number | null): string =>
-  `(async(upperExcl,batchSize,sinceSeq)=>{` +
-  `const db=await new Promise((res,rej)=>{const q=indexedDB.open(${JSON.stringify(IDB_NAME)});q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});` +
-  `try{` +
-  `let range=null;` +
-  `if(upperExcl!==null&&sinceSeq!==null)range=IDBKeyRange.bound(sinceSeq,upperExcl,false,true);` +
-  `else if(upperExcl!==null)range=IDBKeyRange.upperBound(upperExcl,true);` +
-  `else if(sinceSeq!==null)range=IDBKeyRange.lowerBound(sinceSeq);` +
-  `const keys=await new Promise((res,rej)=>{const o=[];const q=db.transaction("records","readonly").objectStore("records").openKeyCursor(range,"prev");` +
-  `q.onsuccess=()=>{const c=q.result;if(!c){res(o);return;}o.push(c.key);if(o.length>=batchSize){res(o);return;}c.continue();};` +
-  `q.onerror=()=>rej(q.error);});` +
-  `const rows=[];` +
-  `for(const k of keys){` +
-  `const r=await new Promise((res,rej)=>{const q=db.transaction("records","readonly").objectStore("records").get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});` +
-  `if(!r){rows.push({seq:k,corrupt:"missing"});continue;}` +
-  `try{const txt=await new Response(new Blob([r.data]).stream().pipeThrough(new DecompressionStream("gzip"))).text();` +
-  `rows.push({seq:r.seq??k,...JSON.parse(txt)});}` +
-  `catch(e){rows.push({seq:r.seq??k,corrupt:String(e)});}}` +
-  `return{rows,nextKey:keys.length?keys[keys.length-1]:null,done:keys.length<batchSize};` +
-  `}finally{db.close();}` +
-  `})(${JSON.stringify(upperExcl)},${JSON.stringify(take)},${JSON.stringify(since)})`;
+// 逐 key get + gunzip。无版本号 open（versionless），readonly 事务。表不存在直接返回空。
+const batchExpr = (
+  st: Store,
+  upperExcl: number | null,
+  take: number,
+  since: number | null,
+): string => {
+  const decode =
+    st === 'records'
+      ? `rows.push({seq:r.seq??k,...JSON.parse(txt)});`
+      : `rows.push({key:k,...JSON.parse(txt)});`;
+  return (
+    `(async(upperExcl,batchSize,sinceSeq)=>{` +
+    `const db=await new Promise((res,rej)=>{const q=indexedDB.open(${JSON.stringify(IDB_NAME)});q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});` +
+    `try{` +
+    `if(!db.objectStoreNames.contains(${JSON.stringify(st)}))return{rows:[],nextKey:null,done:true};` +
+    `let range=null;` +
+    `if(upperExcl!==null&&sinceSeq!==null)range=IDBKeyRange.bound(sinceSeq,upperExcl,false,true);` +
+    `else if(upperExcl!==null)range=IDBKeyRange.upperBound(upperExcl,true);` +
+    `else if(sinceSeq!==null)range=IDBKeyRange.lowerBound(sinceSeq);` +
+    `const keys=await new Promise((res,rej)=>{const o=[];const q=db.transaction(${JSON.stringify(st)},"readonly").objectStore(${JSON.stringify(st)}).openKeyCursor(range,"prev");` +
+    `q.onsuccess=()=>{const c=q.result;if(!c){res(o);return;}o.push(c.key);if(o.length>=batchSize){res(o);return;}c.continue();};` +
+    `q.onerror=()=>rej(q.error);});` +
+    `const rows=[];` +
+    `for(const k of keys){` +
+    `const r=await new Promise((res,rej)=>{const q=db.transaction(${JSON.stringify(st)},"readonly").objectStore(${JSON.stringify(st)}).get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});` +
+    `if(!r){rows.push({key:k,corrupt:"missing"});continue;}` +
+    `try{const txt=await new Response(new Blob([r.data]).stream().pipeThrough(new DecompressionStream("gzip"))).text();` +
+    decode +
+    `}catch(e){rows.push({key:k,corrupt:String(e)});}}` +
+    `return{rows,nextKey:keys.length?keys[keys.length-1]:null,done:keys.length<batchSize};` +
+    `}finally{db.close();}` +
+    `})(${JSON.stringify(upperExcl)},${JSON.stringify(take)},${JSON.stringify(since)})`
+  );
+};
+
+/** 一表到底：分批拉 → 紧凑 JSON 行 → 流式 gzip 落盘。返回行数与原文字节。 */
+async function dumpStore(
+  cdp: Cdp,
+  st: Store,
+  file: string,
+  lim: number,
+  since: number | null,
+): Promise<{ rows: number; raw: number }> {
+  mkdirSync(dirname(file), { recursive: true });
+  const out = createWriteStream(file);
+  const gz = createGzip();
+  gz.pipe(out);
+  const finished = new Promise<void>((res, rej) => {
+    out.on('finish', () => res());
+    out.on('error', rej);
+    gz.on('error', rej);
+  });
+  let written = 0;
+  let rawBytes = 0;
+  let upperExcl: number | null = null;
+  try {
+    for (;;) {
+      const take = Math.min(BATCH, lim - written);
+      if (take <= 0) break;
+      const b: Batch = await cdp.ev<Batch>(batchExpr(st, upperExcl, take, since), true);
+      for (const row of b.rows) {
+        const line = toJsonlLine(row);
+        rawBytes += line.length;
+        if (!gz.write(line)) await new Promise((r) => gz.once('drain', r));
+      }
+      written += b.rows.length;
+      if (b.nextKey === null || b.done || b.rows.length === 0 || written >= lim) break;
+      upperExcl = b.nextKey;
+    }
+  } finally {
+    gz.end();
+  }
+  await finished;
+  return { rows: written, raw: rawBytes };
+}
 
 const cdp = await connect(await pickPage());
 try {
-  mkdirSync(dirname(out), { recursive: true });
-  writeFileSync(out, '[\n');
-  let written = 0;
-  let first = true;
-  let upperExcl: number | null = null;
-  for (;;) {
-    const take = Math.min(BATCH, limit - written);
-    if (take <= 0) break;
-    const b: Batch = await cdp.ev<Batch>(batchExpr(upperExcl, take, sinceSeq), true);
-    for (const row of b.rows) {
-      appendFileSync(
-        out,
-        `${first ? ' ' : ',\n '}${JSON.stringify(row, null, 1).replace(/\n/g, '\n ')}`,
-      );
-      first = false;
-    }
-    written += b.rows.length;
-    if (limit > BATCH) console.log(`... ${written}/${limit} records (nextKey=${b.nextKey})`);
-    if (b.nextKey === null || b.done || b.rows.length === 0 || written >= limit) break;
-    upperExcl = b.nextKey;
+  const targets: Store[] = store === 'both' ? ['records', 'turns'] : [store];
+  for (const st of targets) {
+    const file = `${prefix}-${st}.jsonl.gz`;
+    const { rows, raw } = await dumpStore(cdp, st, file, limit, sinceSeq);
+    const gzSize = statSync(file).size;
+    console.log(
+      `ok: ${file} (${rows} rows, raw ${(raw / 1024).toFixed(1)}KB → gz ${(gzSize / 1024).toFixed(1)}KB)`,
+    );
   }
-  if (written === 0) writeFileSync(out, '[]\n');
-  else appendFileSync(out, '\n]\n');
-  console.log(`ok: ${out} (${written} records)`);
 } finally {
   cdp.close();
 }

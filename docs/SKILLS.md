@@ -31,7 +31,7 @@
 主 Buff（需 `buff.enabled`＋总条件）：`Pr411/SL422/SS423/Ha412/AF432/He431/Re312/SV413/Ab421`，
 按用户顺序补“不存在”的（含单项条件＋启用表）。药水见 `docs/ITEMS.md`。
 Channeling 窗口（1MP＋150% 伤害）三段：按 Buff 顺序补缺（需 `channel.enabled`＋单项 `first` 开关）→
-`channel.useSecond`＋`secondOrder` 顺序直放（旧键 `channelSkill2`/`channelSkill2OrderValue` 仅迁移用）→ ReBuff 最早过期者（不含 Ab，与原版一致，Ab 仅经首段/Buff 主链补；含 Cloak of the Fallen 转 SL 特例）。
+`channel.useSecond`＋`secondOrder` 顺序直放（旧键 `channelSkill2`/`channelSkill2OrderValue` 仅迁移用）→ ReBuff 最早过期者（含 Ab；含 Cloak of the Fallen 转 SL 特例）。
 
 ## Debuff（9）
 
@@ -55,4 +55,4 @@ Channeling 窗口（1MP＋150% 伤害）三段：按 Buff 顺序补缺（需 `ch
 ## 魔药（`INFUSION_LIB`，走物品栏）
 
 按 `attackStatus` 查表（需 `infusion.enabled`＋总条件）：1 火 12101 / 2 冰 12201 / 3 雷 12301 /
-4 风 12401 / 5 圣 12501 / 6 暗 12601；物理（0）与未选（-1，查表无命中）跳过；已有对应 buff 跳过。
+4 风 12401 / 5 圣 12501 / 6 暗 12601；`attackStatus<=0`（0 物理，-1 未选）由前置守卫直接跳过；已有对应 buff 跳过。

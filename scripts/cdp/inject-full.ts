@@ -1,9 +1,9 @@
 // 全量 bundle 注入：自动 dismiss 掉 prompt/confirm（只记录），抓页面异常。
-// 用法：npx tsx scripts/cdp/inject-full.ts [bundle路径，默认 dist/hvauto.user.js]
+// 用法：npx tsx scripts/cdp/inject-full.ts [bundle路径，默认 dist/ahvauto.user.js]
 import { readFileSync } from 'node:fs';
 import { pickPage, connect, assertPaused, autoDismissDialogs } from './common.js';
 
-const bundle = process.argv[2] ?? 'dist/hvauto.user.js';
+const bundle = process.argv[2] ?? 'dist/ahvauto.user.js';
 const cdp = await connect(await pickPage());
 try {
   await assertPaused(cdp);

@@ -15,11 +15,11 @@
 - **感知**（`src/lib/combat/snapshot.ts`）：每回合把 DOM 一次性读成纯 `Snapshot`
   （血蓝/怪/buff/技能可用性/姿态），是唯一把 DOM 读成快照的地方（他处仍有零散只读 DOM）。
 - **决策**（`src/lib/combat/decide.ts`）：规则表按优先级求值，首个命中即决策。
-  纯函数，决策 33 用例、全仓 120+ 单测覆盖。详见 `docs/COMBAT.md`。
+  纯函数，决策 36 用例、全仓 133 单测覆盖。详见 `docs/COMBAT.md`。
 - **执行**（`src/lib/combat/execute.ts`）：把动作翻译成点击。法术书/Buff 直调
   `getElementById`，其余经 `click`/`qs`（纯数字 id 回落 `getElementById`，imperil 经 `go` 回落等效直调）；卷轴/药剂/魔药走物品栏 `.bti3`；`item` 内部分流：`id > 10000` 走 `.bti3`，否则（含 Cure 311 / FC 313）走法术书（与原版“判哪点哪”同构，见 `docs/ITEMS.md`）。
 - **驱动**（`src/lib/battle.ts`）：劫持 `api_call/api_response`（游戏动态查找，
-  覆盖有效），响应→`eventEnd`→统计→`main()` 下一轮。发包三道门会被游戏静默吞，
+  覆盖有效），响应→`eventEnd`（DOM 锚点，非导出函数）→统计→`main()` 下一轮。发包三道门会被游戏静默吞，
   看门狗（8s 补点／25s 重载）兜底。
 - **UI**（`src/ui/`）：Svelte 14 页设置面板；战斗内状态条由 `battle.ts:battleInfo` 直写 `.hvAALog`，非 Svelte 组件。详见下。
 - **分层约束**：纯逻辑（`combat/decide`、`expr`、`stats`）配单测；DOM 触点在
@@ -32,17 +32,18 @@ src/
   main.ts            # 入口：页面分流 → fsm transition（boot/field/battle/riddle）
   preview-ui.ts      # CDP 注入预览入口（临时，用完即删，不进生产 bundle）
   lib/
-    battle.ts        # 战斗循环 main/newRound/eventEnd/看门狗/保底停机
+    battle.ts        # 战斗循环 main/newRound/看门狗/保底停机（eventEnd 为内部 DOM 锚点）
     combat/          # 战斗算法包（纯逻辑＋单测）
       types.ts       # Snapshot / Action / DecideResult
       snapshot.ts    # DOM→快照，集火权重 orderTargets，目标 resolveTarget
-       context.ts     # 决策内条件求值上下文（纯：isCd/buffTurn 读快照；decide.ts:361 evalContext + checkExpr）
+       context.ts     # 决策内条件求值上下文（纯：isCd/buffTurn 读快照；decide.ts:362 evalContext + checkExpr）
       decide.ts      # 决策规则表（优先级即表顺序）
       execute.ts     # 动作→点击，describeAction 可读标签
     expr/            # 条件表达式语言（tokenizer/parser/evaluator/suggest/migrate）
     store.ts         # Svelte store＋持久化（见存储）
     fsm.ts           # 顶层状态机（boot/field/battle/riddle）＋命名定时器
     meta.ts          # 战斗外：答题告警/遭遇战/闲置竞技场
+    maintenance.ts   # 非战斗空闲集中修剪（IDB records/turns＋battles2＋日志）
     http.ts          # fetch 版 await 请求（替代原 XHR 回调）
     stats.ts         # 数据收集 v2（parseTurn 规则表＋对局状态机）
     recorder.ts      # IDB 录制（请求/响应配对＋回合现场）
@@ -63,18 +64,18 @@ scripts/cdp/         # 浏览器运维脚本（TS，npx tsx 运行，详见其 R
 
 ## 存储（铁律：`hvAA-` 只读，`ahvauto-` 读写）
 
-| 位置                                                            | 内容                                                         |
-| --------------------------------------------------------------- | ------------------------------------------------------------ |
-| `hvAA-option`（旧）                                             | 原版配置，只读，“关于→导入旧配置”手动导入                    |
-| `ahvauto-option`                                                | 新配置（表达式字符串版条件）                                 |
-| `ahvauto-disabled`                                              | 暂停位                                                       |
-| `ahvauto-roundType/roundNow/roundAll/monsterStatus/monsterBase` | 战斗上下文                                                   |
-| `ahvauto-stats2/battles2/curBattle2`                            | 数据收集（总数/单场/进行中）                                 |
-| `ahvauto-arena/encounter`                                       | 竞技场队列＋token／遭遇战计数                                |
-| `ahvauto-logs/backup`                                           | 运行日志环形缓冲／配置备份                                   |
-| `ahvauto-staminaLostLog`                                        | 体力消耗记录                                                 |
-| `sessionStorage: ahvauto-spell-delay/nospell-delay`             | 发包延迟（注入脚本与 userscript 两侧同读）                   |
-| IDB `ahvauto-debug`                                             | `records`（请求/响应配对，keyPath seq）、`turns`（回合现场） |
+| 位置                                                            | 内容                                                                                                                                                                                             |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `hvAA-option`（旧）                                             | 原版配置，只读，“关于→导入旧配置”手动导入                                                                                                                                                        |
+| `ahvauto-option`                                                | 新配置（表达式字符串版条件）                                                                                                                                                                     |
+| `ahvauto-disabled`                                              | 暂停位                                                                                                                                                                                           |
+| `ahvauto-roundType/roundNow/roundAll/monsterStatus/monsterBase` | 战斗上下文                                                                                                                                                                                       |
+| `ahvauto-stats2/battles2/curBattle2`                            | 数据收集（总数/单场/进行中；单场只留最新 50，空闲修剪）                                                                                                                                          |
+| `ahvauto-arena/encounter`                                       | 竞技场队列＋token／遭遇战计数                                                                                                                                                                    |
+| `ahvauto-logs` / `ahvauto-backup`                               | 运行日志（只留最新 500 条，空闲修剪）／配置备份字典                                                                                                                                              |
+| `ahvauto-staminaLostLog`                                        | 体力消耗记录                                                                                                                                                                                     |
+| `sessionStorage: ahvauto-spell-delay/nospell-delay`             | 发包延迟（注入脚本与 userscript 两侧同读）                                                                                                                                                       |
+| IDB `ahvauto-debug`（v4）                                       | `records`（`{seq,data}` 去冗余 gzip 包，上限 2000，`seq` keyPath）、`turns`（`{t,data}` 回合现场，上限 2000，自增 key）；解压得配对体/决策现场，导出走 JSONL+gzip（面板与 CDP 共 `toJsonlLine`） |
 
 `battleCode` 为旧键，仅启动清理（`kvDel`），无现行写入。
 
@@ -95,5 +96,5 @@ scripts/cdp/         # 浏览器运维脚本（TS，npx tsx 运行，详见其 R
 
 `npm test`（tsc 编译到 `/tmp` ＋ `node --test`，零依赖）：
 `expr`（表达式）、`legacy`（旧配置导入）、`stats`（解析＋分段＋CSV）、
-`meta`（竞技场表单解析）、`recorder`（gzip 回环）、`combat/decide`
-（决策规则 33 用例）。真机验证走 CDP（`scripts/cdp/`）。
+`meta`（竞技场表单解析）、`recorder`（gzip 回环＋JSONL 行格式＋解码）、`combat/decide`
+（决策规则 36 用例）、`template`、`maintenance`（空闲修剪）。真机验证走 CDP（`scripts/cdp/`）。

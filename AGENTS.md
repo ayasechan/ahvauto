@@ -14,7 +14,7 @@ Original script preserved at `legacy/hvauto.js` (reference only). No CI.
 
 ## Architecture (see `docs/ARCHITECTURE.md`)
 
-`snapshot → decide → execute → api_call → eventEnd → next turn`;
+`snapshot → decide → execute → api_call → eventEnd（DOM 锚点） → next turn`;
 stats/logging via direct `handleRec` calls (`recorder.ts`).
 
 ## Gotchas (rules only; explanations live in docs/ — do not re-expand here)

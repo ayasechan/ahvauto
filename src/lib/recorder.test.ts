@@ -7,6 +7,7 @@ import {
   decodeRecordRow,
   decodeTurnRow,
   handleRec,
+  toJsonlLine,
 } from './recorder';
 
 describe('recorder gzip', () => {
@@ -16,24 +17,38 @@ describe('recorder gzip', () => {
   });
 });
 
+describe('toJsonlLine（面板下载与 CDP 导出共用行格式）', () => {
+  it('单行：紧凑 JSON + 换行', () => {
+    assert.equal(toJsonlLine({ seq: 1, a: [1, 2] }), '{"seq":1,"a":[1,2]}\n');
+  });
+  it('逐行 gzip 回环后可解析', async () => {
+    const rows = [{ seq: 1 }, { seq: 2 }];
+    const text = await gunzip(await gzipStr(rows.map(toJsonlLine).join('')));
+    assert.deepEqual(
+      text
+        .trim()
+        .split('\n')
+        .map((l) => JSON.parse(l)),
+      rows,
+    );
+  });
+});
+
 describe('decodeRecordRow', () => {
   it('正常行回环（语义与旧实现一致：{ seq: row.seq, ...parsed }）', async () => {
     const inner = { seq: 7, tReq: 123, req: { a: 1 }, tRes: 456, res: { b: 2 }, rttMs: 333 };
     const data = await gzipStr(JSON.stringify(inner));
-    assert.deepEqual(await decodeRecordRow({ seq: 9, tReq: 0, req: null, data }), {
+    assert.deepEqual(await decodeRecordRow({ seq: 9, data }), {
       ...inner,
       seq: 7,
     });
   });
   it('gzip 损坏 → null', async () => {
-    assert.equal(
-      await decodeRecordRow({ seq: 1, tReq: 0, req: null, data: new Uint8Array([1, 2, 3]).buffer }),
-      null,
-    );
+    assert.equal(await decodeRecordRow({ seq: 1, data: new Uint8Array([1, 2, 3]).buffer }), null);
   });
   it('gzip 正常但非 JSON → null', async () => {
     const data = await gzipStr('not-json{{{');
-    assert.equal(await decodeRecordRow({ seq: 1, tReq: 0, req: null, data }), null);
+    assert.equal(await decodeRecordRow({ seq: 1, data }), null);
   });
 });
 

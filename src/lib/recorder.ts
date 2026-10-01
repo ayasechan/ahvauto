@@ -2,14 +2,10 @@ import { snapshotOptions } from './store';
 import { recordBattleTurn } from './stats';
 import { IDB_NAME as DB_NAME } from './storage-keys';
 
-/** 配对后的一行：一次请求＋它的响应。v2 起 keyPath 为 seq。 */
+/** 配对后的一行：一次请求＋它的响应。只存 {seq, data}（data 为 gzip 包，
+ * 解压得 {seq, tReq, req, tRes?, res?, rttMs?}）；原文不另存，避免双份。 */
 export interface BattleRecord {
   seq: number;
-  tReq: number;
-  req: unknown;
-  tRes?: number;
-  res?: unknown;
-  rttMs?: number;
   data: ArrayBuffer;
 }
 
@@ -24,8 +20,8 @@ export interface DecodedRecord {
 
 const STORE = 'records';
 const TURNS = 'turns';
-const CAP = 1000;
-const TURNS_CAP = 500;
+const CAP = 2000;
+const TURNS_CAP = 2000;
 // v4：turns 表存每回合决策现场。注意：外部工具不得用带版本号 open（会空提交版本，
 // 跳过 onupgradeneeded，导致 schema 升级永久失效）。
 const DB_VERSION = 4;
@@ -66,6 +62,12 @@ export async function gunzip(ab: ArrayBuffer): Promise<string> {
   return new Response(stream).text();
 }
 
+/** JSONL 行编码（面板下载与 CDP 导出共用，保证两边同一格式）：紧凑 JSON + 换行。
+ * 两边都是逐行生产、流式消费（面板进 Blob parts，CDP 进 gzip 写流），不拼整串。 */
+export function toJsonlLine(row: unknown): string {
+  return `${JSON.stringify(row)}\n`;
+}
+
 /** 同一 seq 的读写串行化：req 的 put 提交后，res 的 get 才执行。seq 单调递增， settled 即删，不会堆积。 */
 const seqChains = new Map<number, Promise<void>>();
 
@@ -96,23 +98,24 @@ export async function recordBattleEvent(
       const db = await openDb();
       if (kind === 'req') {
         const data = await gzipStr(JSON.stringify({ seq, tReq: Date.now(), req: payload }));
-        await putRow(db, STORE, { seq, tReq: Date.now(), req: payload, data });
+        await putRow(db, STORE, { seq, data });
       } else {
         const now = Date.now();
+        // 配对从旧半行的 data 解（行里无原文冗余）；缺失/损坏则按无 req 回退。
         const prev = await getRow(db, seq);
-        const tReq = prev?.tReq ?? now;
+        const prior = prev ? await decodeRecordRow(prev) : null;
+        const tReq = prior?.tReq ?? now;
         const data = await gzipStr(
-          JSON.stringify({ seq, tReq, req: prev?.req, tRes: now, res: payload, rttMs: now - tReq }),
+          JSON.stringify({
+            seq,
+            tReq,
+            req: prior?.req,
+            tRes: now,
+            res: payload,
+            rttMs: now - tReq,
+          }),
         );
-        await putRow(db, STORE, {
-          seq,
-          tReq,
-          req: prev?.req,
-          tRes: now,
-          res: payload,
-          rttMs: now - tReq,
-          data,
-        });
+        await putRow(db, STORE, { seq, data });
       }
     });
   } catch {
@@ -320,14 +323,17 @@ export async function exportTurns(opts: ExportOptions = {}): Promise<TurnDebug[]
   return out;
 }
 
+/** 清空调试记录：records 与 turns 两表全清（面板“清空”语义）。 */
 export async function clearRecords(): Promise<void> {
   const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-    tx.objectStore(STORE).clear();
-  });
+  for (const store of [STORE, TURNS]) {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(store, 'readwrite');
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.objectStore(store).clear();
+    });
+  }
 }
 
 /** 录制分发（纯本世界直调）：req/res 配对写 IDB，res 另喂统计（与 debug 开关无关，由 recordUsage 门控）。 */

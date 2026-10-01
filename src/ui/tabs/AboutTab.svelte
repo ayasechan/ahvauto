@@ -7,7 +7,13 @@
   import type { HvOptions } from '../../lib/types';
   import { getStoredLogs, clearStoredLogs, toLogfmt } from '../../lib/logger';
   import type { StoredEntry } from '../../lib/logger';
-  import { countRecords, exportRecords, clearRecords, exportTurns } from '../../lib/recorder';
+  import {
+    countRecords,
+    exportRecords,
+    clearRecords,
+    exportTurns,
+    toJsonlLine,
+  } from '../../lib/recorder';
 
   const L = (k: string) => tr($options.lang, k);
 
@@ -70,16 +76,21 @@
       alert('备份损坏');
     }
   }
+  function download(name: string, blob: Blob) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }
   function exportCfg() {
     try {
-      const blob = new Blob([JSON.stringify($options)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `ahvauto-config-${stamp()}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      download(
+        `ahvauto-config-${stamp()}.json`,
+        new Blob([JSON.stringify($options)], { type: 'application/json' }),
+      );
     } catch {
       alert('导出失败');
     }
@@ -126,17 +137,17 @@
       recCount = -1;
     }
   }
+  async function downloadJsonlGz(name: string, rows: unknown[]) {
+    // 行分块喂 Blob parts（不拼整串）→ CompressionStream 流式压 → 一次下载
+    const lines = new Blob(rows.map(toJsonlLine), { type: 'application/jsonl' });
+    const gz = await new Response(
+      lines.stream().pipeThrough(new CompressionStream('gzip')),
+    ).arrayBuffer();
+    download(name, new Blob([gz], { type: 'application/gzip' }));
+  }
   async function exportRec() {
     try {
-      const rows = await exportRecords();
-      const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `ahvauto-battle-${stamp()}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      downloadJsonlGz(`ahvauto-battle-${stamp()}.jsonl.gz`, await exportRecords());
     } catch {
       alert('导出失败');
     }
@@ -151,15 +162,7 @@
   }
   async function exportTurnsFile() {
     try {
-      const rows = await exportTurns();
-      const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `ahvauto-turns-${stamp()}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      downloadJsonlGz(`ahvauto-turns-${stamp()}.jsonl.gz`, await exportTurns());
     } catch {
       alert('导出失败');
     }
