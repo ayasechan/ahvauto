@@ -17,7 +17,7 @@
 ## 常用命令
 
 ```bash
-npm test    # 单元测试（tsc 编译到 /tmp + node --test，零依赖）
+npm test    # 单元测试（tsx 直跑 src/**/*.test.ts，无需 tsc 中转）
 npm run check   # svelte-check + tsc（0 errors 方可合）
 npm run lint / npm run fmt:check   # 只读检查（oxlint / oxfmt）
 npm run lint:fix / npm run fmt     # 落盘修复
@@ -27,7 +27,7 @@ npx tsx scripts/cdp/<脚本>.ts   # 浏览器运维（见 scripts/cdp/README.md�
 
 提交走 conventional commits（英文）；不提交 `logs/`、`dist/`、`__tmp-*`。
 
-`npm test` 说明：测试经 tsc 编译后跑；`stats.test.ts` 等依赖 localStorage 的用例跑在
+`npm test` 说明：tsx 类型剥离直跑（不做类型检查）；`stats.test.ts` 等依赖 localStorage 的用例跑在
 `node --localstorage-file=/tmp/ahvauto-test-ls.json` 真存储上（Node 26 原生 global 盖掉 stub）。
 `src/**/*.test.ts` 已在 tsconfig exclude，不进打包类型检查。
 
