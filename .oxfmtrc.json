@@ -8,12 +8,5 @@
   "trailingComma": "all",
   "sortPackageJson": false,
   "svelte": true,
-  "ignorePatterns": [
-    "dist/**",
-    "legacy/**",
-    "logs/**",
-    "__tmp-*/**",
-    "vite.config.js",
-    "vite.config.d.ts"
-  ]
+  "ignorePatterns": ["dist/**", "legacy/**", "logs/**", "__tmp-*/**"]
 }
