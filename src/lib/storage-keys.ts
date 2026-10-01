@@ -4,11 +4,10 @@
 /** localStorage 命名空间 */
 export const STORAGE_NS = 'ahvauto-';
 
-/** localStorage：配置 / 暂停位 / 旧版配置（只读） / 日志 / 备份 */
+/** localStorage：配置 / 暂停位 / 旧版配置（只读） / 备份（日志已迁 IDB logs 表） */
 export const OPT_KEY = `${STORAGE_NS}option`;
 export const DISABLED_KEY = `${STORAGE_NS}disabled`;
 export const LEGACY_OPT_KEY = 'hvAA-option';
-export const LOGS_KEY = `${STORAGE_NS}logs`;
 export const BACKUP_KEY = `${STORAGE_NS}backup`;
 
 /** sessionStorage：发包延迟（注入脚本与 userscript 两侧同读） */

@@ -7,12 +7,13 @@ import { toJsonlLine } from '../../src/lib/recorder.js';
 // 导出 IDB 战斗记录为 JSONL+gzip（逐行一对象，可流式读）。
 // records 行 {seq, data} → 解压得配对体 {seq,tReq,req,tRes,res,rttMs}；
 // turns 行 {t, data} → 解压得 {t,round,turn,rule,action,otos,snap}（key 另附为行号）。
+// logs 行原文 {t,level,category,message,props}（不 gzip，key 另附为行号）。
 // 分页策略：页内倒序 key 游标按 limit 提前终止；每批 50 条经 CDP 分批回传、
 // node 侧流式 gzip 落盘，避免页内 OOM + CDP 回传包爆炸 + 整包大文件。
 // 只读：readonly 事务、无版本号 open、不点游戏按钮、不写 IDB。
 const BATCH = 50;
 
-type Store = 'records' | 'turns';
+type Store = 'records' | 'turns' | 'logs';
 
 const HELP = `export-records.ts — 导出 IDB 战斗记录为 JSONL+gzip（只读）
 
@@ -20,8 +21,8 @@ const HELP = `export-records.ts — 导出 IDB 战斗记录为 JSONL+gzip（只�
   npx tsx scripts/cdp/export-records.ts [输出前缀] [--store S] [--limit N] [--since-seq S]
 
 参数：
-  [输出前缀]     默认 logs/battle-<ts>；实际写 <前缀>-records.jsonl.gz / <前缀>-turns.jsonl.gz
-  --store S      records（请求）| turns（决策）| both（默认）
+  [输出前缀]     默认 logs/battle-<ts>；实际写 <前缀>-records.jsonl.gz / <前缀>-turns.jsonl.gz / <前缀>-logs.jsonl.gz
+  --store S      records（请求）| turns（决策）| logs（运行日志）| both（默认，含三表）
   --limit N      每表最多导出 N 条（默认全量，须为正整数；按 key 倒序取最新 N 条）
   --since-seq S  只导出 key >= S 的记录
   --help, -h     显示本说明
@@ -45,8 +46,8 @@ for (let i = 0; i < raw.length; i++) {
     process.exit(0);
   } else if (a === '--store' || a.startsWith('--store=')) {
     const v = a.startsWith('--store=') ? a.slice('--store='.length) : raw[++i];
-    if (v !== 'records' && v !== 'turns' && v !== 'both') {
-      console.error(`bad --store ${JSON.stringify(v)} (want records|turns|both)`);
+    if (v !== 'records' && v !== 'turns' && v !== 'logs' && v !== 'both') {
+      console.error(`bad --store ${JSON.stringify(v)} (want records|turns|logs|both)`);
       process.exit(1);
     }
     store = v;
@@ -83,13 +84,36 @@ interface Batch {
 }
 
 // 一批：倒序游标取一批 key（upperExcl 上界专属，用于翻页；sinceSeq 下界包容），
-// 逐 key get + gunzip。无版本号 open（versionless），readonly 事务。表不存在直接返回空。
+// records/turns 逐 key get + gunzip；logs 存原文直出。无版本号 open（versionless），readonly 事务。表不存在直接返回空。
 const batchExpr = (
   st: Store,
   upperExcl: number | null,
   take: number,
   since: number | null,
 ): string => {
+  if (st === 'logs') {
+    return (
+      `(async(upperExcl,batchSize,sinceSeq)=>{` +
+      `const db=await new Promise((res,rej)=>{const q=indexedDB.open(${JSON.stringify(IDB_NAME)});q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});` +
+      `try{` +
+      `if(!db.objectStoreNames.contains("logs"))return{rows:[],nextKey:null,done:true};` +
+      `let range=null;` +
+      `if(upperExcl!==null&&sinceSeq!==null)range=IDBKeyRange.bound(sinceSeq,upperExcl,false,true);` +
+      `else if(upperExcl!==null)range=IDBKeyRange.upperBound(upperExcl,true);` +
+      `else if(sinceSeq!==null)range=IDBKeyRange.lowerBound(sinceSeq);` +
+      `const keys=await new Promise((res,rej)=>{const o=[];const q=db.transaction("logs","readonly").objectStore("logs").openKeyCursor(range,"prev");` +
+      `q.onsuccess=()=>{const c=q.result;if(!c){res(o);return;}o.push(c.key);if(o.length>=batchSize){res(o);return;}c.continue();};` +
+      `q.onerror=()=>rej(q.error);});` +
+      `const rows=[];` +
+      `for(const k of keys){` +
+      `const r=await new Promise((res,rej)=>{const q=db.transaction("logs","readonly").objectStore("logs").get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});` +
+      `if(!r){rows.push({key:k,corrupt:"missing"});continue;}` +
+      `rows.push({key:k,...r});}` +
+      `return{rows,nextKey:keys.length?keys[keys.length-1]:null,done:keys.length<batchSize};` +
+      `}finally{db.close();}` +
+      `})(${JSON.stringify(upperExcl)},${JSON.stringify(take)},${JSON.stringify(since)})`
+    );
+  }
   const decode =
     st === 'records'
       ? `rows.push({seq:r.seq??k,...JSON.parse(txt)});`
@@ -162,7 +186,7 @@ async function dumpStore(
 
 const cdp = await connect(await pickPage());
 try {
-  const targets: Store[] = store === 'both' ? ['records', 'turns'] : [store];
+  const targets: Store[] = store === 'both' ? ['records', 'turns', 'logs'] : [store];
   for (const st of targets) {
     const file = `${prefix}-${st}.jsonl.gz`;
     const { rows, raw } = await dumpStore(cdp, st, file, limit, sinceSeq);

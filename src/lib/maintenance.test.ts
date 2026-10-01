@@ -2,12 +2,9 @@ import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { kvSet, kvGet } from './store';
 import { pruneBattles, BATTLES_CAP, clearStats } from './stats';
-import { pruneStoredLogs, getStoredLogs, clearStoredLogs } from './logger';
-import { LOGS_KEY } from './storage-keys';
 
 beforeEach(() => {
   clearStats();
-  clearStoredLogs();
 });
 
 describe('idle prune (non-battle)', () => {
@@ -24,28 +21,5 @@ describe('idle prune (non-battle)', () => {
     kvSet('battles2', [1, 2, 3]);
     pruneBattles();
     assert.deepEqual(kvGet('battles2', true), [1, 2, 3]);
-  });
-
-  it('pruneStoredLogs 只留最新 500 条', () => {
-    const arr = Array.from({ length: 505 }, (_, i) => ({
-      t: i,
-      level: 'info',
-      category: ['hvauto'],
-      message: `m${i}`,
-      props: {},
-    }));
-    localStorage[LOGS_KEY] = JSON.stringify(arr);
-    pruneStoredLogs();
-    const kept = getStoredLogs();
-    assert.equal(kept.length, 500);
-    assert.equal(kept[0].message, 'm5');
-  });
-
-  it('pruneStoredLogs 未超限不碰', () => {
-    localStorage[LOGS_KEY] = JSON.stringify([
-      { t: 1, level: 'info', category: ['hvauto'], message: 'a', props: {} },
-    ]);
-    pruneStoredLogs();
-    assert.equal(getStoredLogs().length, 1);
   });
 });

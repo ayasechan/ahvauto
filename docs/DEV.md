@@ -34,7 +34,7 @@ npx tsx scripts/cdp/<脚本>.ts   # 浏览器运维（见 scripts/cdp/README.md�
 ## 存储命名空间（铁律）
 
 - 旧脚本：`hvAA-` 前缀——**只读不写**。
-- 新脚本：`ahvauto-` 前缀（`ahvauto-option` / `ahvauto-disabled` / `ahvauto-logs` / `ahvauto-backup` / `sessionStorage: ahvauto-spell-delay/nospell-delay` / KV 等，确切键见 `src/lib/storage-keys.ts`）。
+- 新脚本：`ahvauto-` 前缀（`ahvauto-option` / `ahvauto-disabled` / `ahvauto-backup` / `sessionStorage: ahvauto-spell-delay/nospell-delay` / KV 等，确切键见 `src/lib/storage-keys.ts`；运行日志已迁 IDB `logs` 表）。
 - 旧配置不再自动导入，需面板“关于→导入旧配置”手动触发（含权重、条件翻译），见 `src/lib/legacy-import.ts`。
 
 ## 安全铁律（测战斗时）
@@ -48,11 +48,11 @@ npx tsx scripts/cdp/<脚本>.ts   # 浏览器运维（见 scripts/cdp/README.md�
 ## 调试面
 
 - `window.__hvaa`：核心字段 `{step（规则名）/lastError/lastAction/history/nr}` ＋页世界钩子附加 `{apiCalls/lastReq/lastSend/fired}`（＋独立序号 `__hvaaSeq`），只读定位 stall。
-- IDB `ahvauto-debug`（v4）：`records`（只存 `{seq,data}` 去冗余 gzip 包，`seq` keyPath，上限 2000）、`turns`（`{t,data}` 决策现场，上限 2000，自增 key）；解压得配对体/快照，导出走 JSONL+gzip（面板与 CDP 共 `toJsonlLine`）。
-  修剪全部在非战斗页空闲一次完成（`scheduleIdlePrune`→`pruneDebugRecords/pruneBattles/pruneStoredLogs`），热路径只追加。
+- IDB `ahvauto-debug`（v5）：`records`（只存 `{seq,data}` 去冗余 gzip 包，`seq` keyPath，上限 2000）、`turns`（`{t,data}` 决策现场，上限 2000，自增 key）、`logs`（运行日志原文 `{t,level,category,message,props}` 不 gzip，上限 1000，自增 key）；解压得配对体/快照，导出走 JSONL+gzip（面板与 CDP 共 `toJsonlLine`）。
+  修剪全部在非战斗页空闲一次完成（`scheduleIdlePrune`→`pruneDebugRecords/pruneBattles`），热路径只追加。
   ⚠️ 外部工具 open IDB **不许带版本号**（会空提交版本跳过升级，v2 就是这么坏的）。
-- `ahvauto-logs`：logtape 日志（含 `fsm boot -> battle`、`rec begin/end` 转移）。
-- 门控：`main.debug` 开才写 IDB 录制；数据统计门控 `recordUsage`。
+- 运行日志：logtape 日志经 IDB `logs` 表持久化（含 `fsm boot -> battle`、`rec begin/end` 转移），IDB 不可用时回落当会话内存环（100 条）。
+- 门控：`main.debug` 开才写 IDB 录制（`records/turns`）；运行日志（`logs`）由 logLevel 门控，与 debug 开关无关；数据统计门控 `recordUsage`。
 - `logs/`：战斗快照、录制导出、localStorage 备份（不出仓库）。
 
 ## 已知的坑（别再踩）

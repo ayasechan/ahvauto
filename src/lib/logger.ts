@@ -1,8 +1,9 @@
 import { configureSync, getConsoleSink, getLogger, getLogfmtFormatter } from '@logtape/logtape';
 import type { LogLevel, LogRecord, Sink } from '@logtape/logtape';
-import { LOGS_KEY as STORE_KEY } from './storage-keys';
+import type { LogEntry } from './recorder';
+import { appendLog, exportLogs, pruneLogs, clearLogs } from './recorder';
 
-const STORE_CAP = 500;
+const MEM_CAP = 100;
 
 const CATEGORY = ['hvauto'];
 const RANK: Record<LogLevel, number> = {
@@ -14,31 +15,33 @@ const RANK: Record<LogLevel, number> = {
   fatal: 50,
 };
 
-export interface StoredEntry {
-  t: number;
-  level: LogLevel;
-  category: string[];
-  message: string;
-  props: Record<string, string>;
+/** 运行日志行（与 recorder.LogEntry 同构）。 */
+export type StoredEntry = LogEntry;
+
+/** IDB 未就绪/不可用时的当会话兜底（内存环，只读最新 MEM_CAP 条）。 */
+let mem: StoredEntry[] = [];
+
+function pushMem(entry: StoredEntry): void {
+  mem.push(entry);
+  if (mem.length > MEM_CAP) mem = mem.slice(-MEM_CAP);
 }
 
-let storeDisabled = false;
-
-/** 本地持久化 sink：localStorage 环形缓冲，页面 reload 后仍可查；配额满时丢一半后重试一次 */
+/** IDB sink：fire-and-forget，失败静默（面板回落读内存环）。 */
 const storageSink: Sink = (record: LogRecord) => {
-  if (storeDisabled) return;
+  const entry: StoredEntry = {
+    t: record.timestamp,
+    level: record.level,
+    category: [...record.category],
+    message: record.message.map(String).join(''),
+    props: Object.fromEntries(
+      Object.entries(record.properties ?? {}).map(([k, v]) => [k, safeStringify(v)]),
+    ),
+  };
+  pushMem(entry);
   try {
-    appendStored({
-      t: record.timestamp,
-      level: record.level,
-      category: [...record.category],
-      message: record.message.map(String).join(''),
-      props: Object.fromEntries(
-        Object.entries(record.properties ?? {}).map(([k, v]) => [k, safeStringify(v)]),
-      ),
-    });
+    void appendLog(entry);
   } catch {
-    storeDisabled = true;
+    /* 日志失败不影响战斗 */
   }
 };
 
@@ -61,55 +64,34 @@ function quote(s: string): string {
   return /[\s"=]/.test(s) ? JSON.stringify(s) : s;
 }
 
-function appendStored(entry: StoredEntry, halved = false): void {
-  let arr: StoredEntry[] = [];
+/** 面板读取：IDB 全量（升序）为空/失败时回落内存环。 */
+export async function getStoredLogs(): Promise<StoredEntry[]> {
   try {
-    const raw = localStorage.getItem(STORE_KEY);
-    if (raw) arr = JSON.parse(raw) as StoredEntry[];
+    const rows = await exportLogs();
+    if (rows.length > 0) return rows;
   } catch {
-    arr = [];
+    /* 回落内存 */
   }
-  arr.push(entry);
-  // 注意：热路径只追加不修剪，修剪统一在非战斗页面空闲时经 pruneStoredLogs() 一次完成。
-  try {
-    localStorage[STORE_KEY] = JSON.stringify(arr);
-  } catch {
-    if (!halved && arr.length > 1) {
-      arr = arr.slice(Math.floor(arr.length / 2));
-      try {
-        localStorage[STORE_KEY] = JSON.stringify(arr);
-        return;
-      } catch {
-        /* 配额彻底不够，放弃本次 */
-      }
-    }
-    throw new Error('stored log full');
-  }
+  return [...mem];
 }
 
-/** 非战斗页面空闲时集中驱逐一次：只留最新 STORE_CAP 条。失败静默。 */
-export function pruneStoredLogs(): void {
+/** 非战斗页面空闲时集中驱逐一次：只留最新 LOGS_CAP 条。失败静默。 */
+export async function pruneStoredLogs(): Promise<void> {
+  mem = mem.slice(-MEM_CAP);
   try {
-    const raw = localStorage.getItem(STORE_KEY);
-    if (!raw) return;
-    const arr = JSON.parse(raw) as StoredEntry[];
-    if (arr.length > STORE_CAP) localStorage[STORE_KEY] = JSON.stringify(arr.slice(-STORE_CAP));
+    await pruneLogs();
   } catch {
     /* 修剪失败不影响页面 */
   }
 }
 
-export function getStoredLogs(): StoredEntry[] {
+export async function clearStoredLogs(): Promise<void> {
+  mem = [];
   try {
-    const raw = localStorage.getItem(STORE_KEY);
-    return raw ? (JSON.parse(raw) as StoredEntry[]) : [];
+    await clearLogs();
   } catch {
-    return [];
+    /* 清空失败不影响页面 */
   }
-}
-
-export function clearStoredLogs(): void {
-  localStorage.removeItem(STORE_KEY);
 }
 
 let configured = false;

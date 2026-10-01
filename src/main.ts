@@ -143,7 +143,13 @@ onEnter('field', () => {
   const opt = snapshotOptions();
   kvDel('roundType');
   kvDel('battleCode');
-  // 非战斗页面空闲时集中修剪一次（IDB records/turns ＋ battles2 ＋ 日志）。
+  // 零兼容清理：旧 localStorage 日志已迁 IDB logs 表，直接删。
+  try {
+    localStorage.removeItem('ahvauto-logs');
+  } catch {
+    /* ignore */
+  }
+  // 非战斗页面空闲时集中修剪一次（IDB records/turns/logs ＋ battles2）。
   scheduleIdlePrune();
   if (opt.main.encounter) encounterCheck();
   const staminaText = qs('#stamina_readout .fc4.far>div')?.textContent ?? '';

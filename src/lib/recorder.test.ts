@@ -8,6 +8,8 @@ import {
   decodeTurnRow,
   handleRec,
   toJsonlLine,
+  isLogEntry,
+  LOGS_CAP,
 } from './recorder';
 
 describe('recorder gzip', () => {
@@ -85,5 +87,31 @@ describe('handleRec', () => {
     assert.doesNotThrow(() => handleRec('res', { status: 200, body: null }, 0));
     assert.doesNotThrow(() => handleRec('res', { status: 200, body: { textlog: [] } }, 0));
     assert.doesNotThrow(() => handleRec('req', { a: 1 }, 0));
+  });
+});
+
+describe('isLogEntry', () => {
+  it('正常行通过', () => {
+    assert.equal(
+      isLogEntry({ t: 1, level: 'info', category: ['hvauto'], message: 'a', props: {} }),
+      true,
+    );
+  });
+  it('缺字段/类型错 → false', () => {
+    assert.equal(isLogEntry(null), false);
+    assert.equal(isLogEntry({}), false);
+    assert.equal(
+      isLogEntry({ t: 'x', level: 'info', category: [], message: 'a', props: {} }),
+      false,
+    );
+  });
+});
+
+describe('logs cap', () => {
+  it('LOGS_CAP 为正整数（IDB logs 表上限）', () => {
+    assert.ok(Number.isInteger(LOGS_CAP) && LOGS_CAP > 0);
+  });
+  it('超限删最老（复用 keysToDelete）', () => {
+    assert.deepEqual(keysToDelete([1, 2, 3, 4, 5], 3), [1, 2]);
   });
 });

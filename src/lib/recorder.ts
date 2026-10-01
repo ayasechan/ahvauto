@@ -20,11 +20,13 @@ export interface DecodedRecord {
 
 const STORE = 'records';
 const TURNS = 'turns';
+const LOGS = 'logs';
 const CAP = 2000;
 const TURNS_CAP = 2000;
-// v4：turns 表存每回合决策现场。注意：外部工具不得用带版本号 open（会空提交版本，
+export const LOGS_CAP = 1000;
+// v5：logs 表存运行日志原文（不 gzip，单条小）。注意：外部工具不得用带版本号 open（会空提交版本，
 // 跳过 onupgradeneeded，导致 schema 升级永久失效）。
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 let dbp: Promise<IDBDatabase> | null = null;
 
@@ -43,6 +45,9 @@ function openDb(): Promise<IDBDatabase> {
         }
         if (!req.result.objectStoreNames.contains(TURNS)) {
           req.result.createObjectStore(TURNS, { autoIncrement: true });
+        }
+        if (!req.result.objectStoreNames.contains(LOGS)) {
+          req.result.createObjectStore(LOGS, { autoIncrement: true });
         }
       };
       req.onsuccess = () => resolve(req.result);
@@ -210,12 +215,67 @@ export async function recordTurn(info: Omit<TurnDebug, 't'>): Promise<void> {
   }
 }
 
-/** 非战斗页面空闲时集中驱逐一次：records 留最新 CAP 条，turns 留最新 TURNS_CAP 条。失败静默。 */
+/** 运行日志行（IDB logs 表，存原文不 gzip；key 为自增主键，升序即时间序）。
+ * 与 logger.StoredEntry 同构，定义在此避免 logger→recorder 运行时循环以外的类型循环
+ *（logger 用 import type 回引）。 */
+export interface LogEntry {
+  t: number;
+  level: string;
+  category: string[];
+  message: string;
+  props: Record<string, string>;
+}
+
+/** 纯函数：logs 行守卫。坏记录返回 false（调用方跳过）。 */
+export function isLogEntry(v: unknown): v is LogEntry {
+  if (typeof v !== 'object' || v === null) return false;
+  const r = v as Record<string, unknown>;
+  return (
+    typeof r.t === 'number' &&
+    typeof r.level === 'string' &&
+    Array.isArray(r.category) &&
+    typeof r.message === 'string' &&
+    typeof r.props === 'object' &&
+    r.props !== null
+  );
+}
+
+/** 写一条运行日志（fire-and-forget，失败静默）。门控在 logger 侧（logLevel），此处不查 debug。 */
+export async function appendLog(entry: LogEntry): Promise<void> {
+  try {
+    const db = await openDb();
+    await putRow(db, LOGS, { ...entry });
+  } catch {
+    /* 日志失败不影响战斗 */
+  }
+}
+
+export async function countLogs(): Promise<number> {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(LOGS, 'readonly').objectStore(LOGS).count();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+/** 非战斗页面空闲时集中驱逐一次：records/turns/logs 各留最新上限。失败静默。 */
 export async function pruneDebugRecords(): Promise<void> {
   try {
     const db = await openDb();
     await evictOld(db, STORE, CAP);
     await evictOld(db, TURNS, TURNS_CAP);
+    await evictOld(db, LOGS, LOGS_CAP);
+  } catch {
+    /* 修剪失败不影响页面 */
+  }
+}
+
+/** 仅修剪 logs 表（logger 侧单独调用）。失败静默。 */
+export async function pruneLogs(): Promise<void> {
+  try {
+    const db = await openDb();
+    await evictOld(db, LOGS, LOGS_CAP);
   } catch {
     /* 修剪失败不影响页面 */
   }
@@ -323,7 +383,28 @@ export async function exportTurns(opts: ExportOptions = {}): Promise<TurnDebug[]
   return out;
 }
 
-/** 清空调试记录：records 与 turns 两表全清（面板“清空”语义）。 */
+export async function exportLogs(opts: ExportOptions = {}): Promise<LogEntry[]> {
+  const db = await openDb();
+  const out: LogEntry[] = [];
+  let lower = opts.sinceSeq;
+  let exclusive = false;
+  for (;;) {
+    const batch = await readRawBatch(db, LOGS, lower, exclusive, EXPORT_BATCH);
+    if (batch.length === 0) break;
+    for (const { value } of batch) {
+      if (isLogEntry(value)) {
+        out.push(value);
+        if (opts.limit !== undefined && out.length >= opts.limit) return out;
+      }
+    }
+    lower = batch[batch.length - 1].key;
+    exclusive = true;
+    if (batch.length < EXPORT_BATCH) break;
+  }
+  return out;
+}
+
+/** 清空调试记录：records 与 turns 两表全清（面板“清空”语义，logs 另由 clearLogs 清）。 */
 export async function clearRecords(): Promise<void> {
   const db = await openDb();
   for (const store of [STORE, TURNS]) {
@@ -334,6 +415,17 @@ export async function clearRecords(): Promise<void> {
       tx.objectStore(store).clear();
     });
   }
+}
+
+/** 清空运行日志：logs 表全清（面板“清空”语义）。 */
+export async function clearLogs(): Promise<void> {
+  const db = await openDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(LOGS, 'readwrite');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.objectStore(LOGS).clear();
+  });
 }
 
 /** 录制分发（纯本世界直调）：req/res 配对写 IDB，res 另喂统计（与 debug 开关无关，由 recordUsage 门控）。 */

@@ -9,7 +9,9 @@
   import type { StoredEntry } from '../../lib/logger';
   import {
     countRecords,
+    countLogs,
     exportRecords,
+    exportLogs,
     clearRecords,
     exportTurns,
     toJsonlLine,
@@ -120,21 +122,35 @@
   loadBackups();
 
   let kvLogs = $state<StoredEntry[]>([]);
-  function refreshLogs() {
-    kvLogs = getStoredLogs().slice(-100).reverse();
+  async function refreshLogs() {
+    try {
+      kvLogs = (await getStoredLogs()).slice(-100).reverse();
+    } catch {
+      kvLogs = [];
+    }
   }
-  function clearLogs() {
-    clearStoredLogs();
+  async function clearLogs() {
+    try {
+      await clearStoredLogs();
+    } catch {
+      /* 清空失败不影响页面 */
+    }
     kvLogs = [];
   }
-  refreshLogs();
+  void refreshLogs();
 
   let recCount = $state(-1);
+  let logCount = $state(-1);
   async function refreshRecCount() {
     try {
       recCount = await countRecords();
     } catch {
       recCount = -1;
+    }
+    try {
+      logCount = await countLogs();
+    } catch {
+      logCount = -1;
     }
   }
   async function downloadJsonlGz(name: string, rows: unknown[]) {
@@ -163,6 +179,13 @@
   async function exportTurnsFile() {
     try {
       downloadJsonlGz(`ahvauto-turns-${stamp()}.jsonl.gz`, await exportTurns());
+    } catch {
+      alert('导出失败');
+    }
+  }
+  async function exportLogsFile() {
+    try {
+      downloadJsonlGz(`ahvauto-logs-${stamp()}.jsonl.gz`, await exportLogs());
     } catch {
       alert('导出失败');
     }
@@ -207,8 +230,9 @@
     </ul>
   </div>
   <div class="row">
-    <b>{L('a.logs')}</b> (logfmt)
+    <b>{L('a.logs')}</b> (IDB, {logCount < 0 ? '?' : logCount})
     <button type="button" onclick={refreshLogs}>{L('ui.refresh')}</button>
+    <button type="button" onclick={exportLogsFile}>导出</button>
     <button type="button" onclick={clearLogs}>{L('ui.clear')}</button>
     <div class="logview">
       {#each kvLogs as e}

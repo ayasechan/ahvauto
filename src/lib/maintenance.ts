@@ -1,6 +1,6 @@
 import { pruneDebugRecords } from './recorder';
 import { pruneBattles } from './stats';
-import { pruneStoredLogs, logger } from './logger';
+import { logger } from './logger';
 
 /** 页面空闲回调：有 requestIdleCallback 用它（带 5s 超时兜底），否则 setTimeout 1s。 */
 function onIdle(fn: () => void): void {
@@ -18,7 +18,7 @@ function onIdle(fn: () => void): void {
   setTimeout(fn, 1000);
 }
 
-/** 非战斗时集中修剪全部记录：IDB records/turns ＋ battles2 ＋ 日志。失败静默，绝不挡页面。 */
+/** 非战斗时集中修剪全部记录：IDB records/turns/logs ＋ battles2。失败静默，绝不挡页面。 */
 export async function pruneAllNow(): Promise<void> {
   try {
     await pruneDebugRecords();
@@ -27,11 +27,6 @@ export async function pruneAllNow(): Promise<void> {
   }
   try {
     pruneBattles();
-  } catch {
-    /* ignore */
-  }
-  try {
-    pruneStoredLogs();
   } catch {
     /* ignore */
   }

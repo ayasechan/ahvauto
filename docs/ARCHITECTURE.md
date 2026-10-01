@@ -9,7 +9,7 @@
                                                游戏 api_call → 响应
                                                      │ handleRec 直调
                                                      ▼
-                                                     recorder ──▶ IDB (records/turns) + stats ──▶ kv → UI
+                                                     recorder ──▶ IDB (records/turns/logs) + stats ──▶ kv → UI
 ```
 
 - **感知**（`src/lib/combat/snapshot.ts`）：每回合把 DOM 一次性读成纯 `Snapshot`
@@ -43,15 +43,15 @@ src/
     store.ts         # Svelte store＋持久化（见存储）
     fsm.ts           # 顶层状态机（boot/field/battle/riddle）＋命名定时器
     meta.ts          # 战斗外：答题告警/遭遇战/闲置竞技场
-    maintenance.ts   # 非战斗空闲集中修剪（IDB records/turns＋battles2＋日志）
+    maintenance.ts   # 非战斗空闲集中修剪（IDB records/turns/logs＋battles2）
     http.ts          # fetch 版 await 请求（替代原 XHR 回调）
     stats.ts         # 数据收集 v2（parseTurn 规则表＋对局状态机）
-    recorder.ts      # IDB 录制（请求/响应配对＋回合现场）
+    recorder.ts      # IDB 录制（请求/响应配对＋回合现场＋运行日志）
     notify.ts        # 桌面通知/音频/推送
     tables.ts        # 静态 ID 表（技能/物品/卷轴/魔药）
      conditions.ts    # 逃跑条件＋编辑器提示轨（读 store/DOM：battleVars/evalCtx/checkCondition；decide 外唯一条件入口）
      dom.ts / defaults.ts / types.ts / storage-keys.ts / template.ts / legacy-import.ts 等（树仅列主要文件，见实盘）
-    logger.ts        # logtape＋console/kv 双 sink（logfmt）
+    logger.ts        # logtape＋console/IDB 双 sink（logfmt，IDB 经 recorder logs 表）
     i18n.ts        # 简/繁/英三语字典（key 三端保持同步）
   ui/
     App.svelte       # 面板外壳＋14 tab 菜单（button 实现）
@@ -64,18 +64,18 @@ scripts/cdp/         # 浏览器运维脚本（TS，npx tsx 运行，详见其 R
 
 ## 存储（铁律：`hvAA-` 只读，`ahvauto-` 读写）
 
-| 位置                                                            | 内容                                                                                                                                                                                             |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `hvAA-option`（旧）                                             | 原版配置，只读，“关于→导入旧配置”手动导入                                                                                                                                                        |
-| `ahvauto-option`                                                | 新配置（表达式字符串版条件）                                                                                                                                                                     |
-| `ahvauto-disabled`                                              | 暂停位                                                                                                                                                                                           |
-| `ahvauto-roundType/roundNow/roundAll/monsterStatus/monsterBase` | 战斗上下文                                                                                                                                                                                       |
-| `ahvauto-stats2/battles2/curBattle2`                            | 数据收集（总数/单场/进行中；单场只留最新 50，空闲修剪）                                                                                                                                          |
-| `ahvauto-arena/encounter`                                       | 竞技场队列＋token／遭遇战计数                                                                                                                                                                    |
-| `ahvauto-logs` / `ahvauto-backup`                               | 运行日志（只留最新 500 条，空闲修剪）／配置备份字典                                                                                                                                              |
-| `ahvauto-staminaLostLog`                                        | 体力消耗记录                                                                                                                                                                                     |
-| `sessionStorage: ahvauto-spell-delay/nospell-delay`             | 发包延迟（注入脚本与 userscript 两侧同读）                                                                                                                                                       |
-| IDB `ahvauto-debug`（v4）                                       | `records`（`{seq,data}` 去冗余 gzip 包，上限 2000，`seq` keyPath）、`turns`（`{t,data}` 回合现场，上限 2000，自增 key）；解压得配对体/决策现场，导出走 JSONL+gzip（面板与 CDP 共 `toJsonlLine`） |
+| 位置                                                            | 内容                                                                                                                                                                                                                          |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hvAA-option`（旧）                                             | 原版配置，只读，“关于→导入旧配置”手动导入                                                                                                                                                                                     |
+| `ahvauto-option`                                                | 新配置（表达式字符串版条件）                                                                                                                                                                                                  |
+| `ahvauto-disabled`                                              | 暂停位                                                                                                                                                                                                                        |
+| `ahvauto-roundType/roundNow/roundAll/monsterStatus/monsterBase` | 战斗上下文                                                                                                                                                                                                                    |
+| `ahvauto-stats2/battles2/curBattle2`                            | 数据收集（总数/单场/进行中；单场只留最新 50，空闲修剪）                                                                                                                                                                       |
+| `ahvauto-arena/encounter`                                       | 竞技场队列＋token／遭遇战计数                                                                                                                                                                                                 |
+| `ahvauto-backup`                                                | 配置备份字典                                                                                                                                                                                                                  |
+| `ahvauto-staminaLostLog`                                        | 体力消耗记录                                                                                                                                                                                                                  |
+| `sessionStorage: ahvauto-spell-delay/nospell-delay`             | 发包延迟（注入脚本与 userscript 两侧同读）                                                                                                                                                                                    |
+| IDB `ahvauto-debug`（v5）                                       | `records`（`{seq,data}` 去冗余 gzip 包，上限 2000，`seq` keyPath）、`turns`（`{t,data}` 回合现场，上限 2000，自增 key）、`logs`（运行日志原文不 gzip，上限 1000，自增 key）；导出走 JSONL+gzip（面板与 CDP 共 `toJsonlLine`） |
 
 `battleCode` 为旧键，仅启动清理（`kvDel`），无现行写入。
 
