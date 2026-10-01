@@ -44,7 +44,8 @@ src/
     meta.ts          # 战斗外：答题告警/遭遇战/闲置竞技场
     maintenance.ts   # 非战斗空闲集中修剪（IDB records/turns/logs＋battles2）
     http.ts          # fetch 版 await 请求（替代原 XHR 回调）
-    stats.ts         # 数据收集 v2（parseTurn 规则表＋对局状态机）
+    stats.ts         # 数据收集 v2 facade（静态重导出 stats/，调用方经此进入）
+    stats/           # types（类型＋工厂）/parse（纯解析）/lifecycle（状态机＋落盘，唯一碰 kv 处）/queries（查询＋CSV）
     recorder.ts      # IDB 录制（请求/响应配对＋回合现场＋运行日志）
     notify.ts        # 桌面通知/音频/推送
     tables.ts        # 静态 ID 表（技能/物品/卷轴/魔药）
