@@ -1,4 +1,5 @@
 import { kvGet, kvSet, kvDel, snapshotOptions } from './store';
+import { STATS_KEY, BATTLES_KEY, CUR_BATTLE_KEY } from './storage-keys';
 import { logger } from './logger';
 
 /**
@@ -231,7 +232,7 @@ export function addCost(stat: TurnStat, mp: number, oc: number): void {
 /**
  * 终局怪/Boss 构成补记（老 self._monster/_boss，recordUsage2 在终局按 monsterAlive==0 累加）。
  * recordBattleTurn 无法从 textlog 得知构成，capture-agent 在终局以 monsterAll/bossAll 调用；
- * 只改内存对象，调用方负责落盘（kvSet stats2/curBattle2；cur 侧随 endBattle 行落盘）。
+ * 只改内存对象，调用方负责落盘（kvSet STATS_KEY/CUR_BATTLE_KEY；cur 侧随 endBattle 行落盘）。
  */
 export function addKills(cur: CurBattle, totals: Totals, monsters: number, bosses: number): void {
   cur.monsters = (cur.monsters ?? 0) + monsters;
@@ -645,7 +646,7 @@ function backfillRow(b: BattleRow): BattleRow {
 
 /**
  * 记录生命周期状态机（idle → open → idle）。
- * - 状态唯一真相：curBattle2 是否存在（存在＝open）；
+ * - 状态唯一真相：CUR_BATTLE_KEY 是否存在（存在＝open）；
  * - 转移：begin（idle/open→open，开新局时顶掉旧局记 interrupted）、
  *   turn（仅 open 累加；idle 收到 turn 则自动以 '?' 开局，保证 totals 可对账）、
  *   end（open→idle 落盘）；
@@ -655,7 +656,7 @@ function backfillRow(b: BattleRow): BattleRow {
 export type RecState = 'idle' | 'open';
 
 export function recState(): RecState {
-  return kvGet('curBattle2') === null ? 'idle' : 'open';
+  return kvGet(CUR_BATTLE_KEY) === null ? 'idle' : 'open';
 }
 
 function transition(action: string, detail = ''): void {
@@ -672,9 +673,9 @@ function battleKey(at: number): string {
 export const BATTLES_CAP = 50;
 
 function flushBattle(cur: CurBattle, result: string): void {
-  const totals = backfillTotals((kvGet('stats2', true) as Totals | null) ?? emptyTotals());
+  const totals = backfillTotals((kvGet(STATS_KEY, true) as Totals | null) ?? emptyTotals());
   totals.battles++;
-  kvSet('stats2', totals);
+  kvSet(STATS_KEY, totals);
   backfillCur(cur);
   let detail: BattleDetail | null = null;
   try {
@@ -691,7 +692,7 @@ function flushBattle(cur: CurBattle, result: string): void {
   } catch {
     detail = null;
   }
-  const list = (kvGet('battles2', true) as BattleRow[] | null) ?? [];
+  const list = (kvGet(BATTLES_KEY, true) as BattleRow[] | null) ?? [];
   list.push({
     key: battleKey(cur.startedAt),
     startedAt: cur.startedAt,
@@ -712,15 +713,15 @@ function flushBattle(cur: CurBattle, result: string): void {
     modes: { ...cur.modes },
     detail,
   });
-  kvSet('battles2', list);
-  kvDel('curBattle2');
+  kvSet(BATTLES_KEY, list);
+  kvDel(CUR_BATTLE_KEY);
 }
 
-/** 非战斗页面空闲时集中驱逐一次：battles2 只留最新 BATTLES_CAP 场。失败静默。 */
+/** 非战斗页面空闲时集中驱逐一次：BATTLES_KEY 只留最新 BATTLES_CAP 场。失败静默。 */
 export function pruneBattles(): void {
   try {
-    const list = (kvGet('battles2', true) as BattleRow[] | null) ?? [];
-    if (list.length > BATTLES_CAP) kvSet('battles2', list.slice(-BATTLES_CAP));
+    const list = (kvGet(BATTLES_KEY, true) as BattleRow[] | null) ?? [];
+    if (list.length > BATTLES_CAP) kvSet(BATTLES_KEY, list.slice(-BATTLES_CAP));
   } catch {
     /* 修剪失败不影响页面 */
   }
@@ -730,28 +731,28 @@ export function pruneBattles(): void {
 export function beginBattle(type: string, code: string): void {
   const opt = snapshotOptions();
   if (!opt.recordUsage) return;
-  const prev = kvGet('curBattle2', true) as CurBattle | null;
+  const prev = kvGet(CUR_BATTLE_KEY, true) as CurBattle | null;
   if (prev && prev.turns > 0) {
     transition('begin:flush-interrupted', `type=${prev.type} turns=${prev.turns}`);
     flushBattle(prev, 'interrupted');
   }
   transition('begin', `type=${type} code=${code}`);
-  kvSet('curBattle2', { ...newCur(type, code), rounds: 1 });
+  kvSet(CUR_BATTLE_KEY, { ...newCur(type, code), rounds: 1 });
 }
 
 /** 新一轮开始（同局内轮数累加；无局时先开未知局，保证 totals 可对账） */
 export function beginRound(): void {
   const opt = snapshotOptions();
   if (!opt.recordUsage) return;
-  const cur = (kvGet('curBattle2', true) as CurBattle | null) ?? newCur('?', '?');
+  const cur = (kvGet(CUR_BATTLE_KEY, true) as CurBattle | null) ?? newCur('?', '?');
   if (cur.rounds === 0 && cur.turns === 0) transition('begin:auto', 'round-without-battle');
   cur.rounds++;
-  kvSet('curBattle2', cur);
+  kvSet(CUR_BATTLE_KEY, cur);
 }
 
 /** 一局结束（引擎在 Victory/Defeat 分支调用）；无局时忽略 */
 export function endBattle(result: 'victory' | 'defeat'): void {
-  const cur = kvGet('curBattle2', true) as CurBattle | null;
+  const cur = kvGet(CUR_BATTLE_KEY, true) as CurBattle | null;
   if (!cur) return;
   transition('end', `result=${result} type=${cur.type} rounds=${cur.rounds} turns=${cur.turns}`);
   flushBattle(cur, result);
@@ -766,14 +767,14 @@ export function recordMode(kind: string): void {
     if (!kind) return;
     const opt = snapshotOptions();
     if (!opt.recordUsage) return;
-    const totals = backfillTotals((kvGet('stats2', true) as Totals | null) ?? emptyTotals());
+    const totals = backfillTotals((kvGet(STATS_KEY, true) as Totals | null) ?? emptyTotals());
     bump(totals.modes, kind);
-    kvSet('stats2', totals);
-    const cur = kvGet('curBattle2', true) as CurBattle | null;
+    kvSet(STATS_KEY, totals);
+    const cur = kvGet(CUR_BATTLE_KEY, true) as CurBattle | null;
     if (cur) {
       backfillCur(cur);
       bump(cur.modes, kind);
-      kvSet('curBattle2', cur);
+      kvSet(CUR_BATTLE_KEY, cur);
     }
   } catch {
     /* ignore */
@@ -794,11 +795,11 @@ export function recordBattleTurn(rows: string[]): void {
     raw,
     (opt as unknown as { dropQuality?: string }).dropQuality ?? '',
   );
-  const totals = backfillTotals((kvGet('stats2', true) as Totals | null) ?? emptyTotals());
+  const totals = backfillTotals((kvGet(STATS_KEY, true) as Totals | null) ?? emptyTotals());
   mergeTotals(totals, st);
-  kvSet('stats2', totals);
+  kvSet(STATS_KEY, totals);
 
-  const cur = backfillCur((kvGet('curBattle2', true) as CurBattle | null) ?? newCur('?', '?'));
+  const cur = backfillCur((kvGet(CUR_BATTLE_KEY, true) as CurBattle | null) ?? newCur('?', '?'));
   if (cur.rounds === 0 && cur.turns === 0) transition('turn:auto-open', 'turn-without-battle');
   cur.turns++;
   cur.damage += st.damage;
@@ -815,19 +816,19 @@ export function recordBattleTurn(rows: string[]): void {
   for (const [k, v] of Object.entries(st.itemsUsed)) bump(cur.itemsUsed, k, v);
   for (const [k, v] of Object.entries(st.restoreBySource)) bump(cur.restoreBySource, k, v);
   for (const [k, v] of Object.entries(st.proficiency)) bump(cur.proficiency, k, v);
-  kvSet('curBattle2', cur);
+  kvSet(CUR_BATTLE_KEY, cur);
 }
 
 export function getTotals(): Totals {
-  return backfillTotals((kvGet('stats2', true) as Totals | null) ?? emptyTotals());
+  return backfillTotals((kvGet(STATS_KEY, true) as Totals | null) ?? emptyTotals());
 }
 
 export function getBattles(): BattleRow[] {
-  return ((kvGet('battles2', true) as BattleRow[] | null) ?? []).map(backfillRow);
+  return ((kvGet(BATTLES_KEY, true) as BattleRow[] | null) ?? []).map(backfillRow);
 }
 
 export function getCurBattle(): CurBattle | null {
-  const cur = kvGet('curBattle2', true) as CurBattle | null;
+  const cur = kvGet(CUR_BATTLE_KEY, true) as CurBattle | null;
   return cur ? backfillCur(cur) : null;
 }
 
@@ -876,7 +877,7 @@ export function battlesToCsv(rows: BattleRow[]): string {
 }
 
 export function clearStats(): void {
-  kvDel('stats2');
-  kvDel('battles2');
-  kvDel('curBattle2');
+  kvDel(STATS_KEY);
+  kvDel(BATTLES_KEY);
+  kvDel(CUR_BATTLE_KEY);
 }

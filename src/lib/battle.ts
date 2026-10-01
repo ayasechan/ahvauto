@@ -1,5 +1,14 @@
 import { get } from 'svelte/store';
-import { battle, kvGet, kvSet, kvDel, snapshotOptions, isDisabled } from './store';
+import {
+  battle,
+  kvGet,
+  kvSet,
+  kvDel,
+  snapshotOptions,
+  isDisabled,
+  publishSpellDelays,
+  readSpellDelays,
+} from './store';
 import { qs, qsa, el, click as rawClick } from './dom';
 import { checkCondition } from './conditions';
 import { setAlarm } from './notify';
@@ -22,7 +31,17 @@ import { readSnapshot, resolveTarget, orderTargets } from './combat/snapshot';
 import { decide, shouldEmergencyPause } from './combat/decide';
 import { executeAction, describeAction } from './combat/execute';
 import { tt } from './i18n';
-import { SPELL_DELAY_KEY, NO_SPELL_DELAY_KEY } from './storage-keys';
+import {
+  ROUND_TYPE_KEY,
+  ROUND_NOW_KEY,
+  ROUND_ALL_KEY,
+  MONSTER_STATUS_KEY,
+  MONSTER_BASE_KEY,
+  STATS_KEY,
+  CUR_BATTLE_KEY,
+  ENCOUNTER_KEY,
+  STAMINA_LOG_KEY,
+} from './storage-keys';
 import { LOG_CLASS, PAUSE_BOX_ID } from './dom-ids';
 
 function patchBattle(partial: Partial<import('./types').BattleState>): void {
@@ -60,8 +79,8 @@ function fixMonsterStatus(): void {
   const bossAll = get(battle).bossAll;
   const status = Array.from({ length: all }, (_, i) => (i < bossAll ? 100000 : 1000));
   patchBattle({ monsterStatus: status, monsterBase: [...status] });
-  kvSet('monsterStatus', status);
-  kvSet('monsterBase', status);
+  kvSet(MONSTER_STATUS_KEY, status);
+  kvSet(MONSTER_BASE_KEY, status);
   goto();
 }
 
@@ -107,7 +126,7 @@ export async function newRound(): Promise<void> {
   } catch {
     /* ignore */
   }
-  let roundType = (kvGet('roundType') as string | null) ?? '';
+  let roundType = (kvGet(ROUND_TYPE_KEY) as string | null) ?? '';
   if (!roundType) {
     if (!last.startsWith('Initializing')) roundType = '';
     else if (
@@ -119,26 +138,26 @@ export async function newRound(): Promise<void> {
     else if (last.startsWith('Initializing random encounter')) {
       roundType = 'ba';
       if (opt.main.encounter) {
-        const enc = (kvGet('encounter', true) as { lastTime: number; time: number } | null) ?? {
+        const enc = (kvGet(ENCOUNTER_KEY, true) as { lastTime: number; time: number } | null) ?? {
           lastTime: 0,
           time: 0,
         };
         enc.lastTime = Date.now();
         enc.time += 1;
-        kvSet('encounter', enc);
+        kvSet(ENCOUNTER_KEY, enc);
       }
     } else if (last.startsWith('Initializing Item World')) roundType = 'iw';
     else if (last.startsWith('Initializing Grindfest')) roundType = 'gr';
     else roundType = '';
-    kvSet('roundType', roundType);
+    kvSet(ROUND_TYPE_KEY, roundType);
   }
   patchBattle({ roundType });
 
   if (/You lose \d+ Stamina/.test(battleLog[0]?.textContent ?? '')) {
-    const log = (kvGet('staminaLostLog', true) as Record<string, number> | null) ?? {};
+    const log = (kvGet(STAMINA_LOG_KEY, true) as Record<string, number> | null) ?? {};
     const lost = Number(battleLog[0].textContent.match(/You lose (\d+) Stamina/)?.[1] ?? 0);
     log[new Date().toLocaleString()] = lost;
-    kvSet('staminaLostLog', log);
+    kvSet(STAMINA_LOG_KEY, log);
     if (lost >= opt.main.staminaLose) {
       await setAlarm('Error');
       if (!confirm('Continue?\nStamina lost too much')) {
@@ -158,11 +177,11 @@ export async function newRound(): Promise<void> {
       status.push({ order: id, id: id === 9 ? 0 : id + 1, hp });
     }
     kvSet(
-      'monsterStatus',
+      MONSTER_STATUS_KEY,
       status.map((s) => s.hp),
     );
     kvSet(
-      'monsterBase',
+      MONSTER_BASE_KEY,
       status.map((s) => s.hp),
     );
     patchBattle({
@@ -172,8 +191,8 @@ export async function newRound(): Promise<void> {
     const round = last.match(/\(Round (\d+) \/ (\d+)\)/);
     const [roundNow, roundAll] =
       roundType !== 'ba' && round ? [Number(round[1]), Number(round[2])] : [1, 1];
-    kvSet('roundNow', String(roundNow));
-    kvSet('roundAll', String(roundAll));
+    kvSet(ROUND_NOW_KEY, String(roundNow));
+    kvSet(ROUND_ALL_KEY, String(roundAll));
     patchBattle({ roundNow, roundAll });
     // 注意：每轮的拉取页日志都以新的 Initializing 行收尾，
     // 因此只有 Round 1 才是真正开局，其余是同局换轮
@@ -185,8 +204,8 @@ export async function newRound(): Promise<void> {
   } else {
     beginRound();
     patchBattle({
-      roundNow: Number(kvGet('roundNow') ?? 1),
-      roundAll: Number(kvGet('roundAll') ?? 1),
+      roundNow: Number(kvGet(ROUND_NOW_KEY) ?? 1),
+      roundAll: Number(kvGet(ROUND_ALL_KEY) ?? 1),
     });
   }
 }
@@ -236,7 +255,7 @@ function spellCost(skillId: string): { mp: number; oc: number } {
 }
 
 /**
- * 法术动作（法术书施放，游戏侧 mode=magic）→ MP/OC 累进 totals（stats2）。
+ * 法术动作（法术书施放，游戏侧 mode=magic）→ MP/OC 累进 totals（STATS_KEY）。
  * 注：CurBattle/BattleRow 无成本列，成本只记 totals（与 stats-legacy 类型一致）。
  */
 function recordSpellCost(action: Action): void {
@@ -254,7 +273,7 @@ function recordSpellCost(action: Action): void {
     if (!mp && !oc) return;
     const totals: Totals = getTotals();
     addCost(totals, mp, oc);
-    kvSet('stats2', totals);
+    kvSet(STATS_KEY, totals);
   } catch {
     /* 读不到记 0，绝不挡战斗 */
   }
@@ -266,12 +285,12 @@ function recordEndKills(): void {
     const opt = snapshotOptions();
     if (!opt.recordUsage) return;
     const b = get(battle);
-    const cur = kvGet('curBattle2', true) as CurBattle | null;
+    const cur = kvGet(CUR_BATTLE_KEY, true) as CurBattle | null;
     if (!cur) return;
     const totals: Totals = getTotals();
     addKills(cur, totals, b.monsterAll ?? 0, b.bossAll ?? 0);
-    kvSet('curBattle2', cur);
-    kvSet('stats2', totals);
+    kvSet(CUR_BATTLE_KEY, cur);
+    kvSet(STATS_KEY, totals);
   } catch {
     /* ignore */
   }
@@ -291,7 +310,7 @@ function pageScope(): Record<string, unknown> {
 /** Stamina 台账读（newRound 记账，供 Usage 面板展示；与 ui-agent 约定签名） */
 export function getStaminaLog(): Record<string, number> {
   try {
-    return (kvGet('staminaLostLog', true) as Record<string, number> | null) ?? {};
+    return (kvGet(STAMINA_LOG_KEY, true) as Record<string, number> | null) ?? {};
   } catch {
     return {};
   }
@@ -301,7 +320,7 @@ export function getStaminaLog(): Record<string, number> {
 export function getEncounter(): { lastTime: number; time: number } {
   try {
     return (
-      (kvGet('encounter', true) as { lastTime: number; time: number } | null) ?? {
+      (kvGet(ENCOUNTER_KEY, true) as { lastTime: number; time: number } | null) ?? {
         lastTime: 0,
         time: 0,
       }
@@ -437,8 +456,8 @@ async function mainInner(dbg: DebugSurface, trace: boolean): Promise<void> {
     Array.isArray(a)
       ? a.map((v) => (v === null || v === undefined ? Infinity : (v as number)))
       : null;
-  const saved = norm(kvGet('monsterStatus', true));
-  const savedBase = norm(kvGet('monsterBase', true));
+  const saved = norm(kvGet(MONSTER_STATUS_KEY, true));
+  const savedBase = norm(kvGet(MONSTER_BASE_KEY, true));
   const b0 = get(battle);
   if (saved && saved.length === b0.monsterAll) {
     patchBattle({
@@ -565,9 +584,9 @@ export function installReloader(): void {
             await setAlarm('Defeat');
             recordEndKills();
             endBattle('defeat');
-            kvDel('roundType');
-            kvDel('monsterStatus');
-            kvDel('monsterBase');
+            kvDel(ROUND_TYPE_KEY);
+            kvDel(MONSTER_STATUS_KEY);
+            kvDel(MONSTER_BASE_KEY);
           } else if (nb.roundNow !== nb.roundAll) {
             qs('#pane_completion')?.removeChild(qs('#btcp')!);
             let data: Document;
@@ -611,9 +630,9 @@ export function installReloader(): void {
             await setAlarm('Victory');
             recordEndKills();
             endBattle('victory');
-            kvDel('roundType');
-            kvDel('monsterStatus');
-            kvDel('monsterBase');
+            kvDel(ROUND_TYPE_KEY);
+            kvDel(MONSTER_STATUS_KEY);
+            kvDel(MONSTER_BASE_KEY);
             setTimeout(goto, 3000);
           }
         } else {
@@ -633,8 +652,7 @@ export function installReloader(): void {
   };
   document.body.appendChild(eventEnd);
 
-  sessionStorage[SPELL_DELAY_KEY] = String(opt.main.spellDelay);
-  sessionStorage[NO_SPELL_DELAY_KEY] = String(opt.main.noSpellDelay);
+  publishSpellDelays(opt.main.spellDelay, opt.main.noSpellDelay);
   // 页世界钩子经 unsafeWindow/window 直接赋值，真闭包：常量直接引用，无序列化陷阱。
   const w = pageScope();
   w['api_call'] = function (
@@ -642,8 +660,7 @@ export function installReloader(): void {
     a: { mode: string; skill: number },
     d: () => void,
   ): void {
-    const spellDelay = Number(sessionStorage.getItem(SPELL_DELAY_KEY) ?? 200);
-    const noSpellDelay = Number(sessionStorage.getItem(NO_SPELL_DELAY_KEY) ?? 30);
+    const { spellDelay, noSpellDelay } = readSpellDelays();
     (window as unknown as Record<string, unknown>)['info'] = a;
     // 发包序号：req/res 同号，录制侧按 seq 配对。存页面全局，reload 清零。
     let seq = 0;

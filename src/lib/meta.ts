@@ -1,4 +1,5 @@
 import { kvGet, kvSet, kvDel, snapshotOptions } from './store';
+import { ARENA_KEY, ENCOUNTER_KEY } from './storage-keys';
 import { qs, el } from './dom';
 import { httpGet, httpPost, requestRetry, todayKey } from './http';
 import { setAlarm } from './notify';
@@ -44,8 +45,8 @@ export function encounterCheck(): void {
   const opt = snapshotOptions();
   const now = Date.now();
   const cache =
-    (kvGet('encounter', true) as EncounterCache | null)?.dateNow === todayKey()
-      ? ((kvGet('encounter', true) as EncounterCache | null) ?? { dateNow: todayKey(), time: 0 })
+    (kvGet(ENCOUNTER_KEY, true) as EncounterCache | null)?.dateNow === todayKey()
+      ? ((kvGet(ENCOUNTER_KEY, true) as EncounterCache | null) ?? { dateNow: todayKey(), time: 0 })
       : { dateNow: todayKey(), time: 0 };
   if (!cache.lastTime || (now - cache.lastTime >= 30 * 60 * 1000 && cache.time < 24)) {
     const stamina = staminaNow();
@@ -56,7 +57,7 @@ export function encounterCheck(): void {
       return;
     }
     cache.lastTime = now;
-    kvSet('encounter', cache);
+    kvSet(ENCOUNTER_KEY, cache);
     location.href = 'https://e-hentai.org/news.php';
     return;
   }
@@ -67,7 +68,7 @@ export function encounterCheck(): void {
     link.title = `${new Date(cache.lastTime ?? now).toLocaleString()}\nEncounter Time: ${cache.time}`;
     link.href = 'https://e-hentai.org/news.php';
     link.onclick = () => {
-      if (cache.time >= 24 && confirm('是否重置')) kvDel('encounter');
+      if (cache.time >= 24 && confirm('是否重置')) kvDel(ENCOUNTER_KEY);
     };
   }
   const mins = Math.floor((now - (cache.lastTime ?? now)) / 1000 / 60);
@@ -141,7 +142,7 @@ async function startBattle(href: string, initid: string): Promise<boolean> {
 export async function idleArena(): Promise<void> {
   const opt = snapshotOptions();
   if (!opt.main.idleArena) return;
-  let cache = (kvGet('arena', true) as ArenaCache | null) ?? null;
+  let cache = (kvGet(ARENA_KEY, true) as ArenaCache | null) ?? null;
   if (!cache || cache.date !== todayKey()) {
     cache = {
       date: todayKey(),
@@ -167,7 +168,7 @@ export async function idleArena(): Promise<void> {
       logger.warning('arena token fetch failed: {err}', { err: String(e) });
       return;
     }
-    kvSet('arena', cache);
+    kvSet(ARENA_KEY, cache);
   }
   if (cache.isOk) return;
   const stamina = staminaNow();
@@ -209,7 +210,7 @@ export async function idleArena(): Promise<void> {
   if (array.length === 0) {
     cache.isOk = true;
     cache.array = array;
-    kvSet('arena', cache);
+    kvSet(ARENA_KEY, cache);
     return;
   }
   let initid = id;
@@ -218,7 +219,7 @@ export async function idleArena(): Promise<void> {
       array.shift();
       cache.array = array;
       if (array.length === 0) cache.isOk = true;
-      kvSet('arena', cache);
+      kvSet(ARENA_KEY, cache);
       await idleArena();
       return;
     }
@@ -232,7 +233,7 @@ export async function idleArena(): Promise<void> {
   }
   if (!started) {
     cache.array = array;
-    kvSet('arena', cache);
+    kvSet(ARENA_KEY, cache);
     after('idle-arena-retry', 60 * 1000, () => void idleArena());
     return;
   }
@@ -240,6 +241,6 @@ export async function idleArena(): Promise<void> {
   else array.shift();
   if (array.length === 0) cache.isOk = true;
   cache.array = array;
-  kvSet('arena', cache);
+  kvSet(ARENA_KEY, cache);
   location.href = location.search;
 }

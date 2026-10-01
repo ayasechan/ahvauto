@@ -1,10 +1,13 @@
 <script lang="ts">
-  import { options, importLegacyConfig } from '../../lib/store';
+  import {
+    options,
+    importLegacyConfig,
+    loadBackups,
+    saveBackups,
+    sanitizeOptions,
+  } from '../../lib/store';
   import { tr } from '../../lib/i18n';
-  import { BACKUP_KEY } from '../../lib/storage-keys';
   import { defaultOptions } from '../../lib/defaults';
-  import { migrateOptions } from '../../lib/expr/migrate';
-  import type { HvOptions } from '../../lib/types';
   import { getStoredLogs, clearStoredLogs, toLogfmt } from '../../lib/logger';
   import type { StoredEntry } from '../../lib/logger';
   import {
@@ -29,47 +32,23 @@
     return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
   }
 
-  function loadBackups() {
-    try {
-      backups = JSON.parse(localStorage.getItem(BACKUP_KEY) ?? '{}');
-    } catch {
-      backups = {};
-    }
+  function refreshBackups() {
+    backups = loadBackups();
   }
-  function saveBackups() {
-    localStorage[BACKUP_KEY] = JSON.stringify(backups);
+  function persistBackups() {
+    saveBackups(backups);
   }
   function backup() {
     const code = prompt('备份名称:');
     if (!code) return;
     backups[code] = JSON.stringify($options);
-    saveBackups();
+    persistBackups();
   }
   function applyImported(raw: unknown): boolean {
-    try {
-      const parsed = (typeof raw === 'string' ? JSON.parse(raw) : raw) as Record<string, unknown>;
-      if (typeof parsed !== 'object' || parsed === null) return false;
-      const d = defaultOptions();
-      const merged = {
-        ...d,
-        ...parsed,
-        main: { ...d.main, ...((parsed.main ?? {}) as object) },
-        item: { ...d.item, ...((parsed.item ?? {}) as object) },
-        channel: { ...d.channel, ...((parsed.channel ?? {}) as object) },
-        buff: { ...d.buff, ...((parsed.buff ?? {}) as object) },
-        debuff: { ...d.debuff, ...((parsed.debuff ?? {}) as object) },
-        skill: { ...d.skill, ...((parsed.skill ?? {}) as object) },
-        scroll: { ...d.scroll, ...((parsed.scroll ?? {}) as object) },
-        infusion: { ...d.infusion, ...((parsed.infusion ?? {}) as object) },
-        alarm: { ...d.alarm, ...((parsed.alarm ?? {}) as object) },
-        rule: { ...d.rule, ...((parsed.rule ?? {}) as object) },
-      } as HvOptions;
-      migrateOptions(merged as unknown as Record<string, unknown>);
-      $options = merged;
-      return true;
-    } catch {
-      return false;
-    }
+    const merged = sanitizeOptions(raw);
+    if (!merged) return false;
+    $options = merged;
+    return true;
   }
   function restore(code: string) {
     try {
@@ -119,7 +98,7 @@
       if (!importLegacyConfig()) alert(L('a.noLegacy'));
     }
   }
-  loadBackups();
+  refreshBackups();
 
   let kvLogs = $state<StoredEntry[]>([]);
   async function refreshLogs() {
@@ -222,7 +201,7 @@
             type="button"
             onclick={() => {
               delete backups[code];
-              saveBackups();
+              persistBackups();
             }}>{L('ui.delete')}</button
           >
         </li>

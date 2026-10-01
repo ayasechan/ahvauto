@@ -1,7 +1,14 @@
 import { mount } from 'svelte';
 import App from './ui/App.svelte';
 import { HOST_ID, FAB_CLASS, PAUSE_BOX_ID } from './lib/dom-ids';
-import { panelOpen, options, snapshotOptions, battle, kvDel, isDisabled } from './lib/store';
+import {
+  panelOpen,
+  options,
+  snapshotOptions,
+  battle,
+  clearFieldCtx,
+  isDisabled,
+} from './lib/store';
 import { initLogger, setLogLevel, logger } from './lib/logger';
 import { qs, el } from './lib/dom';
 import { tr } from './lib/i18n';
@@ -142,14 +149,7 @@ onEnter('battle', () => {
 
 onEnter('field', () => {
   const opt = snapshotOptions();
-  kvDel('roundType');
-  kvDel('battleCode');
-  // 零兼容清理：旧 localStorage 日志已迁 IDB logs 表，直接删。
-  try {
-    localStorage.removeItem('ahvauto-logs');
-  } catch {
-    /* ignore */
-  }
+  clearFieldCtx();
   // 非战斗页面空闲时集中修剪一次（IDB records/turns/logs ＋ battles2）。
   scheduleIdlePrune();
   if (opt.main.encounter) encounterCheck();

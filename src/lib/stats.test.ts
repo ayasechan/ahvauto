@@ -24,6 +24,7 @@ import {
 } from './stats';
 import type { BattleRow, Totals, CurBattle } from './stats';
 import { options, kvSet } from './store';
+import { STATS_KEY, BATTLES_KEY, CUR_BATTLE_KEY } from './storage-keys';
 
 beforeEach(() => {
   clearStats();
@@ -190,8 +191,8 @@ describe('parseTurn 真实数据', () => {
     assert.ok(cur);
     addKills(cur as CurBattle, t as Totals, 8, 1);
     // 模拟 capture-agent 终局流程：回写 kv 后再 endBattle
-    kvSet('curBattle2', cur);
-    kvSet('stats2', t);
+    kvSet(CUR_BATTLE_KEY, cur);
+    kvSet(STATS_KEY, t);
     endBattle('victory');
     const rows = getBattles();
     assert.equal(rows[0].monsters, 8);
@@ -412,13 +413,13 @@ describe('parseTurn 真实数据', () => {
     assert.equal(rows[rows.length - 1].code, 'BA 1/1');
   });
   it('旧存档回填：缺字段补默认', () => {
-    kvSet('stats2', { turns: 5 });
+    kvSet(STATS_KEY, { turns: 5 });
     const t = getTotals();
     assert.equal(t.turns, 5);
     assert.deepEqual(t.modes, {});
     assert.equal(t.takenPhysCount, 0);
     assert.equal(t.takenMagCount, 0);
-    kvSet('battles2', [
+    kvSet(BATTLES_KEY, [
       {
         key: 'k',
         startedAt: 7,

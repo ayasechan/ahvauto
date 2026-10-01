@@ -1,5 +1,6 @@
 <script lang="ts">
   import { options, kvGet } from '../../lib/store';
+  import { ENCOUNTER_KEY, STAMINA_LOG_KEY } from '../../lib/storage-keys';
   import { tr } from '../../lib/i18n';
   import {
     getTotals,
@@ -59,7 +60,7 @@
       }
     }
     try {
-      const raw = kvGet('staminaLostLog', true) as Record<string, number> | null;
+      const raw = kvGet(STAMINA_LOG_KEY, true) as Record<string, number> | null;
       if (raw && typeof raw === 'object') return Object.entries(raw).slice(-5);
     } catch {
       /* kv 缺失/损坏时返回空 */
@@ -77,7 +78,7 @@
         };
     }
     try {
-      const raw = kvGet('encounter', true) as { time: number; lastTime: number } | null;
+      const raw = kvGet(ENCOUNTER_KEY, true) as { time: number; lastTime: number } | null;
       if (raw && typeof raw.time === 'number')
         return { time: raw.time, lastTime: raw.lastTime ?? 0 };
     } catch {

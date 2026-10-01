@@ -34,7 +34,7 @@ npx tsx scripts/cdp/<脚本>.ts   # 浏览器运维（见 scripts/cdp/README.md�
 ## 存储命名空间（铁律）
 
 - 旧脚本：`hvAA-` 前缀——**只读不写**。
-- 新脚本：`ahvauto-` 前缀（`ahvauto-option` / `ahvauto-disabled` / `ahvauto-backup` / `sessionStorage: ahvauto-spell-delay/nospell-delay` / KV 等，确切键见 `src/lib/storage-keys.ts`；运行日志已迁 IDB `logs` 表）。
+- 新脚本：`ahvauto-` 前缀，key 唯一来源 `src/lib/storage-keys.ts`；读写唯一入口 `src/lib/store.ts`（配置 `options/sanitizeOptions/snapshotOptions`、KV `kv*`＋短键常量、备份 `loadBackups/saveBackups`、发包延迟 `publish/readSpellDelays`、进页清理 `clearFieldCtx`；运行日志已迁 IDB `logs` 表）。引擎/UI 不直碰 `localStorage/sessionStorage`。
 - 旧配置不再自动导入，需面板“关于→导入旧配置”手动触发（含权重、条件翻译），见 `src/lib/legacy-import.ts`。
 
 ## 安全铁律（测战斗时）

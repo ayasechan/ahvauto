@@ -10,6 +10,24 @@ export const DISABLED_KEY = `${STORAGE_NS}disabled`;
 export const LEGACY_OPT_KEY = 'hvAA-option';
 export const BACKUP_KEY = `${STORAGE_NS}backup`;
 
+/** 通用 KV（短键，读写经 store.ts kv*，全仓禁止裸串）。 */
+export const ROUND_TYPE_KEY = 'roundType';
+export const ROUND_NOW_KEY = 'roundNow';
+export const ROUND_ALL_KEY = 'roundAll';
+export const MONSTER_STATUS_KEY = 'monsterStatus';
+export const MONSTER_BASE_KEY = 'monsterBase';
+export const STATS_KEY = 'stats2';
+export const BATTLES_KEY = 'battles2';
+export const CUR_BATTLE_KEY = 'curBattle2';
+export const ARENA_KEY = 'arena';
+export const ENCOUNTER_KEY = 'encounter';
+export const STAMINA_LOG_KEY = 'staminaLostLog';
+
+/** @deprecated 旧键：仅启动清理（kvDel），无现行写入。 */
+export const LEGACY_BATTLE_CODE_KEY = 'battleCode';
+/** @deprecated 旧 localStorage 日志（已迁 IDB logs 表）：仅启动清理。 */
+export const LEGACY_LOGS_KEY = `${STORAGE_NS}logs`;
+
 /** sessionStorage：发包延迟（注入脚本与 userscript 两侧同读） */
 export const SPELL_DELAY_KEY = `${STORAGE_NS}spell-delay`;
 export const NO_SPELL_DELAY_KEY = `${STORAGE_NS}nospell-delay`;
