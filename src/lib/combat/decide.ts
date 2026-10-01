@@ -128,6 +128,7 @@ const RULES: Rule[] = [
         Heartseeker: 'He',
         Regen: 'Re',
         'Shadow Veil': 'SV',
+        Absorb: 'Ab',
       };
       let first: { key: string; left: number } | null = null;
       for (const b of snap.buffs) {
@@ -168,7 +169,7 @@ const RULES: Rule[] = [
   {
     name: 'infusion',
     decide: ({ snap, opt, ec }) => {
-      if (snap.attackStatus === 0 || !opt.infusion.enabled) return null;
+      if (snap.attackStatus <= 0 || !opt.infusion.enabled) return null;
       if (!checkExpr(opt.infusion.condition, ec)) return null;
       const def = INFUSION_LIB[snap.attackStatus];
       if (!def) return null;

@@ -198,21 +198,14 @@ const D: Record<string, Triple> = {
     '反饋請附：場景、配置 JSON、控制台日誌、戰鬥日誌。',
     'For feedback include: scenario, config JSON, console log, battle log.',
   ],
-  paused: ['ahvauto暂停中', 'ahvauto暫停中', 'ahvauto Paused'],
   pause: ['暂停', '暫停', 'Pause'],
   resume: ['继续', '繼續', 'Continue'],
   settings: ['请设置ahvauto', '請設置ahvauto', 'Please config this script'],
-  versionUpdate: [
-    'ahvauto版本更新，请重新设置',
-    'ahvauto版本更新，請重新設置',
-    'ahvauto version update, please reset.',
-  ],
   fontWarn: [
     '请设置字体\n使用默认字体可能使某些功能失效',
     '請設置字體\n使用默認字體可能使某些功能失效',
     'Please set the font\nThe default font may break functions',
   ],
-  panel: ['主要选项', '主要選項', 'Main'],
 };
 
 export function tr(lang: Lang, key: string): string {

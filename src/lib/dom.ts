@@ -1,4 +1,4 @@
-/** DOM 小工具：替代原 gE/cE/isOn */
+/** DOM 小工具 */
 
 export function qs<T extends Element = Element>(
   sel: string,
@@ -19,28 +19,9 @@ export function el<K extends keyof HTMLElementTagNameMap>(tag: K): HTMLElementTa
   return document.createElement(tag);
 }
 
-/** 技能/物品是否可用：原 isOn 语义 */
-export function isOn(id: string | number): Element | false {
-  const key = String(id);
-  if (Number(key) > 10000) {
-    return qs(`.bti3>div[onmouseover*="${key}"]`) ?? false;
-  }
-  const node = document.getElementById(key);
-  return node && (node as HTMLElement).style.opacity !== '0.5' ? node : false;
-}
-
 export function click(sel: string | Element | null): boolean {
   const node = typeof sel === 'string' ? qs<HTMLElement>(sel) : (sel as HTMLElement | null);
   if (!node) return false;
   node.click();
   return true;
-}
-
-export function openUrl(url: string, newTab = false): void {
-  const a = el('a');
-  a.href = url;
-  a.target = newTab ? '_blank' : '_self';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
 }

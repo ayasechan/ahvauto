@@ -115,6 +115,20 @@ describe('decide 优先级与规则', () => {
     const r = go(snap({ channeling: true, skills: { '411': true } }), o);
     assert.deepEqual(r.action, { kind: 'buff', id: '411' });
   });
+  it('channeling ReBuff 含 Absorb（最早过期者）', () => {
+    const o = opt();
+    o.channel.enabled = true;
+    o.buff.order = [];
+    const s = snap({
+      channeling: true,
+      skills: { '411': true, '421': true },
+      buffs: [
+        { src: 'x/absorb.png', bid: '', name: 'Absorb', turns: 1, scroll: false },
+        { src: 'x/protection.png', bid: '', name: 'Protection', turns: 5, scroll: false },
+      ],
+    });
+    assert.deepEqual(go(s, o).action, { kind: 'buff', id: '421' });
+  });
   it('非 channeling 不进 channel 规则', () => {
     const o = opt();
     o.channel.enabled = true;
@@ -138,6 +152,11 @@ describe('decide 优先级与规则', () => {
     assert.notEqual(go(snap({ attackStatus: 0 }), o).action.kind, 'infusion');
     const r = go(snap({ attackStatus: 6, skills: { '12601': true } }), o);
     assert.deepEqual(r.action, { kind: 'infusion', id: '12601' });
+  });
+  it('魔药：未选模式(-1)不抛且跳过', () => {
+    const o = opt();
+    o.infusion.enabled = true;
+    assert.notEqual(go(snap({ attackStatus: -1 }), o).action.kind, 'infusion');
   });
   it('allImperil 找缺口', () => {
     const o = opt();
@@ -339,6 +358,14 @@ describe('orderTargets/resolveTarget', () => {
       monsterAlive: 2,
     });
     assert.deepEqual(go(s, opt()).action, { kind: 'attack', target: '2' });
+  });
+  it('看门狗补点与集火一致：fin 非 DOM 首个', () => {
+    const ms = [
+      { id: '1', name: 'Goblin', hpNow: 100, marks: ['sleep'] },
+      { id: '2', name: 'Slime', hpNow: 110, marks: [] },
+    ];
+    // A: 100/100*10+100=110；B: 110/100*10=11 → fin='2'，DOM 首个可点是 '1'
+    assert.deepEqual(orderTargets(ms, { Sle: 100 }, false), ['2', '1']);
   });
   it('resolveTarget 顺延可点活怪', () => {
     const ms = [mon('1', 100), mon('2', Infinity, { clickable: false }), mon('3', 100)];

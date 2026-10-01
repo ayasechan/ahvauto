@@ -42,7 +42,7 @@ var_path       = ident { "." ident } ;   (* 点后面必须是 ident；函数调
 
 - `==`：严格相等，无隐式转换；类型不同直接 `false`；`NaN == NaN` 为 `false`。
 - `!=`：`==` 的取反。
-- `< <= > >=`：两边必须都是 number，否则抛错；NaN 参与一律 `false`。
+- `< <= > >=`：两边必须都是 number，否则抛错；NaN 按非数字抛错（调用方 fail-closed 得 `false`）。
 - `+ - * / %`：两边必须都是 number，否则抛错；`+` 不做字符串拼接；除零/零取余抛错。
 - `and / or`：短路求值；两边必须都是 boolean，否则抛错。
 - `not`：操作数必须是 boolean，否则抛错。
@@ -54,7 +54,7 @@ var_path       = ident { "." ident } ;   (* 点后面必须是 ident；函数调
   否则取编辑距离最小者，需同时满足`距离≤3`且`2×距离≤两名长度之和`，否则只报未知名字。
   示例：`未知变量 'heal'，你是不是想说变量 'hp'？`
 - 函数参数个数/类型：由各函数自己守卫，守卫失败抛错。
-- 顶层结果必须是 boolean，否则抛错。
+- 顶层结果必须是 boolean，否则抛错。`Infinity` 是合法 number（`buffTurn` 永久 buff 即 `Infinity`）；`NaN` 一律按非数字抛错。
 
 ## 4. 明确拒绝的输入（词法/语法错误，报错带列号与换词提示）
 
@@ -84,3 +84,4 @@ roundType == "ar" and bossAlive > 0
 - 编译结果 `Map` 缓存，上限 500 条（key 为表达式原文）。
 - 老格式 `{组号: ["a,op,b"]}` 由 `conditions.ts:groupsToExpr` 翻译成本语法后求值。
 - 求值上下文变量见 `src/lib/conditions.ts:battleVars`；函数（`isCd`、`buffTurn`）见同文件 `evalCtx`（`src/lib/conditions.ts`）。
+  战斗决策内用的是快照纯版本 `src/lib/combat/context.ts:evalContext`（`decide.ts:361`；`isCd` 读快照 `skills`，`buffTurn` 读快照 `buffs`，永久 buff 记 `Infinity`）；面板/文本编辑器用 DOM 版 `evalCtx`。两套变量名同集合、取值源不同；非有限值语义：战斗内透传，战斗外（`evalCtx`）丢弃非有限 vars 按未知变量 fail-closed。

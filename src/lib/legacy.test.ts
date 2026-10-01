@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { isLegacyOption, importLegacyOption } from './legacy-import';
+import { migrateOptions } from './expr/migrate';
 
 /** 按用户真实旧配置裁剪的 fixture */
 const OLD = {
@@ -114,5 +115,42 @@ describe('旧配置导入', () => {
     assert.equal(o.scroll.roundTypes.rb, false);
     assert.equal(o.channel.enabled, false);
     assert.equal(o.alarm.audio.Riddle, 'data:audio/mp3;base64,AAA');
+  });
+});
+
+describe('migrate backfill（bind 永不拿 undefined）', () => {
+  it('补齐布尔/数字/音频表', () => {
+    const raw: Record<string, unknown> = {
+      channel: { first: { Pr: true } },
+      scroll: { roundTypes: { ar: true } },
+      alarm: { audio: {}, audioEnable: {} },
+      rule: { weights: { Im: 10 }, reverse: false },
+      debuff: { turns: {} },
+    };
+    migrateOptions(raw);
+    const channel = raw.channel as Record<string, unknown>;
+    assert.equal(channel.useSecond, false);
+    assert.deepEqual(channel.first, {
+      Pr: true,
+      SL: false,
+      SS: false,
+      Ha: false,
+      AF: false,
+      He: false,
+      Re: false,
+      SV: false,
+      Ab: false,
+    });
+    const scroll = raw.scroll as Record<string, unknown>;
+    assert.equal(scroll.first, false);
+    assert.deepEqual(scroll.roundTypes, { ar: true, rb: false, gr: false, iw: false, ba: false });
+    const alarm = raw.alarm as Record<string, unknown>;
+    assert.equal((alarm.audio as Record<string, unknown>).Common, '');
+    assert.equal((alarm.audioEnable as Record<string, unknown>).Common, false);
+    const rule = raw.rule as Record<string, unknown>;
+    assert.equal((rule.weights as Record<string, unknown>).Im, 10);
+    assert.equal((rule.weights as Record<string, unknown>).Sle, 0);
+    const debuff = raw.debuff as Record<string, unknown>;
+    assert.equal((debuff.turns as Record<string, unknown>).Im, 0);
   });
 });

@@ -1,6 +1,6 @@
 import { snapshotOptions } from './store';
 import { recordBattleTurn } from './stats';
-import { IDB_NAME as DB_NAME, REC_MARKER } from './storage-keys';
+import { IDB_NAME as DB_NAME } from './storage-keys';
 
 /** 配对后的一行：一次请求＋它的响应。v2 起 keyPath 为 seq。 */
 export interface BattleRecord {
@@ -83,7 +83,8 @@ function withSeqLock<T>(seq: number, fn: () => Promise<T>): Promise<T> {
   return next;
 }
 
-/** 记录请求到达（先写半行）；响应到达时补全。仅 debug 开启时。失败静默跳过。 */
+/** 记录请求到达（先写半行）；响应到达时补全。仅 debug 开启时。失败静默跳过。
+ * 注意：热路径不做驱逐，驱逐统一在非战斗页面空闲时经 pruneDebugRecords() 一次完成。 */
 export async function recordBattleEvent(
   kind: 'req' | 'res',
   payload: unknown,
@@ -113,7 +114,6 @@ export async function recordBattleEvent(
           data,
         });
       }
-      await evictOld(db, STORE, CAP);
     });
   } catch {
     /* 录制失败不影响战斗 */
@@ -194,16 +194,27 @@ export interface TurnDebug {
   snap: unknown;
 }
 
-/** 记录一回合决策现场（快照＋命中规则＋动作，供事后回放）。仅 debug 开启时。 */
+/** 记录一回合决策现场（快照＋命中规则＋动作，供事后回放）。仅 debug 开启时。
+ * 注意：热路径不做驱逐，驱逐统一在非战斗页面空闲时经 pruneDebugRecords() 一次完成。 */
 export async function recordTurn(info: Omit<TurnDebug, 't'>): Promise<void> {
   try {
     if (!snapshotOptions().main.debug) return;
     const db = await openDb();
     const data = await gzipStr(JSON.stringify({ t: Date.now(), ...info }));
     await putRow(db, TURNS, { t: Date.now(), data });
-    await evictOld(db, TURNS, TURNS_CAP);
   } catch {
     /* 录制失败不影响战斗 */
+  }
+}
+
+/** 非战斗页面空闲时集中驱逐一次：records 留最新 CAP 条，turns 留最新 TURNS_CAP 条。失败静默。 */
+export async function pruneDebugRecords(): Promise<void> {
+  try {
+    const db = await openDb();
+    await evictOld(db, STORE, CAP);
+    await evictOld(db, TURNS, TURNS_CAP);
+  } catch {
+    /* 修剪失败不影响页面 */
   }
 }
 
@@ -333,18 +344,4 @@ export function handleRec(kind: string, payload: unknown, seq = 0): void {
       /* 统计失败不影响战斗 */
     }
   }
-}
-
-/**
- * 消息桥（兼容保留）：页上下文用 window.postMessage({source:'ahvauto-rec',...})
- * 上报时走本函数。直注时代钩子直接调 handleRec，不再经过 postMessage。
- */
-export function installRecordBridge(): void {
-  window.addEventListener('message', (e: MessageEvent) => {
-    // 注意：油猴隔离世界里，页上下文 post 来的消息 e.source !== window，
-    // 不能用 source 做过滤，仅认 ahvauto-rec 标记（调试通道，无安全影响）。
-    const d = e.data as { source?: string; kind?: string; seq?: number; payload?: unknown } | null;
-    if (!d || d.source !== REC_MARKER) return;
-    handleRec(d.kind ?? '', d.payload, typeof d.seq === 'number' ? d.seq : 0);
-  });
 }

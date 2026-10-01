@@ -198,7 +198,6 @@ export interface BattleState {
   attackStatus: number;
   runSpeed: number;
   timeNow: number;
-  end: boolean;
 }
 
 export interface ArenaCache {

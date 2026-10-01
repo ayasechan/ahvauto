@@ -5,13 +5,13 @@ import { isDisabled, setDisabled } from './store';
  * 顶层状态机：收敛原来散落在各处的隐式状态。
  * - 页面生命周期：boot → field / battle / riddle（单向进入，不回退）；
  * - 暂停是正交位（isDisabled），各循环检查它，不进状态图；
- * - 所有自调度 setTimeout 必须经 after() 登记命名，同名覆盖、可观测。
+ * - 所有自调度 setTimeout 必须经 after() 登记命名，同名覆盖。
  */
 export type MachineState = 'boot' | 'field' | 'battle' | 'riddle';
 
 const timers = new Map<string, number>();
 
-/** 命名延时：同名任务覆盖前一个，pending 列表可观测 */
+/** 命名延时：同名任务覆盖前一个 */
 export function after(name: string, ms: number, fn: () => void): void {
   clearTimer(name);
   timers.set(
@@ -23,16 +23,12 @@ export function after(name: string, ms: number, fn: () => void): void {
   );
 }
 
-export function clearTimer(name: string): void {
+function clearTimer(name: string): void {
   const t = timers.get(name);
   if (t !== undefined) {
     clearTimeout(t);
     timers.delete(name);
   }
-}
-
-export function pendingTimers(): string[] {
-  return [...timers.keys()];
 }
 
 type EnterHook = () => void;
@@ -45,10 +41,6 @@ export function onEnter(state: MachineState, fn: EnterHook): void {
 }
 
 let current: MachineState = 'boot';
-
-export function fsmState(): MachineState {
-  return current;
-}
 
 export function transition(to: MachineState, why = ''): void {
   const from = current;

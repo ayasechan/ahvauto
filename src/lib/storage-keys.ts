@@ -17,6 +17,3 @@ export const NO_SPELL_DELAY_KEY = `${STORAGE_NS}nospell-delay`;
 
 /** IDB 录制库（仅 recorder.ts 带版本号 open） */
 export const IDB_NAME = `${STORAGE_NS}debug`;
-
-/** 页上下文→隔离世界录制桥 postMessage 标记（注入脚本与桥同值） */
-export const REC_MARKER = `${STORAGE_NS}rec`;

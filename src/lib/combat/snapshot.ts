@@ -195,7 +195,7 @@ export function readSnapshot(base: number[]): Snapshot {
 }
 
 /** 首个可点活怪 id，无则 null（纯） */
-export function firstClickable(monsters: SnapMonster[]): string | null {
+function firstClickable(monsters: SnapMonster[]): string | null {
   return monsters.find((m) => m.alive && m.clickable)?.id ?? null;
 }
 

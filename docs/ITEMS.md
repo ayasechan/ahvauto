@@ -2,22 +2,23 @@
 
 ## ID 表
 
-| key                 | id    | 形态              | 说明                              |
-| ------------------- | ----- | ----------------- | --------------------------------- |
-| Cure                | 311   | 法术书按钮        | 小回复；走 `isOn`＝元素存在＋非灰 |
-| FC（Full-Cure）     | 313   | 法术书按钮        | 回满；同上                        |
-| HP（Health Potion） | 11195 | 物品栏 `.bti3` 格 | 有格＝有货（不看数量/灰度）       |
-| HE（Health Elixir） | 11199 | 物品栏            | 同上                              |
-| MP（Mana Potion）   | 11295 | 物品栏            | 同上                              |
-| ME（Mana Elixir）   | 11299 | 物品栏            | 同上                              |
-| SP（Spirit Potion） | 11395 | 物品栏            | 同上                              |
-| SE（Spirit Elixir） | 11399 | 物品栏            | 同上                              |
-| LE（Last Elixir）   | 11501 | 物品栏            | 同上                              |
-| ED（Energy Drink）  | 11401 | 物品栏            | 同上                              |
+| key                 | id    | 形态              | 说明                                                                        |
+| ------------------- | ----- | ----------------- | --------------------------------------------------------------------------- |
+| Cure                | 311   | 法术书按钮        | 小回复；快照 `skills[311]`＝存在＋`opacity !== 0.5`（旧 `isOn` 法术书分支） |
+| FC（Full-Cure）     | 313   | 法术书按钮        | 回满；同上                                                                  |
+| HP（Health Potion） | 11195 | 物品栏 `.bti3` 格 | 有格＝有货（不看数量/灰度）                                                 |
+| HE（Health Elixir） | 11199 | 物品栏            | 同上                                                                        |
+| MP（Mana Potion）   | 11295 | 物品栏            | 同上                                                                        |
+| ME（Mana Elixir）   | 11299 | 物品栏            | 同上                                                                        |
+| SP（Spirit Potion） | 11395 | 物品栏            | 同上                                                                        |
+| SE（Spirit Elixir） | 11399 | 物品栏            | 同上                                                                        |
+| LE（Last Elixir）   | 11501 | 物品栏            | 同上                                                                        |
+| ED（Energy Drink）  | 11401 | 物品栏            | 同上                                                                        |
 
 `id > 10000` 走物品栏存在性，否则走法术书可用性——两边判定不同，
 执行层必须“判哪点哪”（`src/lib/combat/execute.ts`），点错元素会静默失败。
-法术书直点用 `document.getElementById`（`querySelector('#411')` 是非法选择器），其余经 `qs`/选择器。
+旧 `isOn` 已拆分，无统一函数（`dom.ts` 现无 `isOn`）：判在 `snapshot.ts:144-163`，点在 `execute.ts:76-78`，`id > 10000` 以 `Number(id)` 判定。
+法术书直点用 `document.getElementById`（纯数字 id `querySelector` 会抛错），其余经 `qs`/选择器。
 
 ## 施放顺序
 

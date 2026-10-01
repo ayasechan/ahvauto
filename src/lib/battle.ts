@@ -1,12 +1,12 @@
 import { get } from 'svelte/store';
-import { battle, kvGet, kvSet, kvDel, options, snapshotOptions, isDisabled } from './store';
+import { battle, kvGet, kvSet, kvDel, snapshotOptions, isDisabled } from './store';
 import { qs, qsa, el, click as rawClick } from './dom';
 import { checkCondition } from './conditions';
 import { setAlarm } from './notify';
 import { logger } from './logger';
-import { installRecordBridge, recordTurn, handleRec } from './recorder';
+import { recordTurn, handleRec } from './recorder';
 import { pause, resume, after } from './fsm';
-import { requestRetry, httpGet, sleep, todayKey } from './http';
+import { requestRetry, httpGet, sleep } from './http';
 import {
   beginBattle,
   beginRound,
@@ -18,7 +18,7 @@ import {
 } from './stats';
 import type { Totals, CurBattle } from './stats';
 import type { Action } from './combat/types';
-import { readSnapshot, resolveTarget } from './combat/snapshot';
+import { readSnapshot, resolveTarget, orderTargets } from './combat/snapshot';
 import { decide, shouldEmergencyPause } from './combat/decide';
 import { executeAction, describeAction } from './combat/execute';
 import { tt } from './i18n';
@@ -46,7 +46,6 @@ export function pauseChange(): void {
     const btn = qs('.pauseChange');
     if (btn) btn.innerHTML = tt('resume');
     pause('button');
-    patchBattle({ end: true });
   } else {
     const btn = qs('.pauseChange');
     if (btn) btn.innerHTML = tt('pause');
@@ -64,8 +63,6 @@ function fixMonsterStatus(): void {
   kvSet('monsterBase', status);
   goto();
 }
-
-/** 怪序号 → mkey id（第 10 只怪 id 为 0） */
 
 /** 回合初始化：解析 roundType / roundNow / monsterStatus，原 newRound */
 export async function newRound(): Promise<void> {
@@ -191,7 +188,6 @@ export async function newRound(): Promise<void> {
       roundAll: Number(kvGet('roundAll') ?? 1),
     });
   }
-  void todayKey;
 }
 
 function battleInfo(): void {
@@ -314,10 +310,6 @@ export function getEncounter(): { lastTime: number; time: number } {
   }
 }
 
-/** 单怪 debuff 位检查：不满 6 个，或最后一个剩余回合达标，或关闭了告警 */
-
-/** 给所有敌人补 Imperil（原 allImperiled：先隔 3 遍历一遍，再顺序遍历） */
-
 /** 战斗主循环：每 turn 只做一个动作，原 main() */
 export async function main(): Promise<void> {
   const on = snapshotOptions().main.debug;
@@ -336,10 +328,10 @@ export async function main(): Promise<void> {
   armWatchdog(sendBefore, logBefore);
 }
 
-/** 读注入层记录的最近一次 api_call 发送时间（无则为 0） */
+/** 读页世界钩子记录的最近一次 api_call 发送时间（无则为 0） */
 function readLastSend(): number {
   try {
-    return (window as unknown as { __hvaa?: { lastSend?: number } }).__hvaa?.lastSend ?? 0;
+    return (window as unknown as { __hvaa?: DebugSurface }).__hvaa?.lastSend ?? 0;
   } catch {
     return 0;
   }
@@ -359,7 +351,9 @@ function armWatchdog(sendBefore: number, logBefore: number): void {
       if (readLastSend() !== sendBefore) return;
       logger.warning('no request sent after action, retry target click');
       const snap = readSnapshot(get(battle).monsterBase);
-      const tid = resolveTarget(snap.monsters, undefined);
+      const opt = snapshotOptions();
+      const fin = orderTargets(snap.monsters, opt.rule.weights ?? {}, opt.rule.reverse)[0];
+      const tid = resolveTarget(snap.monsters, fin);
       if (tid) click(`#mkey_${tid}`);
     } catch {
       /* ignore */
@@ -394,11 +388,26 @@ export interface DebugSurface {
   nr?: string;
   /** 本轮决策历史（newRound 清空，面板展示用） */
   history: TurnRecord[];
+  /** 页世界钩子附加：发包计数/末次请求摘要/末次发送时间/响应计数 */
+  apiCalls: number;
+  lastReq: string;
+  lastSend: number;
+  fired: number;
 }
 
 function debugSurface(): DebugSurface {
   const w = window as unknown as { __hvaa?: DebugSurface };
-  if (!w.__hvaa) w.__hvaa = { step: '', lastError: '', lastAction: '', history: [] };
+  if (!w.__hvaa)
+    w.__hvaa = {
+      step: '',
+      lastError: '',
+      lastAction: '',
+      history: [],
+      apiCalls: 0,
+      lastReq: '',
+      lastSend: 0,
+      fired: 0,
+    };
   if (!w.__hvaa.history) w.__hvaa.history = [];
   return w.__hvaa;
 }
@@ -422,7 +431,6 @@ async function mainInner(dbg: DebugSurface, trace: boolean): Promise<void> {
     document.title = 'ahvauto暂停中';
     return;
   }
-  patchBattle({ end: false });
   // JSON 序列化会把 Infinity 丢成 null，重载后必须还原，否则死亡判定失效
   const norm = (a: unknown): number[] | null =>
     Array.isArray(a)
@@ -502,11 +510,10 @@ async function mainInner(dbg: DebugSurface, trace: boolean): Promise<void> {
 }
 
 /**
- * 循环驱动器：保留对游戏 api_call/api_response 的劫持（必须同步注入），
+ * 循环驱动器：保留对游戏 api_call/api_response 的劫持（经 pageScope 直接赋值），
  * 但后续换轮请求改为 await httpGet。
  */
 export function installReloader(): void {
-  installRecordBridge();
   const opt = snapshotOptions();
   const eventStart = el('a');
   eventStart.id = 'eventStart';
@@ -647,11 +654,9 @@ export function installReloader(): void {
       /* ignore */
     }
     try {
-      const h = (
-        window as unknown as { __hvaa?: { apiCalls?: number; lastReq?: string; lastSend?: number } }
-      ).__hvaa;
+      const h = (window as unknown as { __hvaa?: DebugSurface }).__hvaa;
       if (h) {
-        h.apiCalls = (h.apiCalls ?? 0) + 1;
+        h.apiCalls += 1;
         h.lastReq = JSON.stringify(a).slice(0, 120);
         h.lastSend = Date.now();
       }
@@ -674,8 +679,8 @@ export function installReloader(): void {
     b.onreadystatechange = d;
     b.onload = () => {
       try {
-        const h = (window as unknown as { __hvaa?: { fired?: number } }).__hvaa;
-        if (h) h.fired = (h.fired ?? 0) + 1;
+        const h = (window as unknown as { __hvaa?: DebugSurface }).__hvaa;
+        if (h) h.fired += 1;
       } catch {
         /* ignore */
       }
@@ -722,5 +727,3 @@ export function installReloader(): void {
     return false;
   };
 }
-
-export { options };

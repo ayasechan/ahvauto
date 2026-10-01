@@ -15,11 +15,11 @@ Original script preserved at `legacy/hvauto.js` (reference only). No CI.
 ## Architecture (see `docs/ARCHITECTURE.md`)
 
 `snapshot → decide → execute → api_call → eventEnd → next turn`;
-stats/logging via direct `handleRec` calls (`recorder.ts`); `postMessage` bridge (marker `ahvauto-rec`) compat-only.
+stats/logging via direct `handleRec` calls (`recorder.ts`).
 
 ## Gotchas (rules only; explanations live in docs/ — do not re-expand here)
 
-- **No dynamic `import()` in `src/`** (`docs/DEV.md` 坑 #3).
+- **No dynamic `import()` in `src/`** (preview chain `src/preview-ui.ts` exempt, never via monkey) (`docs/DEV.md` 坑 #3).
 - **Never `localStorage.setItem` with `hvAA*` keys** (`docs/DEV.md` 坑 #1).
 - **`Infinity` dies in JSON** (`→null`) — normalize on read (`docs/DEV.md` 坑 #2).
 - **`bind:` must never receive `undefined`** (`docs/DEV.md` 坑 #5).

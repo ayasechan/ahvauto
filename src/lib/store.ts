@@ -89,7 +89,6 @@ export const battle = writable<BattleState>({
   attackStatus: -1,
   runSpeed: 1,
   timeNow: Date.now(),
-  end: false,
 });
 
 export const panelOpen = writable(false);

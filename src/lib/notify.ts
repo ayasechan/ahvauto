@@ -10,14 +10,6 @@ declare const GM_xmlhttpRequest: (details: GmXmlhttpRequestOption<'text', undefi
 
 type NotifyKind = AlarmKind | 'Test';
 
-export async function sendDesktop(n = 3): Promise<void> {
-  try {
-    await fetch(`http://127.0.0.1:43682/action/desktop/goto?n=${n}`);
-  } catch (e) {
-    logger.debug('desktop gateway unavailable: {err}', { err: String(e) });
-  }
-}
-
 interface PostResult {
   status: number;
   text: string;
@@ -204,8 +196,4 @@ export async function setAlarm(kind: NotifyKind = 'Common'): Promise<void> {
     }
   }
   if (kind !== 'Test') void pushAlarm(kind);
-}
-
-export function stopRiddleAlarm(): void {
-  (document.getElementById('hvAAAlert-Riddle') as HTMLAudioElement | null)?.pause();
 }

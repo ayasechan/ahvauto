@@ -6,6 +6,7 @@ import { qs, el } from './lib/dom';
 import { tr } from './lib/i18n';
 import { riddleAlert, idleArena, encounterCheck } from './lib/meta';
 import { main, newRound, installReloader, pauseChange } from './lib/battle';
+import { scheduleIdlePrune } from './lib/maintenance';
 import { sleep } from './lib/http';
 import { transition, onEnter, after } from './lib/fsm';
 
@@ -142,6 +143,8 @@ onEnter('field', () => {
   const opt = snapshotOptions();
   kvDel('roundType');
   kvDel('battleCode');
+  // 非战斗页面空闲时集中修剪一次（IDB records/turns ＋ battles2 ＋ 日志）。
+  scheduleIdlePrune();
   if (opt.main.encounter) encounterCheck();
   const staminaText = qs('#stamina_readout .fc4.far>div')?.textContent ?? '';
   const stamina = Number(staminaText.match(/\d+/)?.[0] ?? 100);

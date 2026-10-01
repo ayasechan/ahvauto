@@ -2,7 +2,7 @@ import type { ConditionGroups } from '../types';
 import { DEFAULT_WEBHOOK_TEMPLATE } from '../types';
 import { ITEM_IDS, BUFF_LIB, DRAUGHT_LIB, DEBUFF_LIB, SCROLL_LIB } from '../tables';
 
-/** 战斗变量名表（与 conditions.ts battleCtx 的 key 一致，漂移由单测守护）。 */
+/** 战斗变量名表（与 conditions.ts battleVars 的 key 一致，漂移由单测守护）。 */
 export const BATTLE_VAR_NAMES = [
   'hp',
   'mp',
@@ -235,6 +235,7 @@ export function migrateOptions(raw: Record<string, unknown>): void {
   const channel = raw.channel as Record<string, unknown> | undefined;
   if (channel) {
     backfillBool(channel.first, Object.keys(BUFF_LIB));
+    if (typeof channel.useSecond !== 'boolean') channel.useSecond = false;
   }
   const buff = raw.buff as Record<string, unknown> | undefined;
   if (buff) {
@@ -265,6 +266,8 @@ export function migrateOptions(raw: Record<string, unknown>): void {
     migrateRecord(scroll.conditions, BATTLE_VARS, lookup);
     backfill(scroll.conditions, Object.keys(SCROLL_LIB));
     backfillBool(scroll.enabledMap, Object.keys(SCROLL_LIB));
+    backfillBool(scroll.roundTypes, ['ar', 'rb', 'gr', 'iw', 'ba']);
+    if (typeof scroll.first !== 'boolean') scroll.first = false;
   }
   const infusion = raw.infusion as Record<string, unknown> | undefined;
   if (infusion && 'condition' in infusion) {
@@ -277,6 +280,7 @@ export function migrateOptions(raw: Record<string, unknown>): void {
   const alarm = raw.alarm as Record<string, unknown> | undefined;
   if (alarm) {
     backfill(alarm.audio, ['Common', 'Error', 'Defeat', 'Riddle', 'Victory']);
+    backfillBool(alarm.audioEnable, ['Common', 'Error', 'Defeat', 'Riddle', 'Victory']);
   }
   const rule = raw.rule as Record<string, unknown> | undefined;
   if (rule) {

@@ -31,15 +31,15 @@
 主 Buff（需 `buff.enabled`＋总条件）：`Pr411/SL422/SS423/Ha412/AF432/He431/Re312/SV413/Ab421`，
 按用户顺序补“不存在”的（含单项条件＋启用表）。药水见 `docs/ITEMS.md`。
 Channeling 窗口（1MP＋150% 伤害）三段：按 Buff 顺序补缺（需 `channel.enabled`＋单项 `first` 开关）→
-`channelSkill2` 顺序直放 → ReBuff 最早过期者（含 Cloak of the Fallen 转 SL 特例）。
+`channel.useSecond`＋`secondOrder` 顺序直放（旧键 `channelSkill2`/`channelSkill2OrderValue` 仅迁移用）→ ReBuff 最早过期者（不含 Ab，与原版一致，Ab 仅经首段/Buff 主链补；含 Cloak of the Fallen 转 SL 特例）。
 
 ## Debuff（9）
 
 `Sle222/Bl231/Slo221/Im213/MN233/Si232/Dr211/We212/Co223`。
 
-- `allIm` 开（需 `debuff.enabled`＋总条件）：给全场补 Imperil（隔 3 遍历＋顺序遍历）。
+- `allIm` 开（仅需 `debuff.enabled`＋`allIm`，不查总条件，与旧版主链同构）：给全场补 Imperil（隔 3 遍历＋顺序遍历）。
 - 常规（需 `debuff.enabled`＋总条件＋启用表＋单项条件）：按用户顺序给集火目标补缺失项。
-- 单怪上限 6 格：满且最后一格剩余回合不达标→（`turnAlert` 开）弹框暂停等人工。
+- 单怪上限 6 格：满且最后一格剩余回合不达标→ `turnAlert` 开则 `halt` 弹框暂停等人工；关则放行直点（与旧版 `|| !turnAlert` 同构，可能被游戏静默吞）。
 
 ## 卷轴（`SCROLL_LIB`，走物品栏）
 
@@ -49,10 +49,10 @@ Channeling 窗口（1MP＋150% 伤害）三段：按 Buff 顺序补缺（需 `ch
 | Av             | 13199                         | haste＋protection                            |
 | Pr/Sw/Li/Sh/Ab | 13111/13101/13221/13211/13201 | protection/haste/sparklife/shadowveil/absorb |
 
-另有 `roundTypes`（ar/rb/gr/iw/ba）门＋单卷轴条件。
+总门 `scroll.enabled`＋总条件＋`roundTypes[roundType]`，再逐项查启用表＋单卷轴条件＋有货＋覆盖 buff（任一存在即跳过）。
 `scrollFirst` 勾选后只认 `_scroll` 后缀 buff（技能版 buff 不挡卷轴）。
 
 ## 魔药（`INFUSION_LIB`，走物品栏）
 
 按 `attackStatus` 查表（需 `infusion.enabled`＋总条件）：1 火 12101 / 2 冰 12201 / 3 雷 12301 /
-4 风 12401 / 5 圣 12501 / 6 暗 12601；物理（0）跳过；已有对应 buff 跳过。
+4 风 12401 / 5 圣 12501 / 6 暗 12601；物理（0）与未选（-1，查表无命中）跳过；已有对应 buff 跳过。

@@ -668,6 +668,9 @@ function battleKey(at: number): string {
   return `${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+/** 单场列表保留条数：战斗热路径只追加，修剪统一在非战斗页面空闲时经 pruneBattles() 一次完成。 */
+export const BATTLES_CAP = 50;
+
 function flushBattle(cur: CurBattle, result: string): void {
   const totals = backfillTotals((kvGet('stats2', true) as Totals | null) ?? emptyTotals());
   totals.battles++;
@@ -709,8 +712,18 @@ function flushBattle(cur: CurBattle, result: string): void {
     modes: { ...cur.modes },
     detail,
   });
-  kvSet('battles2', list.slice(-50));
+  kvSet('battles2', list);
   kvDel('curBattle2');
+}
+
+/** 非战斗页面空闲时集中驱逐一次：battles2 只留最新 BATTLES_CAP 场。失败静默。 */
+export function pruneBattles(): void {
+  try {
+    const list = (kvGet('battles2', true) as BattleRow[] | null) ?? [];
+    if (list.length > BATTLES_CAP) kvSet('battles2', list.slice(-BATTLES_CAP));
+  } catch {
+    /* 修剪失败不影响页面 */
+  }
 }
 
 /** 一局开始（引擎在 newRound 看到 Round 1 时调用）：顶掉未落盘的上一局 */

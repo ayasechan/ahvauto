@@ -70,7 +70,7 @@ function appendStored(entry: StoredEntry, halved = false): void {
     arr = [];
   }
   arr.push(entry);
-  while (arr.length > STORE_CAP) arr.shift();
+  // 注意：热路径只追加不修剪，修剪统一在非战斗页面空闲时经 pruneStoredLogs() 一次完成。
   try {
     localStorage[STORE_KEY] = JSON.stringify(arr);
   } catch {
@@ -84,6 +84,18 @@ function appendStored(entry: StoredEntry, halved = false): void {
       }
     }
     throw new Error('stored log full');
+  }
+}
+
+/** 非战斗页面空闲时集中驱逐一次：只留最新 STORE_CAP 条。失败静默。 */
+export function pruneStoredLogs(): void {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return;
+    const arr = JSON.parse(raw) as StoredEntry[];
+    if (arr.length > STORE_CAP) localStorage[STORE_KEY] = JSON.stringify(arr.slice(-STORE_CAP));
+  } catch {
+    /* 修剪失败不影响页面 */
   }
 }
 
@@ -119,10 +131,6 @@ export function initLogger(level: LogLevel = 'info'): void {
 
 export function setLogLevel(level: LogLevel): void {
   currentLevel = level;
-}
-
-export function getLogLevel(): LogLevel {
-  return currentLevel;
 }
 
 function emit(level: LogLevel, message: string, ...args: unknown[]): void {
