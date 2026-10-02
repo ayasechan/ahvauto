@@ -1,10 +1,11 @@
 <script lang="ts">
   import { options } from '../../lib/store';
   import { tr } from '../../lib/i18n';
+  import type { I18nKey } from '../../lib/i18n';
   import ConditionEditor from '../ConditionEditor.svelte';
   import { DEBUFF_LIB } from '../../lib/tables';
 
-  const L = (k: string) => tr($options.lang, k);
+  const L = (k: I18nKey) => tr($options.lang, k);
   const KEYS = Object.keys(DEBUFF_LIB);
 
   function toggleOrder(k: string, ev: Event) {
@@ -27,12 +28,12 @@
 
 <div>
   <div class="row">
-    <b>{L('db.need')}</b><ConditionEditor bind:expr={$options.debuff.condition} />
+    <b>{L('debuff.need')}</b><ConditionEditor bind:expr={$options.debuff.condition} />
   </div>
   <div class="row">
-    <b>{L('it.order')}</b><span class="hint">{L('od.seq')}</span><br />
+    <b>{L('item.order')}</b><span class="hint">{L('order.seq')}</span><br />
     {#if $options.debuff.order.length === 0}
-      <span class="hint">{L('od.empty')}</span>
+      <span class="hint">{L('order.empty')}</span>
     {:else}
       <ol class="seq">
         {#each $options.debuff.order as k, i}
@@ -58,7 +59,7 @@
     </div>
   </div>
   <div class="row">
-    <label><input type="checkbox" bind:checked={$options.debuff.allIm} />{L('db.allIm')}</label>
+    <label><input type="checkbox" bind:checked={$options.debuff.allIm} />{L('debuff.allIm')}</label>
   </div>
   {#each KEYS as k}
     <div class="row">
@@ -71,9 +72,11 @@
     </div>
   {/each}
   <div class="row">
-    {L('db.turns')}:
+    {L('debuff.turns')}:
     <label
-      ><input type="checkbox" bind:checked={$options.debuff.turnAlert} />{L('db.turnAlert')}</label
+      ><input type="checkbox" bind:checked={$options.debuff.turnAlert} />{L(
+        'debuff.turnAlert',
+      )}</label
     ><br />
     {#each KEYS as k}
       {DEBUFF_LIB[k]?.name ?? k}:

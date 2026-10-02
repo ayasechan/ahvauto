@@ -42,20 +42,22 @@
     bind:this={area}
     bind:value={expr}
     rows="2"
-    placeholder={tr($options.lang, 'ed.ph')}
+    placeholder={tr($options.lang, 'editor.ph')}
     class:bad={error !== ''}
     spellcheck={false}></textarea>
   {#if error === ''}
     <div class="ok">
-      {(expr ?? '').trim() ? tr($options.lang, 'ed.ok') : tr($options.lang, 'ed.empty')}
+      {(expr ?? '').trim() ? tr($options.lang, 'editor.ok') : tr($options.lang, 'editor.empty')}
     </div>
   {:else}
     <div class="err">✗ {error}</div>
   {/if}
   <div class="hints">
     {#each EXPR_HINTS as h}
-      <button type="button" title="插入 {h.insert}" onclick={() => insert(h.insert)}
-        >{h.label}</button
+      <button
+        type="button"
+        title={`${tr($options.lang, 'editor.insert')} ${h.insert}`}
+        onclick={() => insert(h.insert)}>{h.label}</button
       >
     {/each}
   </div>

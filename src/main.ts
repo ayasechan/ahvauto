@@ -49,7 +49,7 @@ function mountPauseButton(): void {
   if (!snapshotOptions().main.pauseButton) return;
   const button = box2.appendChild(el('button'));
   button.className = 'pauseChange';
-  button.textContent = tr(snapshotOptions().lang, isDisabled() ? 'resume' : 'pause');
+  button.textContent = tr(snapshotOptions().lang, isDisabled() ? 'app.resume' : 'app.pause');
   button.onclick = () => pauseChange();
 }
 
@@ -99,17 +99,17 @@ async function initInner(): Promise<void> {
 
   const opt = snapshotOptions();
   if (opt.main.attackStatus === -1) {
-    const lang = prompt('语言/Language:\n0.简体中文\n1.繁體中文\n2.English', opt.lang);
+    const lang = prompt(tr(opt.lang, 'app.langPrompt'), opt.lang);
     if (lang && ['0', '1', '2'].includes(lang)) {
       options.update((o) => ({ ...o, lang: lang as '0' | '1' | '2' }));
     }
-    alert(tr(snapshotOptions().lang, 'settings'));
+    alert(tr(snapshotOptions().lang, 'app.settings'));
     panelOpen.set(true);
     return;
   }
 
   if (qs('[class^="c5"],[class^="c4"]')) {
-    if (confirm(tr(opt.lang, 'fontWarn'))) {
+    if (confirm(tr(opt.lang, 'app.fontWarn'))) {
       location.href =
         'https://github.com/dodying/UserJs/blob/master/HentaiVerse/hvAutoAttack/README' +
         (opt.lang === '2' ? '_en.md#about-font' : '.md#关于字体的说明');

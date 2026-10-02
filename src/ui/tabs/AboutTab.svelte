@@ -7,6 +7,7 @@
     sanitizeOptions,
   } from '../../lib/store';
   import { tr } from '../../lib/i18n';
+  import type { I18nKey } from '../../lib/i18n';
   import { defaultOptions } from '../../lib/defaults';
   import { getStoredLogs, clearStoredLogs, toLogfmt } from '../../lib/logger';
   import type { StoredEntry } from '../../lib/logger';
@@ -20,7 +21,7 @@
     toJsonlLine,
   } from '../../lib/recorder';
 
-  const L = (k: string) => tr($options.lang, k);
+  const L = (k: I18nKey) => tr($options.lang, k);
 
   let backups = $state<Record<string, string>>({});
   let cfgFile = $state<HTMLInputElement>();
@@ -39,7 +40,7 @@
     saveBackups(backups);
   }
   function backup() {
-    const code = prompt('备份名称:');
+    const code = prompt(L('about.promptBackupName'));
     if (!code) return;
     backups[code] = JSON.stringify($options);
     persistBackups();
@@ -52,9 +53,9 @@
   }
   function restore(code: string) {
     try {
-      if (!applyImported(backups[code])) alert('备份损坏');
+      if (!applyImported(backups[code])) alert(L('about.alertBackupBad'));
     } catch {
-      alert('备份损坏');
+      alert(L('about.alertBackupBad'));
     }
   }
   function download(name: string, blob: Blob) {
@@ -73,7 +74,7 @@
         new Blob([JSON.stringify($options)], { type: 'application/json' }),
       );
     } catch {
-      alert('导出失败');
+      alert(L('about.alertExportFail'));
     }
   }
   function importCfg() {
@@ -85,17 +86,17 @@
     input.value = '';
     if (!f) return;
     try {
-      if (!applyImported(await f.text())) alert('配置解析失败');
+      if (!applyImported(await f.text())) alert(L('about.alertParseFail'));
     } catch {
-      alert('配置解析失败');
+      alert(L('about.alertParseFail'));
     }
   }
   function reset() {
-    if (confirm('重置所有设置?')) $options = defaultOptions();
+    if (confirm(L('about.confirmResetAll'))) $options = defaultOptions();
   }
   function importLegacy() {
-    if (confirm(L('a.importLegacyConfirm'))) {
-      if (!importLegacyConfig()) alert(L('a.noLegacy'));
+    if (confirm(L('about.importLegacyConfirm'))) {
+      if (!importLegacyConfig()) alert(L('about.noLegacy'));
     }
   }
   refreshBackups();
@@ -144,7 +145,7 @@
     try {
       downloadJsonlGz(`ahvauto-battle-${stamp()}.jsonl.gz`, await exportRecords());
     } catch {
-      alert('导出失败');
+      alert(L('about.alertExportFail'));
     }
   }
   async function clearRec() {
@@ -152,21 +153,21 @@
       await clearRecords();
       recCount = 0;
     } catch {
-      alert('清空失败');
+      alert(L('about.alertClearFail'));
     }
   }
   async function exportTurnsFile() {
     try {
       downloadJsonlGz(`ahvauto-turns-${stamp()}.jsonl.gz`, await exportTurns());
     } catch {
-      alert('导出失败');
+      alert(L('about.alertExportFail'));
     }
   }
   async function exportLogsFile() {
     try {
       downloadJsonlGz(`ahvauto-logs-${stamp()}.jsonl.gz`, await exportLogs());
     } catch {
-      alert('导出失败');
+      alert(L('about.alertExportFail'));
     }
   }
   void refreshRecCount();
@@ -174,11 +175,11 @@
 
 <div>
   <div class="row">
-    <button type="button" onclick={reset}>{L('a.reset')}</button>
-    <button type="button" onclick={backup}>{L('a.backup')}</button>
-    <button type="button" onclick={exportCfg}>{L('a.export')}</button>
-    <button type="button" onclick={importCfg}>{L('a.import')}</button>
-    <button type="button" onclick={importLegacy}>{L('a.importLegacy')}</button>
+    <button type="button" onclick={reset}>{L('about.reset')}</button>
+    <button type="button" onclick={backup}>{L('about.backup')}</button>
+    <button type="button" onclick={exportCfg}>{L('about.export')}</button>
+    <button type="button" onclick={importCfg}>{L('about.import')}</button>
+    <button type="button" onclick={importLegacy}>{L('about.importLegacy')}</button>
     <input
       type="file"
       accept="application/json,.json"
@@ -188,15 +189,15 @@
     />
   </div>
   <div class="row">
-    <label><input type="checkbox" bind:checked={$options.main.debug} />{L('a.debug')}</label>
+    <label><input type="checkbox" bind:checked={$options.main.debug} />{L('about.debug')}</label>
   </div>
   <div class="row">
-    <b>{L('a.backups')}</b>
+    <b>{L('about.backups')}</b>
     <ul>
       {#each Object.keys(backups) as code}
         <li>
           {code}
-          <button type="button" onclick={() => restore(code)}>{L('a.restore')}</button>
+          <button type="button" onclick={() => restore(code)}>{L('about.restore')}</button>
           <button
             type="button"
             onclick={() => {
@@ -209,9 +210,9 @@
     </ul>
   </div>
   <div class="row">
-    <b>{L('a.logs')}</b> (IDB, {logCount < 0 ? '?' : logCount})
+    <b>{L('about.logs')}</b> (IDB, {logCount < 0 ? '?' : logCount})
     <button type="button" onclick={refreshLogs}>{L('ui.refresh')}</button>
-    <button type="button" onclick={exportLogsFile}>导出</button>
+    <button type="button" onclick={exportLogsFile}>{L('about.export')}</button>
     <button type="button" onclick={clearLogs}>{L('ui.clear')}</button>
     <div class="logview">
       {#each kvLogs as e}
@@ -223,13 +224,13 @@
     </div>
   </div>
   <div class="row">
-    <b>{L('a.rec')}</b> (IDB + gzip, {recCount < 0 ? '?' : recCount}
-    {L('a.recCount')})
+    <b>{L('about.rec')}</b> (IDB + gzip, {recCount < 0 ? '?' : recCount}
+    {L('about.recCount')})
     <button type="button" onclick={refreshRecCount}>{L('ui.refresh')}</button>
-    <button type="button" onclick={exportRec}>{L('a.recExport')}</button>
-    <button type="button" onclick={exportTurnsFile}>回合</button>
+    <button type="button" onclick={exportRec}>{L('about.recExport')}</button>
+    <button type="button" onclick={exportTurnsFile}>{L('about.turnsExport')}</button>
     <button type="button" onclick={clearRec}>{L('ui.clear')}</button>
-    {#if !$options.main.debug}<div class="hint">需先开启调试日志才会录制</div>{/if}
+    {#if !$options.main.debug}<div class="hint">{L('about.hintNeedDebug')}</div>{/if}
   </div>
 </div>
 

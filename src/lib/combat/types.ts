@@ -91,6 +91,19 @@ export interface DecideResult {
   consumeOnce?: string;
 }
 
+/** 决策规则名全集（展示层经映射表取 action.* 词条，禁止模板拼接）。 */
+export type RuleName =
+  | 'gem'
+  | 'item'
+  | 'defend'
+  | 'scroll'
+  | 'channel'
+  | 'buff'
+  | 'infusion'
+  | 'imperil'
+  | 'deskill'
+  | 'attack';
+
 /** 每轮清零的一次计数器 */
 export function freshOtos(): Record<string, number> {
   return { OFC: 0, FRD: 0, T3: 0, T2: 0, T1: 0 };

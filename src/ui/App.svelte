@@ -3,6 +3,7 @@
   import './theme.css';
   import { panelOpen, activeTab, options } from '../lib/store';
   import { tr } from '../lib/i18n';
+  import type { I18nKey } from '../lib/i18n';
   import MainTab from './tabs/MainTab.svelte';
   import ItemTab from './tabs/ItemTab.svelte';
   import ChannelTab from './tabs/ChannelTab.svelte';
@@ -18,21 +19,21 @@
   import AboutTab from './tabs/AboutTab.svelte';
   import FeedbackTab from './tabs/FeedbackTab.svelte';
 
-  const TABS: { name: string; labelKey: string; comp: Component; check?: string }[] = [
-    { name: 'Main', labelKey: 'tab.Main', comp: MainTab },
-    { name: 'Item', labelKey: 'tab.Item', comp: ItemTab },
-    { name: 'Channel', labelKey: 'tab.Channel', comp: ChannelTab, check: 'channel' },
-    { name: 'Buff', labelKey: 'tab.Buff', comp: BuffTab, check: 'buff' },
-    { name: 'Debuff', labelKey: 'tab.Debuff', comp: DebuffTab, check: 'debuff' },
-    { name: 'Skill', labelKey: 'tab.Skill', comp: SkillTab, check: 'skill' },
-    { name: 'Scroll', labelKey: 'tab.Scroll', comp: ScrollTab, check: 'scroll' },
-    { name: 'Infusion', labelKey: 'tab.Infusion', comp: InfusionTab, check: 'infusion' },
-    { name: 'Alarm', labelKey: 'tab.Alarm', comp: AlarmTab },
-    { name: 'Rule', labelKey: 'tab.Rule', comp: RuleTab },
-    { name: 'Drop', labelKey: 'tab.Drop', comp: DropTab, check: 'recordUsage' },
-    { name: 'Usage', labelKey: 'tab.Usage', comp: UsageTab, check: 'recordUsage' },
-    { name: 'About', labelKey: 'tab.About', comp: AboutTab },
-    { name: 'Feedback', labelKey: 'tab.Feedback', comp: FeedbackTab },
+  const TABS: { name: string; labelKey: I18nKey; comp: Component; check?: string }[] = [
+    { name: 'Main', labelKey: 'tab.main', comp: MainTab },
+    { name: 'Item', labelKey: 'tab.item', comp: ItemTab },
+    { name: 'Channel', labelKey: 'tab.channel', comp: ChannelTab, check: 'channel' },
+    { name: 'Buff', labelKey: 'tab.buff', comp: BuffTab, check: 'buff' },
+    { name: 'Debuff', labelKey: 'tab.debuff', comp: DebuffTab, check: 'debuff' },
+    { name: 'Skill', labelKey: 'tab.skill', comp: SkillTab, check: 'skill' },
+    { name: 'Scroll', labelKey: 'tab.scroll', comp: ScrollTab, check: 'scroll' },
+    { name: 'Infusion', labelKey: 'tab.infusion', comp: InfusionTab, check: 'infusion' },
+    { name: 'Alarm', labelKey: 'tab.alarm', comp: AlarmTab },
+    { name: 'Rule', labelKey: 'tab.rule', comp: RuleTab },
+    { name: 'Drop', labelKey: 'tab.drop', comp: DropTab, check: 'recordUsage' },
+    { name: 'Usage', labelKey: 'tab.usage', comp: UsageTab, check: 'recordUsage' },
+    { name: 'About', labelKey: 'tab.about', comp: AboutTab },
+    { name: 'Feedback', labelKey: 'tab.feedback', comp: FeedbackTab },
   ];
 
   function switchCheck(name: string): boolean {
@@ -56,25 +57,25 @@
     else if (name === 'recordUsage') $options.recordUsage = v;
   }
 
-  const GROUPS: { title: string; tabs: typeof TABS }[] = [
+  const GROUPS: { titleKey: I18nKey; tabs: typeof TABS }[] = [
     {
-      title: '战斗设置',
+      titleKey: 'group.battle',
       tabs: TABS.filter((t) =>
         ['Main', 'Channel', 'Buff', 'Debuff', 'Skill', 'Rule', 'Alarm'].includes(t.name),
       ),
     },
     {
-      title: '物品消耗',
+      titleKey: 'group.item',
       tabs: TABS.filter((t) => ['Item', 'Scroll', 'Infusion'].includes(t.name)),
     },
-    { title: '监控数据', tabs: TABS.filter((t) => ['Drop', 'Usage'].includes(t.name)) },
-    { title: '系统', tabs: TABS.filter((t) => ['About', 'Feedback'].includes(t.name)) },
+    { titleKey: 'group.monitor', tabs: TABS.filter((t) => ['Drop', 'Usage'].includes(t.name)) },
+    { titleKey: 'group.sys', tabs: TABS.filter((t) => ['About', 'Feedback'].includes(t.name)) },
   ];
 
   const current = $derived(TABS.find((t) => t.name === $activeTab) ?? TABS[0]);
   const crumb = $derived(() => {
     const g = GROUPS.find((gr) => gr.tabs.some((t) => t.name === current.name));
-    return `${g?.title ?? ''} / ${tr($options.lang, current.labelKey)}`;
+    return `${g ? tr($options.lang, g.titleKey) : ''} / ${tr($options.lang, current.labelKey)}`;
   });
 </script>
 
@@ -82,10 +83,10 @@
   <div id="ahvauto-panel" role="dialog" aria-label="ahvauto">
     <div class="ahvauto-center">
       <h1>ahvauto</h1>
-      <select bind:value={$options.lang} aria-label={tr($options.lang, 'a.lang')}>
-        <option value="0">简体中文</option>
-        <option value="1">繁體中文</option>
-        <option value="2">English</option>
+      <select bind:value={$options.lang} aria-label={tr($options.lang, 'about.lang')}>
+        <option value="0">{tr($options.lang, 'lang.zhHans')}</option>
+        <option value="1">{tr($options.lang, 'lang.zhHant')}</option>
+        <option value="2">{tr($options.lang, 'lang.en')}</option>
       </select>
       <button type="button" class="ahvauto-close" onclick={() => ($panelOpen = false)}
         >{tr($options.lang, 'ui.close')}</button
@@ -94,7 +95,7 @@
     <div class="ahvauto-tablist">
       <div class="ahvauto-tabmenu" role="tablist">
         {#each GROUPS as g}
-          <div class="ahvauto-group">{g.title}</div>
+          <div class="ahvauto-group">{tr($options.lang, g.titleKey)}</div>
           {#each g.tabs as t}
             <button
               type="button"

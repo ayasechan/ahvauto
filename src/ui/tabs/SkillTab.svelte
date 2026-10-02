@@ -1,9 +1,10 @@
 <script lang="ts">
   import { options } from '../../lib/store';
   import { tr } from '../../lib/i18n';
+  import type { I18nKey } from '../../lib/i18n';
   import ConditionEditor from '../ConditionEditor.svelte';
 
-  const L = (k: string) => tr($options.lang, k);
+  const L = (k: I18nKey) => tr($options.lang, k);
   const ORDER = ['OFC', 'FRD', 'T3', 'T2', 'T1'] as const;
   function toggle(k: string, ev: Event) {
     const on = (ev.target as HTMLInputElement).checked;
@@ -24,11 +25,11 @@
 </script>
 
 <div>
-  <p>{L('sk.note')}</p>
+  <p>{L('skill.note')}</p>
   <div class="row">
-    <b>{L('it.order')}</b><span class="hint">{L('od.seq')}</span><br />
+    <b>{L('item.order')}</b><span class="hint">{L('order.seq')}</span><br />
     {#if $options.skill.order.length === 0}
-      <span class="hint">{L('od.emptySkill')}</span>
+      <span class="hint">{L('order.emptySkill')}</span>
       <ol class="seq ghost">
         {#each ORDER as k, i}
           <li><span class="n">{i + 1}</span>{k}</li>
@@ -59,33 +60,37 @@
     </div>
   </div>
   <div class="row">
-    <label><input type="checkbox" bind:checked={$options.skill.ofc} /><b>{L('sk.ofc')}</b></label>
-    <label><input type="checkbox" bind:checked={$options.skill.otosOFC} />{L('sk.once')}</label>
+    <label><input type="checkbox" bind:checked={$options.skill.ofc} /><b>{L('skill.ofc')}</b></label
+    >
+    <label><input type="checkbox" bind:checked={$options.skill.otosOFC} />{L('skill.once')}</label>
     <ConditionEditor bind:expr={$options.skill.ofcCondition} />
   </div>
   <div class="row">
-    <label><input type="checkbox" bind:checked={$options.skill.frd} /><b>{L('sk.frd')}</b></label>
-    <label><input type="checkbox" bind:checked={$options.skill.otosFRD} />{L('sk.once')}</label>
+    <label><input type="checkbox" bind:checked={$options.skill.frd} /><b>{L('skill.frd')}</b></label
+    >
+    <label><input type="checkbox" bind:checked={$options.skill.otosFRD} />{L('skill.once')}</label>
     <ConditionEditor bind:expr={$options.skill.frdCondition} />
   </div>
   <div class="row">
     <label><input type="checkbox" bind:checked={$options.skill.t3} /><b>T3</b></label>
-    <label><input type="checkbox" bind:checked={$options.skill.otosT3} />{L('sk.once')}</label>
+    <label><input type="checkbox" bind:checked={$options.skill.otosT3} />{L('skill.once')}</label>
     <ConditionEditor bind:expr={$options.skill.t3Condition} />
   </div>
   <div class="row">
     <label><input type="checkbox" bind:checked={$options.skill.t2} /><b>T2</b></label>
-    <label><input type="checkbox" bind:checked={$options.skill.otosT2} />{L('sk.once')}</label>
+    <label><input type="checkbox" bind:checked={$options.skill.otosT2} />{L('skill.once')}</label>
     <ConditionEditor bind:expr={$options.skill.t2Condition} />
   </div>
   <div class="row">
     <label><input type="checkbox" bind:checked={$options.skill.t1} /><b>T1</b></label>
-    <label><input type="checkbox" bind:checked={$options.skill.otosT1} />{L('sk.once')}</label>
+    <label><input type="checkbox" bind:checked={$options.skill.otosT1} />{L('skill.once')}</label>
     <ConditionEditor bind:expr={$options.skill.t1Condition} />
   </div>
   <div class="row">
     <label
-      ><input type="checkbox" bind:checked={$options.skill.mercifulBlow} />{L('sk.merciful')}</label
+      ><input type="checkbox" bind:checked={$options.skill.mercifulBlow} />{L(
+        'skill.merciful',
+      )}</label
     >
   </div>
 </div>

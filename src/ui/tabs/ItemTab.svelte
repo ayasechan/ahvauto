@@ -1,10 +1,11 @@
 <script lang="ts">
   import { options } from '../../lib/store';
   import { tr } from '../../lib/i18n';
+  import type { I18nKey } from '../../lib/i18n';
   import ConditionEditor from '../ConditionEditor.svelte';
   import { ITEM_IDS } from '../../lib/tables';
 
-  const L = (k: string) => tr($options.lang, k);
+  const L = (k: I18nKey) => tr($options.lang, k);
 
   const NAMES: [string, string][] = [
     ['Cure', 'Cure'],
@@ -40,7 +41,7 @@
 
 <div>
   <div class="row">
-    <b>{L('it.order')}</b>
+    <b>{L('item.order')}</b>
     <select bind:value={newKey}>
       {#each NAMES as [k, label]}
         <option value={k}>{label}</option>

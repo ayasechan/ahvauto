@@ -2,6 +2,7 @@
   import { options, kvGet } from '../../lib/store';
   import { ENCOUNTER_KEY, STAMINA_LOG_KEY } from '../../lib/storage-keys';
   import { tr } from '../../lib/i18n';
+  import type { I18nKey } from '../../lib/i18n';
   import {
     getTotals,
     getBattles,
@@ -13,21 +14,30 @@
   import type { BattleRow, CurBattle } from '../../lib/stats';
   import * as battleMod from '../../lib/battle';
 
-  const L = (k: string) => tr($options.lang, k);
+  const L = (k: I18nKey) => tr($options.lang, k);
+
+  /** 战斗类型 → 词典 key（加类型必须同步补这里，否则编译报错）。 */
+  const TYPE_KEY = {
+    ar: 'battle.ar',
+    rb: 'battle.rb',
+    gr: 'battle.gr',
+    iw: 'battle.iw',
+    ba: 'battle.ba',
+  } as const satisfies Record<string, I18nKey>;
 
   function typeLabel(t: string | undefined): string {
-    const key = ['ar', 'rb', 'gr', 'iw', 'ba'].includes(t ?? '') ? `bt.${t}` : 'bt.unknown';
+    const key = (TYPE_KEY as Record<string, I18nKey | undefined>)[t ?? ''] ?? 'battle.unknown';
     return tr($options.lang, key);
   }
 
   function resultLabel(r: string | undefined): string {
     const key =
       r === 'victory'
-        ? 'bt.victory'
+        ? 'battle.victory'
         : r === 'defeat'
-          ? 'bt.defeat'
+          ? 'battle.defeat'
           : r === 'interrupted'
-            ? 'bt.interrupted'
+            ? 'battle.interrupted'
             : null;
     return key ? tr($options.lang, key) : (r ?? '?');
   }
@@ -131,39 +141,39 @@
 <div>
   <div class="row">
     <button type="button" onclick={refresh}>{L('ui.refresh')}</button>
-    <button type="button" onclick={exportCsv}>{L('u.csv')}</button>
+    <button type="button" onclick={exportCsv}>{L('usage.csv')}</button>
     <button type="button" onclick={clear}>{L('ui.clear')}</button>
   </div>
   <table>
     <tbody>
       <tr><td>Rounds</td><td>{fmt(stats.turns)}</td></tr>
       <tr><td>Battles</td><td>{fmt(stats.battles)}</td></tr>
-      <tr><td>{L('u.damage')}</td><td>{fmt(stats.damage)}（crit {fmt(stats.crits)}）</td></tr>
+      <tr><td>{L('usage.damage')}</td><td>{fmt(stats.damage)}（crit {fmt(stats.crits)}）</td></tr>
       {#each top(stats.damageByType) as [k, v]}
         <tr><td class="sub">{k}</td><td>{fmt(v)}</td></tr>
       {/each}
       <tr
-        ><td>{L('u.hurt')}</td><td
+        ><td>{L('usage.hurt')}</td><td
           >{fmt(stats.taken)}（evade {fmt(stats.evades)} / miss {fmt(stats.misses)}）</td
         ></tr
       >
-      <tr><td class="sub">物理承伤</td><td>{fmt(stats.takenPhys)}</td></tr>
+      <tr><td class="sub">{L('usage.takenPhys')}</td><td>{fmt(stats.takenPhys)}</td></tr>
       {#each topTakenBy(true) as [k, v]}
         <tr><td class="sub sub2">{k}</td><td>{fmt(v)}</td></tr>
       {/each}
-      <tr><td class="sub">魔法承伤</td><td>{fmt(stats.takenMag)}</td></tr>
+      <tr><td class="sub">{L('usage.takenMag')}</td><td>{fmt(stats.takenMag)}</td></tr>
       {#each topTakenBy(false) as [k, v]}
         <tr><td class="sub sub2">{k}</td><td>{fmt(v)}</td></tr>
       {/each}
       <tr
-        ><td>{L('u.restore')}</td><td
+        ><td>{L('usage.restore')}</td><td
           >HP {fmt(stats.healedHp)} / MP {fmt(stats.restoredMp)} / SP {fmt(stats.restoredSp)}</td
         ></tr
       >
-      <tr><td>护盾吸收</td><td>{fmt(stats.absorbed)}</td></tr>
+      <tr><td>{L('usage.absorbed')}</td><td>{fmt(stats.absorbed)}</td></tr>
       <tr><td>Focus</td><td>{fmt(stats.focus)}</td></tr>
       <tr
-        ><td>熟练度</td><td
+        ><td>{L('usage.proficiency')}</td><td
           >{top(stats.proficiency)
             .map(([k, v]) => `${k} ${fmt(v)}`)
             .join(', ')}</td
@@ -184,9 +194,9 @@
             .join(', ')}</td
         ></tr
       >
-      <tr><td>MP / OC 消耗</td><td>{fmt(stats.mpCost)} / {fmt(stats.ocCost)}</td></tr>
+      <tr><td>{L('usage.cost')}</td><td>{fmt(stats.mpCost)} / {fmt(stats.ocCost)}</td></tr>
       <tr
-        ><td>回复来源 top5</td><td
+        ><td>{L('usage.restoreSrc')}</td><td
           >{top(stats.restoreBySource ?? {})
             .map(([k, v]) => `${k} ${fmt(v)}`)
             .join(', ') || '—'}</td
@@ -194,24 +204,24 @@
       >
       <tr><td>Monsters / Bosses</td><td>{fmt(stats.monsters)} / {fmt(stats.bosses)}</td></tr>
       <tr
-        ><td>动作模式</td><td
+        ><td>{L('usage.modes')}</td><td
           >{top(stats.modes ?? {})
             .map(([k, v]) => `${k}×${fmt(v)}`)
             .join(', ') || '—'}</td
         ></tr
       >
       <tr
-        ><td>累计开始</td><td
+        ><td>{L('usage.startedAt')}</td><td
           >{stats.startedAt ? new Date(stats.startedAt).toLocaleString() : '—'}</td
         ></tr
       >
     </tbody>
   </table>
   <div class="row">
-    <b>单场战斗</b>（最近 50 场，点击看详情）
+    <b>{L('usage.single')}</b>（{L('usage.singleHint')}）
     {#if cur}
       <div class="live">
-        进行中：{fmt(cur.turns)} turns / {fmt(cur.damage)} dmg / {fmt(cur.kills)} kills
+        {L('usage.live')}：{fmt(cur.turns)} turns / {fmt(cur.damage)} dmg / {fmt(cur.kills)} kills
       </div>
     {/if}
     {#if selected}
@@ -221,23 +231,34 @@
         <button type="button" onclick={() => (selected = null)}>✕</button>
         <table>
           <tbody>
-            <tr><td>开始</td><td>{new Date(b.startedAt).toLocaleString()}</td></tr>
-            <tr><td>结束</td><td>{b.endedAt ? new Date(b.endedAt).toLocaleString() : '—'}</td></tr>
-            <tr><td>类型</td><td>{typeLabel(b.type)}</td></tr>
-            <tr><td>代号</td><td>{b.code || '—'}</td></tr>
-            <tr><td>结果</td><td>{resultLabel(b.result)}</td></tr>
-            <tr><td>轮数</td><td>{fmt(b.rounds)}</td></tr>
+            <tr
+              ><td>{L('usage.detail.start')}</td><td>{new Date(b.startedAt).toLocaleString()}</td
+              ></tr
+            >
+            <tr
+              ><td>{L('usage.detail.end')}</td><td
+                >{b.endedAt ? new Date(b.endedAt).toLocaleString() : '—'}</td
+              ></tr
+            >
+            <tr><td>{L('usage.detail.type')}</td><td>{typeLabel(b.type)}</td></tr>
+            <tr><td>{L('usage.detail.code')}</td><td>{b.code || '—'}</td></tr>
+            <tr><td>{L('usage.detail.result')}</td><td>{resultLabel(b.result)}</td></tr>
+            <tr><td>{L('usage.detail.rounds')}</td><td>{fmt(b.rounds)}</td></tr>
             <tr><td>Turns</td><td>{fmt(b.turns)}</td></tr>
-            <tr><td>伤害</td><td>{fmt(b.damage)}</td></tr>
-            <tr><td>承伤</td><td>{fmt(b.taken)}</td></tr>
-            <tr><td>击杀</td><td>{fmt(b.kills)}</td></tr>
+            <tr><td>{L('usage.detail.damage')}</td><td>{fmt(b.damage)}</td></tr>
+            <tr><td>{L('usage.detail.taken')}</td><td>{fmt(b.taken)}</td></tr>
+            <tr><td>{L('usage.detail.kills')}</td><td>{fmt(b.kills)}</td></tr>
             <tr><td>Monster</td><td>{fmt(b.monsters)}</td></tr>
             <tr><td>Boss</td><td>{fmt(b.bosses)}</td></tr>
             <tr><td>EXP</td><td>{fmt(b.exp)}</td></tr>
             <tr><td>Credit</td><td>{fmt(b.credit)}</td></tr>
-            <tr><td>掉落</td><td>{b.drops.length > 0 ? b.drops.join('; ') : '—'}</td></tr>
             <tr
-              ><td>动作模式</td><td
+              ><td>{L('usage.detail.drops')}</td><td
+                >{b.drops.length > 0 ? b.drops.join('; ') : '—'}</td
+              ></tr
+            >
+            <tr
+              ><td>{L('usage.modes')}</td><td
                 >{b.modes
                   ? Object.entries(b.modes)
                       .map(([k, v]) => `${k}×${v}`)
@@ -248,7 +269,7 @@
             {#if b.detail}
               {@const d = b.detail}
               <tr
-                ><td>伤害分布</td><td
+                ><td>{L('usage.dist.damage')}</td><td
                   >{Object.entries(d.damageByType)
                     .sort((a, b2) => b2[1] - a[1])
                     .slice(0, 5)
@@ -257,7 +278,7 @@
                 ></tr
               >
               <tr
-                ><td>承伤分布</td><td
+                ><td>{L('usage.dist.taken')}</td><td
                   >{Object.entries(d.takenByType)
                     .sort((a, b2) => b2[1] - a[1])
                     .slice(0, 5)
@@ -266,7 +287,7 @@
                 ></tr
               >
               <tr
-                ><td>施法/物品</td><td
+                ><td>{L('usage.dist.casts')}</td><td
                   >{Object.entries({ ...d.casts, ...d.itemsUsed })
                     .sort((a, b2) => b2[1] - a[1])
                     .slice(0, 5)
@@ -282,9 +303,10 @@
     <table>
       <thead
         ><tr
-          ><th>时间</th><th>类型</th><th>代号</th><th>结果</th><th>Turns</th><th>DMG</th><th
-            >Taken</th
-          ><th>Kills</th><th>Monster</th><th>Boss</th><th>EXP</th></tr
+          ><th>{L('usage.table.time')}</th><th>{L('usage.table.type')}</th><th
+            >{L('usage.table.code')}</th
+          ><th>{L('usage.table.result')}</th><th>Turns</th><th>DMG</th><th>Taken</th><th>Kills</th
+          ><th>Monster</th><th>Boss</th><th>EXP</th></tr
         ></thead
       >
       <tbody>
@@ -301,18 +323,18 @@
     </table>
   </div>
   <div class="row">
-    <b>Stamina / 遭遇战台账</b>
+    <b>{L('usage.ledger')}</b>
     <table>
       <tbody>
         <tr
-          ><td>Stamina lost（最近 5 条）</td><td
+          ><td>{L('usage.staminaLost')}</td><td
             >{staminaLog.length > 0 ? staminaLog.map(([k, v]) => `${k} -${v}`).join('; ') : '—'}</td
           ></tr
         >
         <tr
-          ><td>Encounters</td><td
+          ><td>{L('usage.encounters')}</td><td
             >{encounter
-              ? `${encounter.time} 次 / 上次 ${encounter.lastTime ? new Date(encounter.lastTime).toLocaleString() : '—'}`
+              ? `${encounter.time} ${L('usage.times')} / ${L('usage.lastTime')} ${encounter.lastTime ? new Date(encounter.lastTime).toLocaleString() : '—'}`
               : '—'}</td
           ></tr
         >

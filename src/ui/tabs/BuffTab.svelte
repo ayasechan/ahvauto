@@ -1,10 +1,11 @@
 <script lang="ts">
   import { options } from '../../lib/store';
   import { tr } from '../../lib/i18n';
+  import type { I18nKey } from '../../lib/i18n';
   import ConditionEditor from '../ConditionEditor.svelte';
   import { BUFF_LIB, DRAUGHT_LIB } from '../../lib/tables';
 
-  const L = (k: string) => tr($options.lang, k);
+  const L = (k: I18nKey) => tr($options.lang, k);
   const KEYS = Object.keys(BUFF_LIB);
   const DKEYS = Object.keys(DRAUGHT_LIB);
 
@@ -28,12 +29,12 @@
 
 <div>
   <div class="row">
-    <b>{L('bf.need')}</b><ConditionEditor bind:expr={$options.buff.condition} />
+    <b>{L('buff.need')}</b><ConditionEditor bind:expr={$options.buff.condition} />
   </div>
   <div class="row">
-    <b>{L('it.order')}</b><span class="hint">{L('od.seq')}</span><br />
+    <b>{L('item.order')}</b><span class="hint">{L('order.seq')}</span><br />
     {#if $options.buff.order.length === 0}
-      <span class="hint">{L('od.empty')}</span>
+      <span class="hint">{L('order.empty')}</span>
     {:else}
       <ol class="seq">
         {#each $options.buff.order as k, i}

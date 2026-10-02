@@ -1,23 +1,24 @@
 <script lang="ts">
   import { options } from '../../lib/store';
   import { tr } from '../../lib/i18n';
+  import type { I18nKey } from '../../lib/i18n';
   import ConditionEditor from '../ConditionEditor.svelte';
   import { SCROLL_LIB } from '../../lib/tables';
 
-  const L = (k: string) => tr($options.lang, k);
+  const L = (k: I18nKey) => tr($options.lang, k);
   const KEYS = Object.keys(SCROLL_LIB);
 </script>
 
 <div>
   <div class="row">
-    {L('sc.rounds')}:
+    {L('scroll.rounds')}:
     {#each ['ar', 'rb', 'gr', 'iw', 'ba'] as const as r}
       <label><input type="checkbox" bind:checked={$options.scroll.roundTypes[r]} />{r}</label>
     {/each}
-    <label><input type="checkbox" bind:checked={$options.scroll.first} />{L('sc.first')}</label>
+    <label><input type="checkbox" bind:checked={$options.scroll.first} />{L('scroll.first')}</label>
   </div>
   <div class="row">
-    <b>{L('sc.need')}</b><ConditionEditor bind:expr={$options.scroll.condition} />
+    <b>{L('scroll.need')}</b><ConditionEditor bind:expr={$options.scroll.condition} />
   </div>
   {#each KEYS as k}
     <div class="row">

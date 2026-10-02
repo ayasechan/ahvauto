@@ -1,10 +1,11 @@
 <script lang="ts">
   import { options } from '../../lib/store';
   import { tr } from '../../lib/i18n';
+  import type { I18nKey } from '../../lib/i18n';
   import { getBattles, clearStats } from '../../lib/stats';
   import type { BattleRow } from '../../lib/stats';
 
-  const L = (k: string) => tr($options.lang, k);
+  const L = (k: I18nKey) => tr($options.lang, k);
   let rows = $state<BattleRow[]>([]);
 
   function refresh() {
@@ -25,16 +26,17 @@
 
 <div>
   <div class="row">
-    {L('d.filter')} <input bind:value={$options.dropQuality} placeholder="Epic" />
+    {L('drop.filter')} <input bind:value={$options.dropQuality} placeholder="Epic" />
     <button type="button" onclick={refresh}>{L('ui.refresh')}</button>
     <button type="button" onclick={clear}>{L('ui.clear')}</button>
   </div>
   <table>
     <thead
       ><tr
-        ><th>{L('d.h.battle')}</th><th>Turns</th><th>DMG</th><th>{L('d.h.exp')}</th><th
-          >{L('d.h.credit')}</th
-        ><th>Kills</th><th>Monster</th><th>Boss</th><th>{L('d.h.items')}</th></tr
+        ><th>{L('drop.header.battle')}</th><th>Turns</th><th>DMG</th><th>{L('drop.header.exp')}</th
+        ><th>{L('drop.header.credit')}</th><th>Kills</th><th>Monster</th><th>Boss</th><th
+          >{L('drop.header.items')}</th
+        ></tr
       ></thead
     >
     <tbody>

@@ -1,6 +1,7 @@
 import type { GmResponseEvent, GmXmlhttpRequestOption } from 'vite-plugin-monkey/dist/client';
 import { snapshotOptions } from './store';
-import type { AlarmKind } from './types';
+import type { AlarmKind, NotifyKind } from './types';
+import { tr, tt, alarmKindKey } from './i18n';
 import { logger } from './logger';
 import { renderTemplate } from './template';
 import type { WebhookVars } from './template';
@@ -8,8 +9,6 @@ import { alertId } from './dom-ids';
 
 /** 油猴提供的跨域 XHR（@grant GM_xmlhttpRequest，由构建自动收集＋显式声明）。 */
 declare const GM_xmlhttpRequest: (details: GmXmlhttpRequestOption<'text', undefined>) => unknown;
-
-type NotifyKind = AlarmKind | 'Test';
 
 interface PostResult {
   status: number;
@@ -34,9 +33,9 @@ function gmPostText(url: string, body: string): Promise<PostResult> {
       timeout: 15_000,
       onload: (res: GmResponseEvent<'text', undefined>) =>
         finish(() => resolve({ status: res.status, text: res.responseText })),
-      onerror: () => finish(() => reject(new Error('网络错误'))),
-      ontimeout: () => finish(() => reject(new Error('请求超时'))),
-      onabort: () => finish(() => reject(new Error('请求中止'))),
+      onerror: () => finish(() => reject(new Error(tt('alarm.error.netError')))),
+      ontimeout: () => finish(() => reject(new Error(tt('alarm.error.timeout')))),
+      onabort: () => finish(() => reject(new Error(tt('alarm.error.abort')))),
     });
   });
 }
@@ -79,7 +78,7 @@ export async function sendTelegram(kind: AlarmKind, text: string, force = false)
   if (!force && (!tg?.enabled || !tg.kinds?.[kind])) return;
   const botToken = typeof tg?.botToken === 'string' ? tg.botToken.trim() : '';
   const chatId = normalizeTelegramChatId(tg?.chatId);
-  if (!botToken || !chatId) throw new Error('telegram 未配置 botToken/chatId');
+  if (!botToken || !chatId) throw new Error(tt('alarm.error.noConfig'));
   const res = await postText(
     `https://api.telegram.org/bot${botToken}/sendMessage`,
     JSON.stringify({
@@ -87,12 +86,13 @@ export async function sendTelegram(kind: AlarmKind, text: string, force = false)
       text,
     }),
   );
-  if (res.status < 200 || res.status >= 300) throw new Error(`telegram HTTP ${res.status}`);
+  if (res.status < 200 || res.status >= 300)
+    throw new Error(tt('alarm.error.httpTelegram').replace('{status}', String(res.status)));
   try {
     const data = JSON.parse(res.text) as { ok?: boolean; description?: string };
-    if (!data.ok) throw new Error(data.description ?? 'telegram 发送失败');
+    if (!data.ok) throw new Error(data.description ?? tt('alarm.error.sendFail'));
   } catch (e) {
-    if (e instanceof SyntaxError) throw new Error('telegram 返回解析失败');
+    if (e instanceof SyntaxError) throw new Error(tt('alarm.error.badResponse'));
     throw e;
   }
 }
@@ -111,17 +111,18 @@ export async function sendWebhook(
 ): Promise<void> {
   const wh = snapshotOptions().alarm.webhook;
   if (!force && (!wh?.enabled || !wh.kinds?.[kind])) return;
-  if (!wh?.url) throw new Error('webhook 未配置 URL');
-  if (!wh.template?.trim()) throw new Error('webhook 模板为空');
+  if (!wh?.url) throw new Error(tt('alarm.error.noUrl'));
+  if (!wh.template?.trim()) throw new Error(tt('alarm.error.emptyTemplate'));
   const body = renderTemplate(wh.template, webhookVars(kind, title, text));
   const res = await postText(wh.url, body);
-  if (res.status < 200 || res.status >= 300) throw new Error(`webhook HTTP ${res.status}`);
+  if (res.status < 200 || res.status >= 300)
+    throw new Error(tt('alarm.error.httpWebhook').replace('{status}', String(res.status)));
 }
 
 /** 告警推送（Telegram＋Webhook）：失败只记 debug 日志，不打断战斗。 */
 export async function pushAlarm(kind: AlarmKind): Promise<void> {
   const opt = snapshotOptions();
-  const label = NOTIFY_TEXT[kind][Number(opt.lang)] ?? NOTIFY_TEXT[kind][0];
+  const label = tr(opt.lang, alarmKindKey[kind]);
   const title = `ahvauto ${label}`;
   const text = `${title}\n${location.href}\n${new Date().toLocaleString()}`;
   await Promise.all([
@@ -155,22 +156,13 @@ function ensureAudio(kind: NotifyKind, src: string): HTMLAudioElement {
   return audio;
 }
 
-const NOTIFY_TEXT: Record<NotifyKind, [string, string, string]> = {
-  Common: ['通用警报', '通用警報', 'Common alarm'],
-  Error: ['错误', '錯誤', 'Error'],
-  Defeat: ['战败', '戰敗', 'Defeat'],
-  Riddle: ['答题', '答題', 'Riddle'],
-  Victory: ['胜利', '勝利', 'Victory'],
-  Test: ['测试', '測試', 'Test'],
-};
-
 export async function setAlarm(kind: NotifyKind = 'Common'): Promise<void> {
   const opt = snapshotOptions();
   if (opt.main.notification && 'Notification' in window) {
     try {
       if (Notification.permission === 'default') await Notification.requestPermission();
       if (Notification.permission === 'granted') {
-        const text = NOTIFY_TEXT[kind][Number(opt.lang)] ?? NOTIFY_TEXT[kind][0];
+        const text = tr(opt.lang, alarmKindKey[kind]);
         const n = new Notification('ahvauto', { body: text });
         setTimeout(() => n.close(), 10_000);
       }

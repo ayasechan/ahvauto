@@ -26,11 +26,12 @@ import {
   recordMode,
 } from './stats';
 import type { Totals, CurBattle } from './stats';
-import type { Action } from './combat/types';
+import type { Action, RuleName } from './combat/types';
 import { readSnapshot, resolveTarget, orderTargets } from './combat/snapshot';
-import { decide, shouldEmergencyPause } from './combat/decide';
+import { decide, shouldEmergencyPause, HALT_MSG } from './combat/decide';
 import { executeAction, describeAction } from './combat/execute';
 import { tt } from './i18n';
+import type { I18nKey } from './i18n';
 import {
   ROUND_TYPE_KEY,
   ROUND_NOW_KEY,
@@ -64,11 +65,11 @@ function goto(): void {
 export function pauseChange(): void {
   if (!isDisabled()) {
     const btn = qs('.pauseChange');
-    if (btn) btn.innerHTML = tt('resume');
+    if (btn) btn.innerHTML = tt('app.resume');
     pause('button');
   } else {
     const btn = qs('.pauseChange');
-    if (btn) btn.innerHTML = tt('pause');
+    if (btn) btn.innerHTML = tt('app.pause');
     resume('button');
     void main();
   }
@@ -160,7 +161,7 @@ export async function newRound(): Promise<void> {
     kvSet(STAMINA_LOG_KEY, log);
     if (lost >= opt.main.staminaLose) {
       await setAlarm('Error');
-      if (!confirm('Continue?\nStamina lost too much')) {
+      if (!confirm(tt('battle.confirmStamina'))) {
         pauseChange();
         return;
       }
@@ -210,6 +211,26 @@ export async function newRound(): Promise<void> {
   }
 }
 
+/** 规则名 → 词典 key（decide 加规则必须同步补这里，否则编译报错）。 */
+const RULE_LABEL: Record<RuleName | 'none', I18nKey> = {
+  gem: 'action.gem',
+  item: 'action.item',
+  defend: 'action.defend',
+  scroll: 'action.scroll',
+  channel: 'action.channel',
+  buff: 'action.buff',
+  infusion: 'action.infusion',
+  imperil: 'action.imperil',
+  deskill: 'action.deskill',
+  attack: 'action.attack',
+  none: 'action.none',
+};
+
+/** 历史/录像里的规则名字符串 → 本地化标签（未知旧串回 action.none，绝不抛）。 */
+function actionLabel(rule: string): string {
+  return tt((RULE_LABEL as Record<string, I18nKey | undefined>)[rule] ?? 'action.none');
+}
+
 function battleInfo(): void {
   const b = get(battle);
   let log = qs(`.${LOG_CLASS}`);
@@ -219,16 +240,26 @@ function battleInfo(): void {
     log = box.appendChild(el('div'));
     log.className = LOG_CLASS;
   }
-  const names = ['物理', '火', '冰', '雷', '风', '圣', '暗'];
+  const names = (
+    [
+      'main.elem.phys',
+      'main.elem.fire',
+      'main.elem.cold',
+      'main.elem.elec',
+      'main.elem.wind',
+      'main.elem.divine',
+      'main.elem.forbidden',
+    ] as const satisfies readonly I18nKey[]
+  ).map((k) => tt(k));
   const hist = (debugSurface().history ?? []).slice(-10).reverse();
   log.innerHTML =
     `Turns: ${b.turn}<br>Speed: ${b.runSpeed} t/s` +
     `<br>Round: ${b.roundNow}/${b.roundAll}` +
-    `<br>攻击模式: ${names[b.attackStatus] ?? ''}` +
-    `<br>敌人: ${b.monsterAlive}/${b.monsterAll}` +
+    `<br>${tt('battle.mode')}: ${names[b.attackStatus] ?? ''}` +
+    `<br>${tt('battle.foes')}: ${b.monsterAlive}/${b.monsterAll}` +
     (hist.length > 0
       ? '<br>——<br>' +
-        hist.map((h) => `Turn ${h.turn} [${tt(`r.${h.rule}`)}] ${h.action}`).join('<br>')
+        hist.map((h) => `Turn ${h.turn} [${actionLabel(h.rule)}] ${h.action}`).join('<br>')
       : '');
   document.title = `${b.turn}||${b.runSpeed}||${b.roundNow}/${b.roundAll}||${b.monsterAlive}/${b.monsterAll}`;
 }
@@ -448,7 +479,7 @@ async function mainInner(dbg: DebugSurface, trace: boolean): Promise<void> {
     if (trace) dbg.step = s;
   };
   if (isDisabled()) {
-    document.title = 'ahvauto暂停中';
+    document.title = tt('battle.paused');
     return;
   }
   // JSON 序列化会把 Infinity 丢成 null，重载后必须还原，否则死亡判定失效
@@ -520,7 +551,7 @@ async function mainInner(dbg: DebugSurface, trace: boolean): Promise<void> {
     decided.action,
     (label) => debugAct(label),
     (msg) => {
-      alert(msg);
+      alert(msg === HALT_MSG ? tt('battle.haltDebuff') : msg);
       pauseChange();
     },
   );

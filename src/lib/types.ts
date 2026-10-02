@@ -132,6 +132,9 @@ export interface ScrollOptions {
 
 export type AlarmKind = 'Common' | 'Error' | 'Defeat' | 'Riddle' | 'Victory';
 
+/** 通知种类（含试听，展示层经 alarmKindKey 取词，禁止模板拼接）。 */
+export type NotifyKind = AlarmKind | 'Test';
+
 export interface PushTarget {
   enabled: boolean;
   kinds: Record<'Common' | 'Error' | 'Defeat' | 'Riddle' | 'Victory', boolean>;

@@ -3,6 +3,7 @@ import { ARENA_KEY, ENCOUNTER_KEY } from './storage-keys';
 import { qs, el } from './dom';
 import { httpGet, httpPost, requestRetry, todayKey } from './http';
 import { setAlarm } from './notify';
+import { tt } from './i18n';
 import { alertId } from './dom-ids';
 import { logger } from './logger';
 import { after } from './fsm';
@@ -68,11 +69,11 @@ export function encounterCheck(): void {
     link.title = `${new Date(cache.lastTime ?? now).toLocaleString()}\nEncounter Time: ${cache.time}`;
     link.href = 'https://e-hentai.org/news.php';
     link.onclick = () => {
-      if (cache.time >= 24 && confirm('是否重置')) kvDel(ENCOUNTER_KEY);
+      if (cache.time >= 24 && confirm(tt('battle.confirmReset'))) kvDel(ENCOUNTER_KEY);
     };
   }
   const mins = Math.floor((now - (cache.lastTime ?? now)) / 1000 / 60);
-  link.innerHTML = `${mins}分钟前`;
+  link.innerHTML = tt('battle.minutesAgo').replace('{mins}', String(mins));
   after('encounter', (1 * 60 * 1000 * (Math.random() * 20 + 90)) / 100, encounterCheck);
 }
 
@@ -206,7 +207,7 @@ export async function idleArena(): Promise<void> {
     if (!(id in (cache.token as Record<string, unknown>))) array.shift();
     else break;
   }
-  document.title = '闲置竞技场';
+  document.title = tt('main.idleArena');
   if (array.length === 0) {
     cache.isOk = true;
     cache.array = array;

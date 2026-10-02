@@ -7,7 +7,7 @@ import {
   DEBUFF_SKILL_IDS,
   DEBUFF_WEIGHT_IMGS,
 } from '../tables';
-import type { Snapshot, DecideResult } from './types';
+import type { Snapshot, DecideResult, RuleName } from './types';
 import { orderTargets, resolveTarget } from './snapshot';
 import { evalContext, checkExpr } from './context';
 import type { EvalContext } from '../expr/index';
@@ -25,8 +25,8 @@ interface Ctx {
 }
 
 interface Rule {
-  /** 规则名（调试用） */
-  name: string;
+  /** 规则名（调试用，改名同步改 combat/types.RuleName） */
+  name: RuleName;
   decide: (c: Ctx) => DecideResult | null;
 }
 
@@ -44,7 +44,8 @@ function debuffSlotOk(
   return !alertOn;
 }
 
-const HALT_MSG = '无法正常施放DEBUFF技能，请尝试手动打怪';
+/** halt 中断文案（展示层按当前语言翻译，见 battle.ts onHalt）。 */
+export const HALT_MSG = '无法正常施放DEBUFF技能，请尝试手动打怪';
 
 /**
  * 决策规则表：按表顺序求值，首个命中即决策（顺序即优先级，原 main() 链）。

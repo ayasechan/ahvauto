@@ -1,9 +1,10 @@
 <script lang="ts">
   import { options } from '../../lib/store';
   import { tr } from '../../lib/i18n';
+  import type { I18nKey } from '../../lib/i18n';
   import { BUFF_LIB } from '../../lib/tables';
 
-  const L = (k: string) => tr($options.lang, k);
+  const L = (k: I18nKey) => tr($options.lang, k);
   const KEYS = Object.keys(BUFF_LIB);
   let newKey = $state('Cu');
 
@@ -22,9 +23,9 @@
 </script>
 
 <div>
-  <p><b>{L('ch.title')}</b></p>
+  <p><b>{L('channel.title')}</b></p>
   <div class="row">
-    <b>{L('ch.first')}</b><br />
+    <b>{L('channel.first')}</b><br />
     {#each KEYS as k}
       <label
         ><input type="checkbox" bind:checked={$options.channel.first[k]} />{BUFF_LIB[k].name}</label
@@ -33,7 +34,7 @@
   </div>
   <div class="row">
     <label
-      ><input type="checkbox" bind:checked={$options.channel.useSecond} /><b>{L('ch.then')}</b
+      ><input type="checkbox" bind:checked={$options.channel.useSecond} /><b>{L('channel.then')}</b
       ></label
     >
     <select bind:value={newKey}>

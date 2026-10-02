@@ -1,15 +1,16 @@
 <script lang="ts">
   import { options } from '../../lib/store';
   import { tr } from '../../lib/i18n';
+  import type { I18nKey } from '../../lib/i18n';
   import ConditionEditor from '../ConditionEditor.svelte';
 
-  const L = (k: string) => tr($options.lang, k);
+  const L = (k: I18nKey) => tr($options.lang, k);
 </script>
 
 <div>
   <div class="row">
     <label
-      ><input type="checkbox" bind:checked={$options.infusion.enabled} /><b>{L('in.label')}</b
+      ><input type="checkbox" bind:checked={$options.infusion.enabled} /><b>{L('infusion.label')}</b
       ></label
     >
     <ConditionEditor bind:expr={$options.infusion.condition} />
