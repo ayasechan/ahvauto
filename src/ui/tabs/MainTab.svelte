@@ -1,10 +1,38 @@
 <script lang="ts">
-  import { options } from '../../lib/store';
+  import { options, kvDel } from '../../lib/store';
+  import { ARENA_KEY } from '../../lib/storage-keys';
+  import {
+    ARENA_AR,
+    ARENA_RB,
+    GRIND_TOKEN,
+    arenaLabel,
+    parseArenaValue,
+    serializeArenaQueue,
+  } from '../../lib/arena';
   import { tr } from '../../lib/i18n';
   import type { I18nKey } from '../../lib/i18n';
   import ConditionEditor from '../ConditionEditor.svelte';
 
   const L = (k: I18nKey) => tr($options.lang, k);
+  const queue = (): string[] => parseArenaValue($options.main.idleArenaValue);
+  function setQueue(q: string[]): void {
+    $options.main.idleArenaValue = serializeArenaQueue(q);
+  }
+  function toggle(id: string, ev: Event) {
+    const on = (ev.target as HTMLInputElement).checked;
+    const q = queue();
+    setQueue(on ? [...q, id] : q.filter((x) => x !== id));
+  }
+  function move(i: number, d: -1 | 1) {
+    const arr = queue();
+    const j = i + d;
+    if (j < 0 || j >= arr.length) return;
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+    setQueue(arr);
+  }
+  function remove(i: number) {
+    setQueue(queue().filter((_, j) => j !== i));
+  }
 </script>
 
 <div>
@@ -118,9 +146,61 @@
     <input class="num" type="number" bind:value={$options.main.idleArenaTime} />{L(
       'main.afterIdle',
     )}
-    {L('main.levelSeq')} <input style="width:90%" bind:value={$options.main.idleArenaValue} />
-    {L('main.grTimes')}
-    <input class="num" type="number" bind:value={$options.main.idleArenaGrTime} />
+    <button type="button" onclick={() => setQueue([])}>{L('ui.clear')}</button>
+    <button type="button" onclick={() => kvDel(ARENA_KEY)}>{L('main.arenaReset')}</button>
+    <div style="margin-top: 8px">
+      <b>{L('main.arenaQueue')}</b><span class="hint">{L('order.seq')}</span><br />
+      {#if queue().length === 0}
+        <span class="hint">{L('order.empty')}</span>
+      {:else}
+        <ol class="seq">
+          {#each queue() as id, i}
+            <li>
+              <span class="n">{i + 1}</span>{arenaLabel(id)}
+              <button type="button" onclick={() => move(i, -1)} aria-label="up">↑</button>
+              <button type="button" onclick={() => move(i, 1)} aria-label="down">↓</button>
+              <button type="button" onclick={() => remove(i)} aria-label="remove">✕</button>
+            </li>
+          {/each}
+        </ol>
+      {/if}
+    </div>
+    <div style="margin-top: 8px">
+      <b>{L('main.arenaAr')}</b><br />
+      {#each ARENA_AR as c}
+        <label
+          ><input
+            type="checkbox"
+            checked={queue().includes(c.id)}
+            onchange={(e) => toggle(c.id, e)}
+          />{arenaLabel(c.id)}</label
+        >
+      {/each}
+    </div>
+    <div style="margin-top: 8px">
+      <b>{L('main.arenaRb')}</b><br />
+      {#each ARENA_RB as c}
+        <label
+          ><input
+            type="checkbox"
+            checked={queue().includes(c.id)}
+            onchange={(e) => toggle(c.id, e)}
+          />{arenaLabel(c.id)}</label
+        >
+      {/each}
+    </div>
+    <div style="margin-top: 8px">
+      <b>{L('main.arenaGr')}</b>
+      <label
+        ><input
+          type="checkbox"
+          checked={queue().includes(GRIND_TOKEN)}
+          onchange={(e) => toggle(GRIND_TOKEN, e)}
+        />Grindfest</label
+      >
+      {L('main.grTimes')}
+      <input class="num" type="number" bind:value={$options.main.idleArenaGrTime} />
+    </div>
   </div>
   <div class="row">
     <label
