@@ -54,6 +54,7 @@ export function defaultOptions(): HvOptions {
       idleArenaGrTime: 1,
       repair: false,
       repairValue: 0,
+      repairCharms: true,
       etherTap: false,
       etherTapCondition: '',
       autoFlee: false,

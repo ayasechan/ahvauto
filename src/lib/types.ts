@@ -52,6 +52,8 @@ export interface MainOptions {
   idleArenaGrTime: number;
   repair: boolean;
   repairValue: number;
+  /** 修装备时一并更换护符/ pouch（页内 Replace Charms & Pouches，默认勾选） */
+  repairCharms: boolean;
   etherTap: boolean;
   etherTapCondition: Condition;
   autoFlee: boolean;

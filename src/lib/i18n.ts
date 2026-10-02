@@ -63,6 +63,7 @@ const D = {
   'main.arenaReset': ['重置队列', '重置隊列', 'Reset queue'],
   'main.repair': ['修复装备', '修復裝備', 'Repair equip'],
   'main.durability': ['耐久', '耐久', 'Durability'],
+  'main.repairCharms': ['换护符', '換護符', 'Replace charms'],
   'main.autoFlee': ['自动逃跑', '自動逃跑', 'Auto flee'],
   'main.restore': ['战前回复', '戰前回覆', 'Pre-battle restore'],
   'main.hpFloor': ['血量 ≤', '血量 ≤', 'HP ≤'],

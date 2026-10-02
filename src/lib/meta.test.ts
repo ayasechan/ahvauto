@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseBattleForm } from './meta';
+import { parseBattleForm, parseRepairForm } from './meta';
 
 /** 线上真实片段（2026-09 arena/gr/rb 页实测） */
 const AR_HTML = `
@@ -38,5 +38,38 @@ describe('parseBattleForm 线上格式', () => {
     const t = parseBattleForm('<html></html>');
     assert.equal(t.postoken, null);
     assert.deepEqual(t.ids, {});
+  });
+});
+
+/** 修装备页真实片段（2026-10-03 CDP 实录结构，postoken 已脱敏） */
+const REPAIR_HTML = `
+<form id="equipform" method="post"><input type="hidden" name="postoken" value="tok123">
+<div id="equiplist" onmouseleave="rehover_last_checked()">
+<table><tbody>
+<tr class="eqselall"><th colspan="2"><label class="lc" id="equipcount"><input type="checkbox" onclick="select_all()"><span></span> Selected 0 of 2 matching equipment available to repair</label></th></tr>
+<tr class="eqtplabel"><td colspan="2">Phase Armor</td></tr>
+<tr onmouseover="hover_equip(270174520)" onmouseout="unhover_equip(270174520)" onclick="return select_equip(270174520,event,this)"><td><label class="lc"><input name="eqids[]" type="checkbox" id="e270174520" value="270174520"><span></span> Legendary Charged Phase Pants of Fenrir</label></td><td>95%</td></tr>
+<tr onmouseover="hover_equip(281323861)" onmouseout="unhover_equip(281323861)" onclick="return select_equip(281323861,event,this)"><td><label class="lc"><input name="eqids[]" type="checkbox" id="e281323861" value="281323861"><span></span> Legendary Charged Phase Shoes of Fenrir</label></td><td>91%</td></tr>
+</tbody></table></div></form>
+`;
+
+describe('parseRepairForm 线上格式', () => {
+  it('postoken＋id/耐久表', () => {
+    const t = parseRepairForm(REPAIR_HTML);
+    assert.equal(t.postoken, 'tok123');
+    assert.deepEqual(t.items, [
+      { id: '270174520', durability: 95 },
+      { id: '281323861', durability: 91 },
+    ]);
+  });
+  it('修光后（无 eqids[]）返回空表', () => {
+    const t = parseRepairForm('<form><input type="hidden" name="postoken" value="tok123"></form>');
+    assert.equal(t.postoken, 'tok123');
+    assert.deepEqual(t.items, []);
+  });
+  it('无 postoken 返回 null', () => {
+    const t = parseRepairForm('<html></html>');
+    assert.equal(t.postoken, null);
+    assert.deepEqual(t.items, []);
   });
 });

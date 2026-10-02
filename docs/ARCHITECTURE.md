@@ -74,6 +74,18 @@ scripts/cdp/         # 浏览器运维脚本（TS，npx tsx 运行，详见其 R
 回合内决策是规则表（有序 first-match），不是状态机——行间无状态可跟踪，
 硬套只是 ceremony（结论见实现记录）。
 
+## 战斗外（`main.ts` field 入口 → `meta.ts`）
+
+顺序：`encounterCheck` → 体力门槛 → `repairEquipment` → 定时起 `idleArena`。
+修装备失败只记日志（warning），绝不抛、绝不挡开战；页面跳走导致的中止静默忽略。
+
+- **修装备接口**（CDP 真机录制，ON/OFF 各一次成功提交）：`GET ?s=Bazaar&ss=am&screen=repair`
+  取 `postoken`＋`input[name="eqids[]"]` 的 id＋行尾 `NN%` 耐久，按 `repairValue` 阈值
+  （耐久 ≤ N%）过滤后一次 POST 全修：`postoken + eqids[]×N`（`repairCharms` 开才带
+  `replace_charms=on`，关则整键省略）；成功信号＝被修 id 从响应列表消失
+  （满耐久装备不在 repair 列表）。成本走材料（选中后 `#itemlist` 的 Total Repair Cost），
+  页内确认框实测不弹出。解析纯函数 `parseRepairForm` 配单测（真页片段）。
+
 ## 掉落口径（`stats/parse.ts` 记录，`stats/queries.ts`＋Usage 展示）
 
 - 记录存全名：红装（textlog 掉落 span `#FF0000`）按 `dropQuality` 过滤
@@ -92,5 +104,5 @@ scripts/cdp/         # 浏览器运维脚本（TS，npx tsx 运行，详见其 R
 
 `npm test`（tsx 直跑 `src/**/*.test.ts`，零依赖）：
 `expr`（表达式）、`legacy`（旧配置导入）、`stats`（解析＋行内累加＋读时求和＋CSV/折叠）、
-`meta`（竞技场表单解析）、`recorder`（gzip 回环＋JSONL 行格式＋解码）、`combat/decide`
+`meta`（竞技场/修装备表单解析）、`recorder`（gzip 回环＋JSONL 行格式＋解码）、`combat/decide`
 （决策规则 36 用例）、`template`。IDB 异步路径（落盘/修剪）与空闲修剪走 CDP 真机验证。

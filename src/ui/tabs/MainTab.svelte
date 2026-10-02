@@ -208,6 +208,11 @@
     >
     {L('main.durability')} ≤
     <input class="num" type="number" bind:value={$options.main.repairValue} />%
+    <label
+      ><input type="checkbox" bind:checked={$options.main.repairCharms} />{L(
+        'main.repairCharms',
+      )}</label
+    >
   </div>
   <div class="row">
     <label><input type="checkbox" bind:checked={$options.main.etherTap} /><b>Ether Tap</b></label>

@@ -77,6 +77,88 @@ export function encounterCheck(): void {
   after('encounter', (1 * 60 * 1000 * (Math.random() * 20 + 90)) / 100, encounterCheck);
 }
 
+export interface RepairItem {
+  id: string;
+  /** 行尾 NN% 耐久 */
+  durability: number;
+}
+
+/**
+ * 解析修装备页：postoken（表单真凭据）＋ 可修装备 id/耐久表。
+ * 行格式：`<input name="eqids[]" … value="<id>">…</label></td><td>NN%</td>`
+ * （2026-10 真机录制：6 件→4 件→3 件两次成功提交均走此格式）
+ */
+export function parseRepairForm(html: string): {
+  postoken: string | null;
+  items: RepairItem[];
+} {
+  const postoken = html.match(/name="postoken" value="([^"]+)"/)?.[1] ?? null;
+  const items: RepairItem[] = [];
+  for (const m of html.matchAll(
+    /name="eqids\[\]"[^>]*value="(\d+)"[\s\S]*?<\/label>\s*<\/td>\s*<td>\s*(\d+)\s*%/g,
+  )) {
+    items.push({ id: m[1], durability: Number(m[2]) });
+  }
+  return { postoken, items };
+}
+
+const REPAIR_URL = '?s=Bazaar&ss=am&screen=repair';
+
+/**
+ * 自动修装备（field 入口调用，战斗前跑一次）：
+ * 取 repair 页 → 按 repairValue 阈值（耐久 ≤ N%）过滤 → 一次 POST 全修 →
+ * 以被修 id 从响应列表消失为成功信号。
+ * 失败只记日志（warning），绝不抛、绝不挡后续 idleArena；页面跳走导致的中止静默忽略。
+ */
+export async function repairEquipment(): Promise<void> {
+  const opt = snapshotOptions();
+  if (!opt.main.repair) return;
+  let html: string;
+  try {
+    html = await requestRetry(() => httpGet<string>(REPAIR_URL, 'html'));
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') return;
+    logger.warning('repair: list fetch failed: {err}', { err: String(e) });
+    return;
+  }
+  const form = parseRepairForm(html);
+  if (!form.postoken) {
+    logger.warning('repair: no postoken on repair page');
+    return;
+  }
+  const targets = form.items.filter((i) => i.durability <= opt.main.repairValue);
+  if (targets.length === 0) {
+    logger.debug('repair: nothing below {th}% ({n} listed)', {
+      th: opt.main.repairValue,
+      n: form.items.length,
+    });
+    return;
+  }
+  const params = targets.map((t) => `eqids%5B%5D=${encodeURIComponent(t.id)}`).join('&');
+  const body =
+    `${params}&postoken=${encodeURIComponent(form.postoken)}` +
+    (opt.main.repairCharms ? '&replace_charms=on' : '');
+  let after: string;
+  try {
+    after = await requestRetry(() => httpPost<string>(REPAIR_URL, body, 'html'));
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') return;
+    logger.warning('repair: submit failed: {err}', { err: String(e) });
+    return;
+  }
+  const remaining = targets.filter((t) => parseRepairForm(after).items.some((i) => i.id === t.id));
+  if (remaining.length === 0) {
+    logger.info('repair: fixed {n} item(s) at <= {th}%', {
+      n: targets.length,
+      th: opt.main.repairValue,
+    });
+  } else {
+    logger.warning('repair: {ids} still listed after submit', {
+      ids: remaining.map((t) => t.id).join(','),
+    });
+  }
+}
+
 /**
  * 解析战斗列表页：postoken（表单真凭据）＋ 可开战 id 表。
  * 注意 init_battle 第二参数是 entry cost（入场费），不是 token；

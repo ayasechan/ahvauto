@@ -12,7 +12,7 @@ import {
 import { initLogger, setLogLevel, logger } from './lib/logger';
 import { qs, el } from './lib/dom';
 import { tr } from './lib/i18n';
-import { riddleAlert, idleArena, encounterCheck } from './lib/meta';
+import { riddleAlert, idleArena, encounterCheck, repairEquipment } from './lib/meta';
 import { main, newRound, installReloader, pauseChange } from './lib/battle';
 import { scheduleIdlePrune } from './lib/maintenance';
 import { sleep } from './lib/http';
@@ -156,10 +156,18 @@ onEnter('field', () => {
   const staminaText = qs('#stamina_readout .fc4.far>div')?.textContent ?? '';
   const stamina = Number(staminaText.match(/\d+/)?.[0] ?? 100);
   if (!opt.main.restoreStamina && stamina <= opt.main.staminaLow) return;
-  if (opt.main.idleArena) {
-    const delay = ((opt.main.idleArenaTime * (Math.random() * 20 + 90)) / 100) * 1000;
-    after('idle-arena', delay, () => void idleArena());
-  }
+  // 战斗前修一次装备（失败内部消化，绝不挡 idleArena；页面跳走导致的中止静默忽略）
+  void (async () => {
+    try {
+      await repairEquipment();
+    } catch {
+      /* 兜底：repairEquipment 内部已处理所有已知失败 */
+    }
+    if (opt.main.idleArena) {
+      const delay = ((opt.main.idleArenaTime * (Math.random() * 20 + 90)) / 100) * 1000;
+      after('idle-arena', delay, () => void idleArena());
+    }
+  })();
 });
 
 onEnter('riddle', () => {
