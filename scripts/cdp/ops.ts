@@ -1,7 +1,7 @@
 // 运维：backup | verify | refresh | screenshot <file> | inject <js> [css]
 // inject 前必须先 verify 通过（角色暂停），由调用方保证顺序。
 import { readFileSync, writeFileSync } from 'node:fs';
-import { pickPage, connect, assertPaused } from './common.js';
+import { pickPage, connect, assertPaused, autoDismissDialogs } from './common.js';
 import { STORAGE_NS, DISABLED_KEY } from '../../src/lib/storage-keys.js';
 
 const [cmd, arg] = process.argv.slice(2);
@@ -38,6 +38,7 @@ try {
   } else if (cmd === 'inject') {
     if (!arg) throw new Error('usage: ops.ts inject <js> [css]');
     await assertPaused(cdp);
+    const seen = await autoDismissDialogs(cdp);
     const cssFile = process.argv[4];
     if (cssFile) {
       const css = readFileSync(cssFile, 'utf8');
@@ -45,12 +46,18 @@ try {
         `(()=>{let s=document.getElementById("ahvauto-inject-css");if(!s){s=document.createElement("style");s.id="ahvauto-inject-css";document.head.appendChild(s);}s.textContent=${JSON.stringify(css)};return true;})()`,
       );
     }
-    const js = readFileSync(arg, 'utf8');
-    await cdp.ev(js, true);
+    const raw = readFileSync(arg, 'utf8');
+    const code = raw.replace(/^\/\/ ==UserScript==[\s\S]*?\/\/ ==\/UserScript==/, '');
+    console.log('bundle code bytes:', code.length);
+    await cdp.ev(code, true);
+    await new Promise((r) => setTimeout(r, 2000));
     console.log(
-      'inject ok, panel:',
-      await cdp.ev<boolean>('!!document.querySelector("#ahvauto-panel")'),
+      'inject ok:',
+      await cdp.ev<string>(
+        'JSON.stringify({panel:!!document.querySelector("#ahvauto-panel"),fab:!!document.querySelector(".ahvauto-fab"),pause:!!document.querySelector("#ahvauto-pause")})',
+      ),
     );
+    console.log('dialogs dismissed:', JSON.stringify(seen));
   } else {
     throw new Error(`unknown cmd: ${cmd} (backup|verify|refresh|screenshot|inject)`);
   }

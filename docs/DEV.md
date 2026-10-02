@@ -39,8 +39,8 @@ npx tsx scripts/cdp/<脚本>.ts   # 浏览器运维（见 scripts/cdp/README.md�
 
 ## 安全铁律（测战斗时）
 
-1. `inject*` 前必须 `verify` 通过（`ahvauto-disabled` 置位，角色暂停）。
-2. 注入的要么是预览 bundle（不跑战斗逻辑），要么在暂停预置下注入全量。
+1. `ops inject` 前必须 `verify` 通过（`ahvauto-disabled` 置位，角色暂停）。
+2. 注入全量 bundle 前必须暂停预置（全量会跑战斗逻辑，弹窗自动 dismiss）。
 3. 会话前后 `backup` 留档，`logs/` 已 gitignore。
 4. 不点游戏战斗按钮，不用高级道具（脚本里没有这类操作；要加先确认）。
 5. 保底停机线默认开：血量 ≤15% 暂停＋告警（`hpFloorPause/hpFloor`，主要选项可调）。
