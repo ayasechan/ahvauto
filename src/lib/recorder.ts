@@ -21,12 +21,16 @@ export interface DecodedRecord {
 const STORE = 'records';
 const TURNS = 'turns';
 const LOGS = 'logs';
+/** 数据收集 v3 单场行（全量 BattleRow）＋进行中局（单行 CurBattle）。 */
+export const BATTLES_STORE = 'battles';
+export const CUR_STORE = 'cur';
 const CAP = 2000;
-const TURNS_CAP = 2000;
+const TURNS_CAP = 50000;
 export const LOGS_CAP = 1000;
-// v5：logs 表存运行日志原文（不 gzip，单条小）。注意：外部工具不得用带版本号 open（会空提交版本，
-// 跳过 onupgradeneeded，导致 schema 升级永久失效）。
-const DB_VERSION = 5;
+// v7：与 v6 同 schema（battles/cur 建表补救：线上曾出现 v6 版本号已提交但建表未执行，
+// 读写真抛 NotFoundError；升版一次触发 onupgradeneeded 补建。禁止只升号不建表的新版本）。
+// 注意：外部工具不得用带版本号 open（会空提交版本，跳过 onupgradeneeded，导致 schema 升级永久失效）。
+const DB_VERSION = 7;
 
 let dbp: Promise<IDBDatabase> | null = null;
 
@@ -49,12 +53,99 @@ function openDb(): Promise<IDBDatabase> {
         if (!req.result.objectStoreNames.contains(LOGS)) {
           req.result.createObjectStore(LOGS, { autoIncrement: true });
         }
+        if (!req.result.objectStoreNames.contains(BATTLES_STORE)) {
+          req.result.createObjectStore(BATTLES_STORE, { autoIncrement: true });
+        }
+        if (!req.result.objectStoreNames.contains(CUR_STORE)) {
+          req.result.createObjectStore(CUR_STORE, { keyPath: 'k' });
+        }
       };
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
   }
   return dbp;
+}
+
+/** 全仓 IDB 唯一入口（带版本号 open 仅此一处，stats/ 等只经此拿库，禁直调 indexedDB.open）。
+ * 节点单测环境无 indexedDB，调用方按需捕获失败（统计/录制失败静默，不挡战斗）。 */
+export function getDb(): Promise<IDBDatabase> {
+  return openDb();
+}
+
+/** 通用行写入（put 语义，有 keyPath 则按 keyPath，无则需调用方传 key）。 */
+export function idbPut(store: string, row: unknown, key?: IDBValidKey): Promise<void> {
+  return getDb().then(
+    (db) =>
+      new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(store, 'readwrite');
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        const os = tx.objectStore(store);
+        if (key === undefined) os.put(row as never);
+        else os.put(row as never, key);
+      }),
+  );
+}
+
+/** 通用主键读（缺失返回 undefined）。 */
+export function idbGet<T>(store: string, key: IDBValidKey): Promise<T | undefined> {
+  return getDb().then(
+    (db) =>
+      new Promise<T | undefined>((resolve, reject) => {
+        const req = db.transaction(store, 'readonly').objectStore(store).get(key);
+        req.onsuccess = () => resolve(req.result as T | undefined);
+        req.onerror = () => reject(req.error);
+      }),
+  );
+}
+
+/** 通用全表读（主键升序；单场行小，直接全读后内存求和，见 stats/deriveTotals）。 */
+export function idbGetAll<T>(store: string): Promise<T[]> {
+  return getDb().then(
+    (db) =>
+      new Promise<T[]>((resolve, reject) => {
+        const req = db.transaction(store, 'readonly').objectStore(store).getAll();
+        req.onsuccess = () => resolve((req.result ?? []) as T[]);
+        req.onerror = () => reject(req.error);
+      }),
+  );
+}
+
+/** 通用主键删。 */
+export function idbDelete(store: string, key: IDBValidKey): Promise<void> {
+  return getDb().then(
+    (db) =>
+      new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(store, 'readwrite');
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.objectStore(store).delete(key);
+      }),
+  );
+}
+
+/** 通用清表。 */
+export function idbClear(store: string): Promise<void> {
+  return getDb().then(
+    (db) =>
+      new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(store, 'readwrite');
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.objectStore(store).clear();
+      }),
+  );
+}
+
+/** 通用按量修剪（只留最新 cap 条，供空闲修剪复用）。失败静默。 */
+export async function pruneStore(store: string, cap: number): Promise<void> {
+  try {
+    const db = await openDb();
+    await evictOld(db, store, cap);
+  } catch {
+    /* 修剪失败不影响页面 */
+  }
 }
 
 export async function gzipStr(s: string): Promise<ArrayBuffer> {
@@ -437,7 +528,7 @@ export function handleRec(kind: string, payload: unknown, seq = 0): void {
       const body = (payload as { body?: unknown }).body as { textlog?: unknown[] } | undefined;
       const raw = Array.isArray(body?.textlog) ? body.textlog : [];
       const rows = raw.map((r) => (typeof r === 'string' ? r : ((r as { t?: string }).t ?? '')));
-      if (rows.length > 0) recordBattleTurn(rows);
+      if (rows.length > 0) void recordBattleTurn(rows);
     } catch {
       /* 统计失败不影响战斗 */
     }

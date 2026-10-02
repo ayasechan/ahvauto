@@ -14,7 +14,6 @@
   import InfusionTab from './tabs/InfusionTab.svelte';
   import AlarmTab from './tabs/AlarmTab.svelte';
   import RuleTab from './tabs/RuleTab.svelte';
-  import DropTab from './tabs/DropTab.svelte';
   import UsageTab from './tabs/UsageTab.svelte';
   import AboutTab from './tabs/AboutTab.svelte';
   import FeedbackTab from './tabs/FeedbackTab.svelte';
@@ -30,7 +29,6 @@
     { name: 'Infusion', labelKey: 'tab.infusion', comp: InfusionTab, check: 'infusion' },
     { name: 'Alarm', labelKey: 'tab.alarm', comp: AlarmTab },
     { name: 'Rule', labelKey: 'tab.rule', comp: RuleTab },
-    { name: 'Drop', labelKey: 'tab.drop', comp: DropTab, check: 'recordUsage' },
     { name: 'Usage', labelKey: 'tab.usage', comp: UsageTab, check: 'recordUsage' },
     { name: 'About', labelKey: 'tab.about', comp: AboutTab },
     { name: 'Feedback', labelKey: 'tab.feedback', comp: FeedbackTab },
@@ -68,7 +66,7 @@
       titleKey: 'group.item',
       tabs: TABS.filter((t) => ['Item', 'Scroll', 'Infusion'].includes(t.name)),
     },
-    { titleKey: 'group.monitor', tabs: TABS.filter((t) => ['Drop', 'Usage'].includes(t.name)) },
+    { titleKey: 'group.monitor', tabs: TABS.filter((t) => ['Usage'].includes(t.name)) },
     { titleKey: 'group.sys', tabs: TABS.filter((t) => ['About', 'Feedback'].includes(t.name)) },
   ];
 

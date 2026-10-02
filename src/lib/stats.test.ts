@@ -1,35 +1,29 @@
-import { describe, it, beforeEach } from 'node:test';
+import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   parseTurn,
   stripHtml,
   battlesToCsv,
-  beginBattle,
-  beginRound,
-  endBattle,
-  recordBattleTurn,
-  getBattles,
-  getTotals,
-  getCurBattle,
-  clearStats,
-  recState,
+  dropsToCsv,
+  topDrops,
+  foldDrops,
+  formatDrops,
+  deriveTotals,
+  applyTurnToCur,
+  rowFromCur,
   addCost,
   addKills,
-  recordMode,
   normalizeDrop,
   dropColorKind,
   takenAvg,
   takenPhysAvg,
   takenMagAvg,
+  emptyTurn,
+  emptyTotals,
+  newCur,
+  BATTLES_CAP,
 } from './stats';
 import type { BattleRow, Totals, CurBattle } from './stats';
-import { options, kvSet } from './store';
-import { STATS_KEY, BATTLES_KEY, CUR_BATTLE_KEY } from './storage-keys';
-
-beforeEach(() => {
-  clearStats();
-  options.update((o) => ({ ...o, recordUsage: true }));
-});
 
 /** 以下 fixture 全部取自真实战斗响应（logs/battle-records-1.json），逐字引用 */
 
@@ -77,6 +71,26 @@ const TURN_POTION = [
   'Recovered 450 points of magic.',
   'Kumakura Shouko hits you, causing 830 points of Piercing damage.',
 ];
+
+/** 单场行工厂：全量 TurnStat 默认＋按需覆盖（v3 行恒全量）。 */
+function makeRow(over: Partial<BattleRow> = {}): BattleRow {
+  return {
+    ...emptyTurn(),
+    key: 'k',
+    startedAt: 1,
+    endedAt: 2,
+    type: 'ar',
+    code: '',
+    result: 'victory',
+    rounds: 1,
+    turns: 1,
+    monsters: 0,
+    bosses: 0,
+    drops: [],
+    modes: {},
+    ...over,
+  };
+}
 
 describe('parseTurn 真实数据', () => {
   it('imperil 轮：施法＋承伤＋反伤，不多不少', () => {
@@ -183,22 +197,11 @@ describe('parseTurn 真实数据', () => {
     assert.equal(s.mpCost, 50);
     assert.equal(s.ocCost, 15);
   });
-  it('addKills 在终局补怪/Boss 构成（cur＋totals 双写，回写后随行落盘）', () => {
-    beginBattle('ar', 'AR 1/35');
-    recordBattleTurn(['Y was hit for 100 Dark damage']);
-    const t = getTotals();
-    const cur = getCurBattle();
-    assert.ok(cur);
-    addKills(cur as CurBattle, t as Totals, 8, 1);
-    // 模拟 capture-agent 终局流程：回写 kv 后再 endBattle
-    kvSet(CUR_BATTLE_KEY, cur);
-    kvSet(STATS_KEY, t);
-    endBattle('victory');
-    const rows = getBattles();
-    assert.equal(rows[0].monsters, 8);
-    assert.equal(rows[0].bosses, 1);
-    assert.equal(getTotals().monsters, 8);
-    assert.equal(getTotals().bosses, 1);
+  it('addKills 只改当前局（随行落盘，总数读时求和）', () => {
+    const cur = newCur('ar', 'AR 1/35');
+    addKills(cur, 8, 1);
+    assert.equal(cur.monsters, 8);
+    assert.equal(cur.bosses, 1);
   });
   it('直接治疗计入 healedHp', () => {
     const { stat: s } = parseTurn(['You are healed for 10504 Health Points.']);
@@ -240,13 +243,11 @@ describe('parseTurn 真实数据', () => {
   });
   it('battlesToCsv 转义与 BOM（含 code/monster/boss 列）', () => {
     const rows: BattleRow[] = [
-      {
-        key: '09/27',
+      makeRow({
         startedAt: 0,
         endedAt: 1,
         type: 'ar',
         code: 'AR 1/35',
-        result: 'victory',
         rounds: 3,
         turns: 9,
         damage: 100,
@@ -256,12 +257,8 @@ describe('parseTurn 真实数据', () => {
         kills: 1,
         monsters: 8,
         bosses: 1,
-        drops: [],
-        modes: {},
-        detail: null,
-      },
-      {
-        key: '09/27',
+      }),
+      makeRow({
         startedAt: 1,
         endedAt: 2,
         type: 'ba',
@@ -272,14 +269,10 @@ describe('parseTurn 真实数据', () => {
         damage: 200,
         taken: 6,
         exp: 20,
-        credit: 0,
         kills: 2,
         monsters: 3,
-        bosses: 0,
         drops: ['a,b', 'c"d'],
-        modes: {},
-        detail: null,
-      },
+      }),
     ];
     const csv = battlesToCsv(rows);
     assert.equal(csv.charCodeAt(0), 0xfeff);
@@ -290,60 +283,6 @@ describe('parseTurn 真实数据', () => {
     );
     assert.ok(lines[1].includes(',ar,AR 1/35,victory,3,9,100,5,1,8,1,10,2,'));
     assert.ok(lines[2].includes('"a,b; c""d"'));
-  });
-  it('多轮汇成一局：类型/轮数/结果', () => {
-    beginBattle('ar', 'AR 1/35');
-    recordBattleTurn(['You cast Imperil.', 'X has been defeated.']);
-    beginRound();
-    beginRound();
-    recordBattleTurn(['Y was hit for 100 Dark damage']);
-    assert.equal(getBattles().length, 0);
-    endBattle('victory');
-    const rows = getBattles();
-    assert.equal(rows.length, 1);
-    assert.equal(rows[0].type, 'ar');
-    assert.equal(rows[0].rounds, 3);
-    assert.equal(rows[0].result, 'victory');
-    assert.equal(rows[0].kills, 1);
-    assert.equal(rows[0].damage, 100);
-    assert.equal(getTotals().battles, 1);
-    assert.equal(getTotals().turns, 2);
-  });
-  it('新开局顶掉未终局，记 interrupted', () => {
-    beginBattle('ar', 'AR 1/35');
-    recordBattleTurn(['Y was hit for 50 Dark damage']);
-    beginBattle('ba', 'BA 1/1');
-    const rows = getBattles();
-    assert.equal(rows.length, 1);
-    assert.equal(rows[0].result, 'interrupted');
-    assert.equal(rows[0].type, 'ar');
-    endBattle('defeat');
-    const rows2 = getBattles();
-    assert.equal(rows2.length, 2);
-    assert.equal(rows2[1].result, 'defeat');
-    assert.equal(rows2[1].type, 'ba');
-  });
-  it('状态机 idle/open 转移', () => {
-    assert.equal(recState(), 'idle');
-    beginBattle('ar', 'x');
-    assert.equal(recState(), 'open');
-    endBattle('victory');
-    assert.equal(recState(), 'idle');
-  });
-  it('endBattle 无局时忽略，不产生空行', () => {
-    endBattle('victory');
-    assert.equal(getBattles().length, 0);
-    assert.equal(getTotals().battles, 0);
-  });
-  it('无局的 turn 自动开未知局，totals 可对账', () => {
-    recordBattleTurn(['Y was hit for 10 Dark damage']);
-    assert.equal(recState(), 'open');
-    assert.equal(getTotals().turns, 1);
-    endBattle('victory');
-    const rows = getBattles();
-    assert.equal(rows.length, 1);
-    assert.equal(rows[0].type, '?');
-    assert.equal(rows[0].damage, 10);
   });
   it('格挡/招架计入 evade（原口径）', () => {
     assert.equal(parseTurn(['You parry the attack from Goblin.']).stat.evades, 1);
@@ -382,64 +321,135 @@ describe('parseTurn 真实数据', () => {
     ]);
     assert.deepEqual(drops, ['Equipment of Peerless']);
   });
-  it('recordMode 累计动作模式（totals＋cur 双写）', () => {
-    beginBattle('ar', 'AR 1/35');
-    recordMode('defend');
-    recordMode('defend');
-    recordMode('attack');
-    assert.deepEqual(getTotals().modes, { defend: 2, attack: 1 });
-    assert.deepEqual(getCurBattle()?.modes, { defend: 2, attack: 1 });
-    endBattle('victory');
-    assert.deepEqual(getBattles()[0].modes, { defend: 2, attack: 1 });
-  });
-  it('recordEach 开时落盘单场详情，关时为 null', () => {
-    options.update((o) => ({ ...o, main: { ...o.main, recordEach: true } }));
-    try {
-      beginBattle('ar', 'AR 1/35');
-      recordBattleTurn(['Y was hit for 100 Dark damage']);
-      endBattle('victory');
-      const row = getBattles()[0];
-      assert.equal(row.code, 'AR 1/35');
-      assert.ok(row.endedAt >= row.startedAt);
-      assert.deepEqual(row.detail?.damageByType, { Dark: 100 });
-    } finally {
-      options.update((o) => ({ ...o, main: { ...o.main, recordEach: false } }));
-    }
-    beginBattle('ba', 'BA 1/1');
-    recordBattleTurn(['Y was hit for 10 Dark damage']);
-    endBattle('defeat');
-    const rows = getBattles();
-    assert.equal(rows[rows.length - 1].detail, null);
-    assert.equal(rows[rows.length - 1].code, 'BA 1/1');
-  });
-  it('旧存档回填：缺字段补默认', () => {
-    kvSet(STATS_KEY, { turns: 5 });
-    const t = getTotals();
-    assert.equal(t.turns, 5);
-    assert.deepEqual(t.modes, {});
-    assert.equal(t.takenPhysCount, 0);
-    assert.equal(t.takenMagCount, 0);
-    kvSet(BATTLES_KEY, [
-      {
-        key: 'k',
-        startedAt: 7,
-        type: 'ar',
-        result: 'victory',
-        rounds: 1,
-        turns: 1,
-        damage: 1,
-        taken: 0,
-        exp: 0,
-        credit: 0,
-        kills: 0,
-        monsters: 0,
-        bosses: 0,
-        drops: [],
-      },
+  it('相同掉落累加折叠：首见顺序＋×n（空数组返回空）', () => {
+    assert.deepEqual(foldDrops(['a', 'b', 'a', 'a', 'b', 'c']), [
+      ['a', 3],
+      ['b', 2],
+      ['c', 1],
     ]);
-    const b = getBattles()[0];
-    assert.equal(b.code, '');
-    assert.equal(b.endedAt, 7);
-    assert.equal(b.detail, null);
+    assert.deepEqual(foldDrops([]), []);
+    assert.equal(formatDrops(['a', 'b', 'a']), 'a×2; b');
+    assert.equal(formatDrops(['Scroll of Absorption']), 'Scroll of Absorption');
+    assert.equal(formatDrops([]), '');
+  });
+  it('单场 CSV 相同掉落折叠为×n', () => {
+    const rows: BattleRow[] = [
+      makeRow({ drops: ['Crystal of Fire', 'Crystal of Fire', 'Scroll of Absorption'] }),
+    ];
+    assert.ok(battlesToCsv(rows).includes('Crystal of Fire×2; Scroll of Absorption'));
+  });
+});
+
+describe('行内累加＋读时求和（v3）', () => {
+  it('applyTurnToCur：全字段并入当前局（含承伤拆分/回复/掉落/分布）', () => {
+    const cur: CurBattle = newCur('ar', 'AR 1/35');
+    const { stat: st, drops } = parseTurn(TURN_VICTORY);
+    applyTurnToCur(cur, st, drops);
+    assert.equal(cur.turns, 1);
+    assert.equal(cur.damage, 266990);
+    assert.equal(cur.kills, 1);
+    assert.equal(cur.exp, 4273664);
+    assert.equal(cur.credit, 127);
+    assert.deepEqual(cur.drops, ['Scroll of Absorption']);
+    assert.deepEqual(cur.casts, { Ragnarok: 1 });
+    assert.equal(cur.healedHp, 2026);
+  });
+  it('rowFromCur：剥离 cur 主键 k，分布深拷贝', () => {
+    const cur = {
+      ...newCur('ba', 'BA 1/1'),
+      k: 'cur',
+      turns: 3,
+      damage: 50,
+      damageByType: { Dark: 50 },
+      drops: ['x'],
+    } as CurBattle & { k: string };
+    const row = rowFromCur(cur, 'victory', 99);
+    assert.equal((row as unknown as Record<string, unknown>).k, undefined);
+    assert.equal(row.result, 'victory');
+    assert.equal(row.endedAt, 99);
+    assert.equal(row.turns, 3);
+    assert.deepEqual(row.drops, ['x']);
+    row.drops.push('mut');
+    row.damageByType.Dark = 0;
+    assert.deepEqual(cur.drops, ['x']);
+    assert.equal(cur.damageByType.Dark, 50);
+  });
+  it('deriveTotals：空表回空表', () => {
+    assert.deepEqual(deriveTotals([]), emptyTotals());
+  });
+  it('deriveTotals：标量＋分布＋掉落求和，battles=行数', () => {
+    const t: Totals = deriveTotals([
+      makeRow({
+        startedAt: 10,
+        turns: 2,
+        damage: 100,
+        crits: 1,
+        taken: 5,
+        takenPhys: 5,
+        takenPhysCount: 1,
+        takenCount: 1,
+        exp: 7,
+        credit: 3,
+        kills: 1,
+        monsters: 4,
+        bosses: 1,
+        drops: ['a', 'b', 'a'],
+        damageByType: { Dark: 100 },
+        casts: { Ragnarok: 1 },
+        modes: { attack: 2 },
+      }),
+      makeRow({
+        startedAt: 5,
+        turns: 3,
+        damage: 200,
+        taken: 6,
+        takenMag: 6,
+        takenMagCount: 1,
+        takenCount: 1,
+        exp: 8,
+        kills: 2,
+        monsters: 2,
+        drops: ['b'],
+        damageByType: { Dark: 200 },
+        casts: { Imperil: 1 },
+        modes: { defend: 1 },
+      }),
+    ]);
+    assert.equal(t.battles, 2);
+    assert.equal(t.turns, 5);
+    assert.equal(t.damage, 300);
+    assert.equal(t.crits, 1);
+    assert.equal(t.taken, 11);
+    assert.equal(t.exp, 15);
+    assert.equal(t.credit, 3);
+    assert.equal(t.kills, 3);
+    assert.equal(t.monsters, 6);
+    assert.equal(t.bosses, 1);
+    assert.equal(t.startedAt, 5);
+    assert.deepEqual(t.drops, { a: 2, b: 2 });
+    assert.equal(t.dropsCount, 4);
+    assert.deepEqual(t.damageByType, { Dark: 300 });
+    assert.deepEqual(t.casts, { Ragnarok: 1, Imperil: 1 });
+    assert.deepEqual(t.modes, { attack: 2, defend: 1 });
+  });
+  it('deriveTotals：进行中局计入总数、battles 只计已落盘', () => {
+    const live: CurBattle = { ...newCur('ar', 'AR 1/2'), startedAt: 3, turns: 4, damage: 40 };
+    const t = deriveTotals([makeRow({ startedAt: 10, turns: 2, damage: 100 })], live);
+    assert.equal(t.battles, 1);
+    assert.equal(t.turns, 6);
+    assert.equal(t.damage, 140);
+    assert.equal(t.startedAt, 3);
+  });
+  it('topDrops/dropsToCsv：降序＋转义', () => {
+    const csv = dropsToCsv({ drops: { 'a,b': 2, 'c"d': 1 } } as Totals);
+    assert.equal(csv.charCodeAt(0), 0xfeff);
+    const lines = csv.split('\n');
+    assert.equal(lines[0].replace(/^\uFEFF/, ''), 'name,count');
+    assert.ok(lines[1].startsWith('"a,b",2'));
+    assert.deepEqual(topDrops({ drops: { x: 3, y: 5 } }, 1), [['y', 5]]);
+    assert.deepEqual(topDrops({} as Pick<Totals, 'drops'>), []);
+  });
+  it('BATTLES_CAP 为 2000（IDB 全量行上限）', () => {
+    assert.equal(BATTLES_CAP, 2000);
   });
 });

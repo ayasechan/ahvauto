@@ -16,8 +16,11 @@ export const ROUND_NOW_KEY = 'roundNow';
 export const ROUND_ALL_KEY = 'roundAll';
 export const MONSTER_STATUS_KEY = 'monsterStatus';
 export const MONSTER_BASE_KEY = 'monsterBase';
+/** @deprecated v3 起数据进 IDB（battles/cur 表），localStorage 旧键仅启动清理，无现行写入。 */
 export const STATS_KEY = 'stats2';
+/** @deprecated 同上 */
 export const BATTLES_KEY = 'battles2';
+/** @deprecated 同上 */
 export const CUR_BATTLE_KEY = 'curBattle2';
 export const ARENA_KEY = 'arena';
 export const ENCOUNTER_KEY = 'encounter';

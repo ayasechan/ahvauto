@@ -27,9 +27,8 @@ npx tsx scripts/cdp/<脚本>.ts   # 浏览器运维（见 scripts/cdp/README.md�
 
 提交走 conventional commits（英文）；不提交 `logs/`、`dist/`、`__tmp-*`。
 
-`npm test` 说明：tsx 类型剥离直跑（不做类型检查）；`stats.test.ts` 等依赖 localStorage 的用例跑在
-`node --localstorage-file=/tmp/ahvauto-test-ls.json` 真存储上（Node 26 原生 global 盖掉 stub）。
-`src/**/*.test.ts` 已在 tsconfig exclude，不进打包类型检查。
+`npm test` 说明：tsx 类型剥离直跑（不做类型检查）；单测只覆盖纯函数，
+IDB 异步路径走 CDP 真机验证。`src/**/*.test.ts` 已在 tsconfig exclude，不进打包类型检查。
 
 ## 存储命名空间（铁律）
 
@@ -48,8 +47,8 @@ npx tsx scripts/cdp/<脚本>.ts   # 浏览器运维（见 scripts/cdp/README.md�
 ## 调试面
 
 - `window.__ahvauto`：核心字段 `{step（规则名）/lastError/lastAction/history/nr}` ＋页世界钩子附加 `{apiCalls/lastReq/lastSend/fired}`（＋独立序号 `__ahvautoSeq`），只读定位 stall。
-- IDB `ahvauto-debug`（v5）：`records`（只存 `{seq,data}` 去冗余 gzip 包，`seq` keyPath，上限 2000）、`turns`（`{t,data}` 决策现场，上限 2000，自增 key）、`logs`（运行日志原文 `{t,level,category,message,props}` 不 gzip，上限 1000，自增 key）；解压得配对体/快照，导出走 JSONL+gzip（面板与 CDP 共 `toJsonlLine`）。
-  修剪全部在非战斗页空闲一次完成（`scheduleIdlePrune`→`pruneDebugRecords/pruneBattles`），热路径只追加。
+- IDB `ahvauto-debug`（v7）：`records`（只存 `{seq,data}` 去冗余 gzip 包，`seq` keyPath，上限 2000）、 `turns`（`{t,data}` 决策现场，上限 50000，自增 key）、`logs`（运行日志原文 `{t,level,category,message,props}` 不 gzip，上限 1000，自增 key）、`battles`（单场全量行，自增 key，上限 2000）、`cur`（进行中局，`k='cur'` 单行）；解压得配对体/快照，导出走 JSONL+gzip（面板与 CDP 共 `toJsonlLine`）。
+  修剪全部在非战斗页空闲一次完成（`scheduleIdlePrune`→`pruneDebugRecords/pruneStats`），热路径只追加。
   ⚠️ 外部工具 open IDB **不许带版本号**（会空提交版本跳过升级，v2 就是这么坏的）。
 - 运行日志：logtape 日志经 IDB `logs` 表持久化（含 `fsm boot -> battle`、`rec begin/end` 转移），IDB 不可用时回落当会话内存环（100 条）。
 - 门控：`main.debug` 开才写 IDB 录制（`records/turns`）；运行日志（`logs`）由 logLevel 门控，与 debug 开关无关；数据统计门控 `recordUsage`。

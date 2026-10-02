@@ -58,7 +58,6 @@ export interface MainOptions {
   fleeCondition: Condition;
   restoreStamina: boolean;
   staminaLow: number;
-  recordEach: boolean;
   /** 保底停机：血量 ≤ hpFloor 即暂停＋告警（默认开 15%） */
   hpFloorPause: boolean;
   hpFloor: number;

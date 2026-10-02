@@ -150,7 +150,7 @@ onEnter('battle', () => {
 onEnter('field', () => {
   const opt = snapshotOptions();
   clearFieldCtx();
-  // 非战斗页面空闲时集中修剪一次（IDB records/turns/logs ＋ battles2）。
+  // 非战斗页面空闲时集中修剪一次（IDB records/turns/logs/battles，经 pruneStats 统一）。
   scheduleIdlePrune();
   if (opt.main.encounter) encounterCheck();
   const staminaText = qs('#stamina_readout .fc4.far>div')?.textContent ?? '';

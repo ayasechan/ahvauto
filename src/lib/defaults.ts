@@ -60,7 +60,6 @@ export function defaultOptions(): HvOptions {
       fleeCondition: '',
       restoreStamina: false,
       staminaLow: 30,
-      recordEach: false,
       hpFloorPause: true,
       hpFloor: 15,
       spellDelay: 200,

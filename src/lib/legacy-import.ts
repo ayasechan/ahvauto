@@ -139,7 +139,6 @@ export function importLegacyOption(old: Raw): HvOptions {
       fleeCondition: cond(old.fleeCondition, old),
       restoreStamina: bool(old.restoreStamina),
       staminaLow: num(old.staminaLow, 30),
-      recordEach: bool(old.recordEach),
       spellDelay: num(old.delay, 200),
       noSpellDelay: num(old.delay2, 30),
       fightingStyle: str(old.fightingStyle, '1'),

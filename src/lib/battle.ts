@@ -20,12 +20,10 @@ import {
   beginBattle,
   beginRound,
   endBattle,
-  addCost,
-  addKills,
-  getTotals,
+  addCostToCur,
+  addKillsToCur,
   recordMode,
 } from './stats';
-import type { Totals, CurBattle } from './stats';
 import type { Action, RuleName } from './combat/types';
 import { readSnapshot, resolveTarget, orderTargets } from './combat/snapshot';
 import { decide, shouldEmergencyPause, HALT_MSG } from './combat/decide';
@@ -38,8 +36,6 @@ import {
   ROUND_ALL_KEY,
   MONSTER_STATUS_KEY,
   MONSTER_BASE_KEY,
-  STATS_KEY,
-  CUR_BATTLE_KEY,
   ENCOUNTER_KEY,
   STAMINA_LOG_KEY,
 } from './storage-keys';
@@ -198,12 +194,12 @@ export async function newRound(): Promise<void> {
     // 注意：每轮的拉取页日志都以新的 Initializing 行收尾，
     // 因此只有 Round 1 才是真正开局，其余是同局换轮
     if (roundNow === 1) {
-      beginBattle(roundType || '?', `${roundType || '?'} ${roundNow}/${roundAll}`);
+      void beginBattle(roundType || '?', `${roundType || '?'} ${roundNow}/${roundAll}`);
     } else {
-      beginRound();
+      void beginRound();
     }
   } else {
-    beginRound();
+    void beginRound();
     patchBattle({
       roundNow: Number(kvGet(ROUND_NOW_KEY) ?? 1),
       roundAll: Number(kvGet(ROUND_ALL_KEY) ?? 1),
@@ -265,11 +261,10 @@ function battleInfo(): void {
 }
 
 /**
- * 数据收集 v2 接入（capture-agent，只读 DOM，失败静默，绝不挡战斗）：
+ * 数据收集 v3 接入（capture-agent，只读 DOM，失败静默，绝不挡战斗）：
  * - 施法成本 MP/OC：老版在 eventStart 读技能 DOM 的 onmouseover（legacy L2167-2173）。
  *   新架构等价点是 mainInner 里 decide 命中法术动作时读同一 DOM；
- *   本函数同步写 kv，响应侧 handleRec 直调 recordBattleTurn（同任务内、eventEnd 点击前），
- *   故成本先落盘、回合统计后合并，是同一 turn 的 kv 对象，无竞态。
+ *   成本与回合统计同走 stats 写串行链（调用顺序即落盘顺序），无竞态。
  * - 怪/Boss 构成：终局 endBattle 调用前以本局 monsterAll/bossAll 补记，随行落盘。
  */
 
@@ -286,8 +281,7 @@ function spellCost(skillId: string): { mp: number; oc: number } {
 }
 
 /**
- * 法术动作（法术书施放，游戏侧 mode=magic）→ MP/OC 累进 totals（STATS_KEY）。
- * 注：CurBattle/BattleRow 无成本列，成本只记 totals（与 stats-legacy 类型一致）。
+ * 法术动作（法术书施放，游戏侧 mode=magic）→ MP/OC 记入当前局（落盘随行，总数读时求和）。
  */
 function recordSpellCost(action: Action): void {
   try {
@@ -302,26 +296,19 @@ function recordSpellCost(action: Action): void {
     if (!opt.recordUsage) return;
     const { mp, oc } = spellCost(id);
     if (!mp && !oc) return;
-    const totals: Totals = getTotals();
-    addCost(totals, mp, oc);
-    kvSet(STATS_KEY, totals);
+    void addCostToCur(mp, oc);
   } catch {
     /* 读不到记 0，绝不挡战斗 */
   }
 }
 
-/** 终局怪/Boss 构成补记（老 self._monster/_boss）：endBattle 前并入 cur+totals 并回写 */
+/** 终局怪/Boss 构成补记（老 self._monster/_boss）：endBattle 前记入当前局，随行落盘（同串行链保序） */
 function recordEndKills(): void {
   try {
     const opt = snapshotOptions();
     if (!opt.recordUsage) return;
     const b = get(battle);
-    const cur = kvGet(CUR_BATTLE_KEY, true) as CurBattle | null;
-    if (!cur) return;
-    const totals: Totals = getTotals();
-    addKills(cur, totals, b.monsterAll ?? 0, b.bossAll ?? 0);
-    kvSet(CUR_BATTLE_KEY, cur);
-    kvSet(STATS_KEY, totals);
+    void addKillsToCur(b.monsterAll ?? 0, b.bossAll ?? 0);
   } catch {
     /* ignore */
   }
@@ -556,7 +543,7 @@ async function mainInner(dbg: DebugSurface, trace: boolean): Promise<void> {
     },
   );
   recordSpellCost(decided.action);
-  recordMode(decided.action.kind);
+  void recordMode(decided.action.kind);
   step('done');
 }
 
@@ -614,7 +601,7 @@ export function installReloader(): void {
           if (nb.monsterAlive > 0) {
             await setAlarm('Defeat');
             recordEndKills();
-            endBattle('defeat');
+            void endBattle('defeat');
             kvDel(ROUND_TYPE_KEY);
             kvDel(MONSTER_STATUS_KEY);
             kvDel(MONSTER_BASE_KEY);
@@ -660,7 +647,7 @@ export function installReloader(): void {
           } else {
             await setAlarm('Victory');
             recordEndKills();
-            endBattle('victory');
+            void endBattle('victory');
             kvDel(ROUND_TYPE_KEY);
             kvDel(MONSTER_STATUS_KEY);
             kvDel(MONSTER_BASE_KEY);

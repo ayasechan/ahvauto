@@ -5,7 +5,7 @@
  * 分别由 addCost()/addKills() 供 capture-agent 补记，parseTurn 无来源时记 0。
  */
 import { bump, emptyTurn } from './types';
-import type { CurBattle, Totals, TurnStat } from './types';
+import type { CurBattle, TurnStat } from './types';
 
 export function stripHtml(s: string): string {
   return s.replace(/<[^>]*>/g, '');
@@ -93,15 +93,13 @@ export function addCost(stat: TurnStat, mp: number, oc: number): void {
 }
 
 /**
- * 终局怪/Boss 构成补记（老 self._monster/_boss，recordUsage2 在终局按 monsterAlive==0 累加）。
+ * 终局怪/Boss 构成补记（老 self._monster/_boss）。
  * recordBattleTurn 无法从 textlog 得知构成，capture-agent 在终局以 monsterAll/bossAll 调用；
- * 只改内存对象，调用方负责落盘（kvSet STATS_KEY/CUR_BATTLE_KEY；cur 侧随 endBattle 行落盘）。
+ * 只改内存对象，调用方负责落盘（cur 侧随 endBattle 行落盘）。
  */
-export function addKills(cur: CurBattle, totals: Totals, monsters: number, bosses: number): void {
+export function addKills(cur: CurBattle, monsters: number, bosses: number): void {
   cur.monsters = (cur.monsters ?? 0) + monsters;
   cur.bosses = (cur.bosses ?? 0) + bosses;
-  totals.monsters = (totals.monsters ?? 0) + monsters;
-  totals.bosses = (totals.bosses ?? 0) + bosses;
 }
 
 /**
@@ -391,4 +389,25 @@ export function parseTurn(lines: string[], dropQuality = ''): { stat: TurnStat; 
     }
   }
   return { stat: ctx.stat, drops: ctx.drops };
+}
+
+/** 单场掉落折叠：相同名累加件数（首见顺序，同老 dropMonitor 按名计数口径）。 */
+export function foldDrops(drops: string[]): Array<[string, number]> {
+  const order: string[] = [];
+  const counts = new Map<string, number>();
+  for (const d of drops ?? []) {
+    if (counts.has(d)) counts.set(d, (counts.get(d) ?? 0) + 1);
+    else {
+      counts.set(d, 1);
+      order.push(d);
+    }
+  }
+  return order.map((k) => [k, counts.get(k) ?? 0]);
+}
+
+/** 单场掉落展示串：单件直书，多件 `名×n`，项间 `; ` 连接（空数组返回空串）。 */
+export function formatDrops(drops: string[]): string {
+  return foldDrops(drops)
+    .map(([k, v]) => (v > 1 ? `${k}×${v}` : k))
+    .join('; ');
 }

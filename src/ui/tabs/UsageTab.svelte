@@ -3,15 +3,21 @@
   import { ENCOUNTER_KEY, STAMINA_LOG_KEY } from '../../lib/storage-keys';
   import { tr } from '../../lib/i18n';
   import type { I18nKey } from '../../lib/i18n';
+  import { logger } from '../../lib/logger';
   import {
     getTotals,
     getBattles,
     getCurBattle,
     clearStats,
     battlesToCsv,
+    dropsToCsv,
+    topDrops,
+    formatDrops,
+    deriveTotals,
     isPhysicalElem,
+    emptyTotals,
   } from '../../lib/stats';
-  import type { BattleRow, CurBattle } from '../../lib/stats';
+  import type { BattleRow, CurBattle, Totals } from '../../lib/stats';
   import * as battleMod from '../../lib/battle';
 
   const L = (k: I18nKey) => tr($options.lang, k);
@@ -41,7 +47,7 @@
             : null;
     return key ? tr($options.lang, key) : (r ?? '?');
   }
-  let stats = $state(getTotals());
+  let stats = $state<Totals>(emptyTotals());
   let battles = $state<BattleRow[]>([]);
   let cur = $state<CurBattle | null>(null);
   let selected = $state<BattleRow | null>(null);
@@ -97,23 +103,47 @@
     return null;
   }
 
-  function refresh() {
-    stats = getTotals();
-    battles = [...getBattles()].reverse();
-    cur = getCurBattle();
-    staminaLog = readStamina();
-    encounter = readEncounter();
-    const sel = selected;
-    if (sel)
-      selected =
-        getBattles().find((b) => b.key === sel.key && b.startedAt === sel.startedAt) ?? null;
+  async function refresh() {
+    try {
+      // 单次快照：一次读全表＋当前局，本地求和，避免总数与列表来自不同快照
+      const t0 = performance.now();
+      const [rows, c] = await Promise.all([getBattles(), getCurBattle()]);
+      const t1 = performance.now();
+      stats = deriveTotals(rows, c);
+      const t2 = performance.now();
+      logger.info('stats totals', {
+        rows: rows.length + (c ? 1 : 0),
+        turns: stats.turns,
+        readMs: Math.round((t1 - t0) * 10) / 10,
+        deriveMs: Math.round((t2 - t1) * 10) / 10,
+      });
+      const all = [...rows].reverse();
+      // 原 Drop 页过滤并入：数字档位记录侧已过滤，此处只对文本做子串过滤
+      const q = ($options.dropQuality ?? '').trim();
+      battles =
+        q !== '' && !/^\d+$/.test(q)
+          ? all.filter((b) => b.drops.some((d) => d.toLowerCase().includes(q.toLowerCase())))
+          : all;
+      cur = c;
+      staminaLog = readStamina();
+      encounter = readEncounter();
+      const sel = selected;
+      if (sel)
+        selected = battles.find((b) => b.key === sel.key && b.startedAt === sel.startedAt) ?? null;
+    } catch {
+      /* 面板读失败保持旧值 */
+    }
   }
-  function clear() {
-    clearStats();
-    refresh();
+  async function clear() {
+    try {
+      await clearStats();
+    } catch {
+      /* ignore */
+    }
+    await refresh();
   }
-  function exportCsv() {
-    const blob = new Blob([battlesToCsv(getBattles())], { type: 'text/csv;charset=utf-8' });
+  async function exportCsv() {
+    const blob = new Blob([battlesToCsv(await getBattles())], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `ahvauto-battles-${Date.now()}.csv`;
@@ -122,7 +152,17 @@
     a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   }
-  refresh();
+  async function exportDropsCsv() {
+    const blob = new Blob([dropsToCsv(await getTotals())], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `ahvauto-drops-${Date.now()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }
+  void refresh();
 
   // 大数字千分位（1713850677 → 1,713,850,677）
   const fmt = (n: number | undefined | null): string => (n ?? 0).toLocaleString('en-US');
@@ -130,6 +170,9 @@
     Object.entries(rec)
       .sort((a, b) => b[1] - a[1])
       .slice(0, n);
+  // 用了哪些：施法/物品/来源按名全列（不截 top），按次数降序
+  const allList = (rec: Record<string, number> | undefined | null): Array<[string, number]> =>
+    Object.entries(rec ?? {}).sort((a, b) => b[1] - a[1]);
   // 承伤元素按组别分开展示（piercing/crushing/slashing→物理，其余→魔法）
   const topTakenBy = (phys: boolean, n = 5) =>
     Object.entries(stats.takenByType ?? {})
@@ -142,7 +185,12 @@
   <div class="row">
     <button type="button" onclick={refresh}>{L('ui.refresh')}</button>
     <button type="button" onclick={exportCsv}>{L('usage.csv')}</button>
+    <button type="button" onclick={exportDropsCsv}>{L('usage.dropsCsv')}</button>
     <button type="button" onclick={clear}>{L('ui.clear')}</button>
+  </div>
+  <div class="row">
+    {L('usage.filter')} <input bind:value={$options.dropQuality} placeholder="Epic" />
+    <button type="button" onclick={refresh}>{L('ui.refresh')}</button>
   </div>
   <table>
     <tbody>
@@ -174,42 +222,42 @@
       <tr><td>Focus</td><td>{fmt(stats.focus)}</td></tr>
       <tr
         ><td>{L('usage.proficiency')}</td><td
-          >{top(stats.proficiency)
+          >{allList(stats.proficiency)
             .map(([k, v]) => `${k} ${fmt(v)}`)
-            .join(', ')}</td
+            .join(', ') || '—'}</td
         ></tr
       >
       <tr><td>EXP / Credit</td><td>{fmt(stats.exp)} / {fmt(stats.credit)}</td></tr>
       <tr
-        ><td>Casts</td><td
-          >{top(stats.casts)
+        ><td>{L('usage.drops')}</td><td
+          >{topDrops(stats, 10)
             .map(([k, v]) => `${k}×${fmt(v)}`)
-            .join(', ')}</td
+            .join(', ') || '—'}</td
+        ></tr
+      >
+      <tr
+        ><td>Casts</td><td
+          >{allList(stats.casts)
+            .map(([k, v]) => `${k}×${fmt(v)}`)
+            .join(', ') || '—'}</td
         ></tr
       >
       <tr
         ><td>Items</td><td
-          >{top(stats.itemsUsed)
+          >{allList(stats.itemsUsed)
             .map(([k, v]) => `${k}×${fmt(v)}`)
-            .join(', ')}</td
+            .join(', ') || '—'}</td
         ></tr
       >
       <tr><td>{L('usage.cost')}</td><td>{fmt(stats.mpCost)} / {fmt(stats.ocCost)}</td></tr>
       <tr
         ><td>{L('usage.restoreSrc')}</td><td
-          >{top(stats.restoreBySource ?? {})
+          >{allList(stats.restoreBySource)
             .map(([k, v]) => `${k} ${fmt(v)}`)
             .join(', ') || '—'}</td
         ></tr
       >
       <tr><td>Monsters / Bosses</td><td>{fmt(stats.monsters)} / {fmt(stats.bosses)}</td></tr>
-      <tr
-        ><td>{L('usage.modes')}</td><td
-          >{top(stats.modes ?? {})
-            .map(([k, v]) => `${k}×${fmt(v)}`)
-            .join(', ') || '—'}</td
-        ></tr
-      >
       <tr
         ><td>{L('usage.startedAt')}</td><td
           >{stats.startedAt ? new Date(stats.startedAt).toLocaleString() : '—'}</td
@@ -221,7 +269,8 @@
     <b>{L('usage.single')}</b>（{L('usage.singleHint')}）
     {#if cur}
       <div class="live">
-        {L('usage.live')}：{fmt(cur.turns)} turns / {fmt(cur.damage)} dmg / {fmt(cur.kills)} kills
+        {L('usage.live')}：{fmt(cur.turns)} turns / {fmt(cur.damage)} dmg / {fmt(cur.kills)} kills /
+        {fmt(cur.drops.length)} drops
       </div>
     {/if}
     {#if selected}
@@ -254,48 +303,43 @@
             <tr><td>Credit</td><td>{fmt(b.credit)}</td></tr>
             <tr
               ><td>{L('usage.detail.drops')}</td><td
-                >{b.drops.length > 0 ? b.drops.join('; ') : '—'}</td
+                >{b.drops.length > 0 ? formatDrops(b.drops) : '—'}</td
               ></tr
             >
             <tr
-              ><td>{L('usage.modes')}</td><td
-                >{b.modes
-                  ? Object.entries(b.modes)
-                      .map(([k, v]) => `${k}×${v}`)
-                      .join(', ') || '—'
-                  : '—'}</td
+              ><td>{L('usage.dist.damage')}</td><td
+                >{Object.entries(b.damageByType ?? {})
+                  .sort((a, b2) => b2[1] - a[1])
+                  .slice(0, 5)
+                  .map(([k, v]) => `${k} ${fmt(v)}`)
+                  .join(', ') || '—'}</td
               ></tr
             >
-            {#if b.detail}
-              {@const d = b.detail}
-              <tr
-                ><td>{L('usage.dist.damage')}</td><td
-                  >{Object.entries(d.damageByType)
-                    .sort((a, b2) => b2[1] - a[1])
-                    .slice(0, 5)
-                    .map(([k, v]) => `${k} ${fmt(v)}`)
-                    .join(', ') || '—'}</td
-                ></tr
-              >
-              <tr
-                ><td>{L('usage.dist.taken')}</td><td
-                  >{Object.entries(d.takenByType)
-                    .sort((a, b2) => b2[1] - a[1])
-                    .slice(0, 5)
-                    .map(([k, v]) => `${k} ${fmt(v)}`)
-                    .join(', ') || '—'}</td
-                ></tr
-              >
-              <tr
-                ><td>{L('usage.dist.casts')}</td><td
-                  >{Object.entries({ ...d.casts, ...d.itemsUsed })
-                    .sort((a, b2) => b2[1] - a[1])
-                    .slice(0, 5)
-                    .map(([k, v]) => `${k}×${fmt(v)}`)
-                    .join(', ') || '—'}</td
-                ></tr
-              >
-            {/if}
+            <tr
+              ><td>{L('usage.dist.taken')}</td><td
+                >{Object.entries(b.takenByType ?? {})
+                  .sort((a, b2) => b2[1] - a[1])
+                  .slice(0, 5)
+                  .map(([k, v]) => `${k} ${fmt(v)}`)
+                  .join(', ') || '—'}</td
+              ></tr
+            >
+            <tr
+              ><td>{L('usage.detail.casts')}</td><td
+                >{Object.entries(b.casts ?? {})
+                  .sort((a, b2) => b2[1] - a[1])
+                  .map(([k, v]) => `${k}×${fmt(v)}`)
+                  .join(', ') || '—'}</td
+              ></tr
+            >
+            <tr
+              ><td>{L('usage.detail.items')}</td><td
+                >{Object.entries(b.itemsUsed ?? {})
+                  .sort((a, b2) => b2[1] - a[1])
+                  .map(([k, v]) => `${k}×${fmt(v)}`)
+                  .join(', ') || '—'}</td
+              ></tr
+            >
           </tbody>
         </table>
       </div>
@@ -306,7 +350,7 @@
           ><th>{L('usage.table.time')}</th><th>{L('usage.table.type')}</th><th
             >{L('usage.table.code')}</th
           ><th>{L('usage.table.result')}</th><th>Turns</th><th>DMG</th><th>Taken</th><th>Kills</th
-          ><th>Monster</th><th>Boss</th><th>EXP</th></tr
+          ><th>Monster</th><th>Boss</th><th>EXP</th><th>Credit</th></tr
         ></thead
       >
       <tbody>
@@ -316,7 +360,9 @@
               >{resultLabel(b.result)}</td
             ><td>{fmt(b.turns)}</td><td>{fmt(b.damage)}</td><td>{fmt(b.taken)}</td><td
               >{fmt(b.kills)}</td
-            ><td>{fmt(b.monsters)}</td><td>{fmt(b.bosses)}</td><td>{fmt(b.exp)}</td>
+            ><td>{fmt(b.monsters)}</td><td>{fmt(b.bosses)}</td><td>{fmt(b.exp)}</td><td
+              >{fmt(b.credit)}</td
+            >
           </tr>
         {/each}
       </tbody>

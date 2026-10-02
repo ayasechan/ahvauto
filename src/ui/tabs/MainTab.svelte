@@ -230,12 +230,6 @@
   </div>
   <div class="row">
     <label
-      ><input type="checkbox" bind:checked={$options.main.recordEach} /><b>{L('main.recordEach')}</b
-      ></label
-    >
-  </div>
-  <div class="row">
-    <label
       ><input type="checkbox" bind:checked={$options.main.hpFloorPause} /><b
         >{L('main.hpFloor')}
         <input class="num" type="number" bind:value={$options.main.hpFloor} />{L(

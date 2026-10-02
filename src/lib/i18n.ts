@@ -2,7 +2,7 @@ import { snapshotOptions } from './store';
 import type { Lang, NotifyKind } from './types';
 
 /** 命名规范（新增 key 必须遵守，改名靠 I18nKey 编译检查）：
- * - 命名空间全小写，点分：alarm.kind.* / drop.header.* / usage.detail.*；
+ * - 命名空间全小写，点分：alarm.kind.* / usage.detail.*；
  * - 段内多词用小驼峰：main.attackMode / alarm.hookUrl / about.recExport；
  * - 值域原文（语言名/战斗代号/CSV）保持原样：lang.zhHans / battle.ar / usage.csv。
  */
@@ -18,7 +18,6 @@ const D = {
   'tab.infusion': ['魔药', '魔藥', 'Infusion'],
   'tab.alarm': ['警报', '警報', 'Alarm'],
   'tab.rule': ['攻击规则', '攻擊規則', 'Attack Rule'],
-  'tab.drop': ['掉落监测', '掉落監測', 'Drops Tracking'],
   'tab.usage': ['数据记录', '數據記錄', 'Usage Tracking'],
   'tab.about': ['关于', '關於', 'About'],
   'tab.feedback': ['反馈', '反饋', 'Feedback'],
@@ -66,7 +65,6 @@ const D = {
   'main.durability': ['耐久', '耐久', 'Durability'],
   'main.autoFlee': ['自动逃跑', '自動逃跑', 'Auto flee'],
   'main.restore': ['战前回复', '戰前回覆', 'Pre-battle restore'],
-  'main.recordEach': ['单独记录每场战役', '單獨記錄每場戰役', 'Record each battle'],
   'main.hpFloor': ['血量 ≤', '血量 ≤', 'HP ≤'],
   'main.hpFloorDo': ['%即暂停告警', '%即暫停告警', '% pause + alarm'],
   'main.delay': ['延迟', '延遲', 'Delay'],
@@ -167,22 +165,19 @@ const D = {
   'action.deskill': ['减益', '減益', 'Debuff'],
   'action.attack': ['攻击', '攻擊', 'Attack'],
   'action.none': ['无', '無', 'None'],
-  'drop.filter': ['品质过滤', '品質過濾', 'Quality filter'],
-  'drop.header.battle': ['战斗', '戰鬥', 'Battle'],
-  'drop.header.exp': ['经验', '經驗', 'EXP'],
-  'drop.header.credit': ['Credit', 'Credit', 'Credit'],
-  'drop.header.items': ['物品', '物品', 'Items'],
   'usage.damage': ['总伤害', '總傷害', 'Total damage'],
   'usage.hurt': ['总承伤', '總承傷', 'Total taken'],
   'usage.restore': ['总恢复', '總恢復', 'Total restored'],
   'usage.csv': ['导出CSV', '導出CSV', 'Export CSV'],
+  'usage.dropsCsv': ['导出掉落CSV', '導出掉落CSV', 'Export drops CSV'],
+  'usage.filter': ['品质过滤', '品質過濾', 'Quality filter'],
+  'usage.drops': ['掉落汇总', '掉落匯總', 'Drops'],
   'usage.takenPhys': ['物理承伤', '物理承傷', 'Physical taken'],
   'usage.takenMag': ['魔法承伤', '魔法承傷', 'Magical taken'],
   'usage.absorbed': ['护盾吸收', '護盾吸收', 'Shield absorbed'],
   'usage.proficiency': ['熟练度', '熟練度', 'Proficiency'],
   'usage.cost': ['MP / OC 消耗', 'MP / OC 消耗', 'MP / OC cost'],
-  'usage.restoreSrc': ['回复来源 top5', '回復來源 top5', 'Top 5 restore sources'],
-  'usage.modes': ['动作模式', '動作模式', 'Action modes'],
+  'usage.restoreSrc': ['回复来源', '回復來源', 'Restore sources'],
   'usage.startedAt': ['累计开始', '累計開始', 'Tracking since'],
   'usage.single': ['单场战斗', '單場戰鬥', 'Single battles'],
   'usage.singleHint': [
@@ -201,9 +196,10 @@ const D = {
   'usage.detail.taken': ['承伤', '承傷', 'Taken'],
   'usage.detail.kills': ['击杀', '擊殺', 'Kills'],
   'usage.detail.drops': ['掉落', '掉落', 'Drops'],
+  'usage.detail.casts': ['施法', '施法', 'Casts'],
+  'usage.detail.items': ['物品', '物品', 'Items'],
   'usage.dist.damage': ['伤害分布', '傷害分佈', 'Damage split'],
   'usage.dist.taken': ['承伤分布', '承傷分佈', 'Taken split'],
-  'usage.dist.casts': ['施法/物品', '施法/物品', 'Casts / items'],
   'usage.table.time': ['时间', '時間', 'Time'],
   'usage.table.type': ['类型', '類型', 'Type'],
   'usage.table.code': ['代号', '代號', 'Code'],

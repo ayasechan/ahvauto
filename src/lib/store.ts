@@ -9,6 +9,9 @@ import {
   SPELL_DELAY_KEY,
   NO_SPELL_DELAY_KEY,
   ROUND_TYPE_KEY,
+  STATS_KEY,
+  BATTLES_KEY,
+  CUR_BATTLE_KEY,
   LEGACY_BATTLE_CODE_KEY,
   LEGACY_LOGS_KEY,
 } from './storage-keys';
@@ -49,6 +52,8 @@ export function sanitizeOptions(raw: unknown): HvOptions | null {
       pm.noSpellDelay = pm.delay2;
     delete pm.delay;
     delete pm.delay2;
+    // 顶层字符串守卫：bind: 禁 undefined/null，坏档回默认（dropQuality 供面板输入框绑定）
+    if (typeof merged.dropQuality !== 'string') merged.dropQuality = d.dropQuality;
     migrateOptions(merged as unknown as Record<string, unknown>);
     return merged;
   } catch {
@@ -206,9 +211,13 @@ export function readSpellDelays(): { spellDelay: number; noSpellDelay: number } 
   }
 }
 
-/** 非战斗页上下文清理：roundType＋旧 battleCode＋旧 localStorage 日志（已迁 IDB）。 */
+/** 非战斗页上下文清理：roundType＋旧 battleCode＋旧 localStorage 日志（已迁 IDB）。
+ * 另一次性清理 v2 统计旧键（v3 起数据进 IDB，不做迁移）。 */
 export function clearFieldCtx(): void {
   kvDel(ROUND_TYPE_KEY);
+  kvDel(STATS_KEY);
+  kvDel(BATTLES_KEY);
+  kvDel(CUR_BATTLE_KEY);
   kvDel(LEGACY_BATTLE_CODE_KEY);
   try {
     localStorage.removeItem(LEGACY_LOGS_KEY);

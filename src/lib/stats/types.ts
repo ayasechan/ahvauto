@@ -1,6 +1,8 @@
 /**
- * 数据收集 v2 类型＋工厂（stats/ 纯类型层，不依赖 store/kv）。
- * 工厂函数集中于此，供 parse（空轮）与 lifecycle/queries（空合计/空对局/旧存档回填）共用。
+ * 数据收集 v3 类型＋工厂（stats/ 纯类型层，不依赖 store/kv/IDB）。
+ * 单场行（BattleRow/CurBattle）为全量 TurnStat＋掉落＋模式：
+ * 总数读时由 deriveTotals(queries) 对单场求和，不再维护累计键。
+ * 工厂函数集中于此，供 parse（空轮）与 lifecycle/queries（空合计/空对局/旧行回填）共用。
  */
 
 export interface TurnStat {
@@ -49,19 +51,14 @@ export interface Totals extends TurnStat {
   modes: Record<string, number>;
   /** 累计开始时间（老 self._startTime），首轮落盘时记 */
   startedAt: number;
+  /** 掉落汇总（原 Drop 页并入 Usage：名→累计件数，与单场 drops[] 同口径） */
+  drops: Record<string, number>;
+  /** 掉落总件数（drops 值之和，展示用，避免每次求和） */
+  dropsCount: number;
 }
 
-/** 单场详情分布（仅 recordEach 开时落盘，关时为 null 以控体积） */
-export interface BattleDetail {
-  damageByType: Record<string, number>;
-  takenByType: Record<string, number>;
-  casts: Record<string, number>;
-  itemsUsed: Record<string, number>;
-  restoreBySource: Record<string, number>;
-  proficiency: Record<string, number>;
-}
-
-export interface BattleRow {
+/** 单场行（含进行中）：全量 TurnStat＋掉落明细＋动作模式（总数读时求和用） */
+export interface BattleRow extends TurnStat {
   key: string;
   startedAt: number;
   /** 终局时间（老 self._endTime） */
@@ -75,42 +72,24 @@ export interface BattleRow {
   /** 包含轮数 */
   rounds: number;
   turns: number;
-  damage: number;
-  taken: number;
-  exp: number;
-  credit: number;
-  kills: number;
-  /** 本局怪/Boss 构成（addKills 在终局补，供单场台账；行落盘用） */
+  /** 本局怪/Boss 构成（addKillsToCur 在终局补，供单场台账；行落盘用） */
   monsters: number;
   bosses: number;
   drops: string[];
   /** 本局动作模式计数（attack/defend…，与 totals.modes 同口径） */
   modes: Record<string, number>;
-  /** 单场详情分布（recordEach 关时为 null） */
-  detail: BattleDetail | null;
 }
 
-export interface CurBattle {
+export interface CurBattle extends TurnStat {
   startedAt: number;
   type: string;
   code: string;
   rounds: number;
   turns: number;
-  damage: number;
-  taken: number;
-  exp: number;
-  credit: number;
-  kills: number;
+  /** 本局怪/Boss 构成（终局补记，随行落盘） */
   monsters: number;
   bosses: number;
   drops: string[];
-  /** 本局分布累加（recordEach 开时随行落盘进 detail） */
-  damageByType: Record<string, number>;
-  takenByType: Record<string, number>;
-  casts: Record<string, number>;
-  itemsUsed: Record<string, number>;
-  restoreBySource: Record<string, number>;
-  proficiency: Record<string, number>;
   modes: Record<string, number>;
 }
 
@@ -152,28 +131,20 @@ export const emptyTotals = (): Totals => ({
   bosses: 0,
   modes: {},
   startedAt: 0,
+  drops: {},
+  dropsCount: 0,
 });
 
 export const newCur = (type = '?', code = ''): CurBattle => ({
+  ...emptyTurn(),
   startedAt: Date.now(),
   type,
   code,
   rounds: 0,
   turns: 0,
-  damage: 0,
-  taken: 0,
-  exp: 0,
-  credit: 0,
-  kills: 0,
   monsters: 0,
   bosses: 0,
   drops: [],
-  damageByType: {},
-  takenByType: {},
-  casts: {},
-  itemsUsed: {},
-  restoreBySource: {},
-  proficiency: {},
   modes: {},
 });
 
