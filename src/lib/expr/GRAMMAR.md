@@ -84,4 +84,4 @@ roundType == "ar" and bossAlive > 0
 - 编译结果 `Map` 缓存，上限 500 条（key 为表达式原文）。
 - 老格式 `{组号: ["a,op,b"]}` 由 `expr/migrate.ts:groupsToExpr` 翻译成本语法后求值。
 - 求值上下文变量见 `src/lib/conditions.ts:battleVars`；函数（`isCd`、`buffTurn`）见同文件 `evalCtx`（`src/lib/conditions.ts`）。
-  战斗决策内用的是快照纯版本 `src/lib/combat/context.ts:evalContext`（`decide.ts:362`；`isCd` 读快照 `skills`，`buffTurn` 读快照 `buffs`，永久 buff 记 `Infinity`）；面板/文本编辑器用 DOM 版 `evalCtx`（`src/lib/conditions.ts`，注意与 `evalContext` 不同函数）。两套变量名同集合、取值源不同；非有限值语义：战斗内透传，战斗外（`evalCtx`）丢弃非有限 vars 按未知变量 fail-closed。
+  战斗决策内用的是快照纯版本 `src/lib/combat/context.ts:evalContext`（见 `decide.ts` 决策函数内调用；`isCd` 读快照 `skills`，`buffTurn` 读快照 `buffs`，永久 buff 记 `Infinity`）；面板/文本编辑器用 DOM 版 `evalCtx`（`src/lib/conditions.ts`，注意与 `evalContext` 不同函数）。两套变量名同集合、取值源不同；非有限值语义：战斗内透传，战斗外（`evalCtx`）丢弃非有限 vars 按未知变量 fail-closed。

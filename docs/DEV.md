@@ -34,7 +34,7 @@ npx tsx scripts/cdp/<脚本>.ts   # 浏览器运维（见 scripts/cdp/README.md�
 ## 存储命名空间（铁律）
 
 - 旧脚本：`hvAA-` 前缀——**只读不写**。
-- 新脚本：`ahvauto-` 前缀，key 唯一来源 `src/lib/storage-keys.ts`；读写唯一入口 `src/lib/store.ts`（配置 `options/sanitizeOptions/snapshotOptions`、KV `kv*`＋短键常量、备份 `loadBackups/saveBackups`、发包延迟 `publish/readSpellDelays`、进页清理 `clearFieldCtx`；运行日志已迁 IDB `logs` 表）。引擎/UI 不直碰 `localStorage/sessionStorage`。
+- 新脚本：`ahvauto-` 前缀，key 唯一来源 `src/lib/storage-keys.ts`；读写唯一入口 `src/lib/store.ts`（配置 `options/sanitizeOptions/snapshotOptions`、KV `kv*`＋短键常量、备份 `loadBackups/saveBackups`、发包延迟 `publishSpellDelays/readSpellDelays`、进页清理 `clearFieldCtx`；运行日志已迁 IDB `logs` 表）。引擎/UI 不直碰 `localStorage/sessionStorage`。
 - 旧配置不再自动导入，需面板“关于→导入旧配置”手动触发（含权重、条件翻译），见 `src/lib/legacy-import.ts`。
 
 ## 安全铁律（测战斗时）
@@ -60,11 +60,10 @@ npx tsx scripts/cdp/<脚本>.ts   # 浏览器运维（见 scripts/cdp/README.md�
 1. 游戏页把 `localStorage.setItem` 包了一层，静默丢弃 `hvAA*` 开头 key——`hvAA*` 禁 `setItem`，其余直接赋值（`store.ts` 有注释）。
 2. `Infinity` 过 JSON 变 `null`——读回必须归一化（死亡判定依赖）。
 3. `src` 生产入口（`src/main.ts`，monkey 打包）禁动态 `import()`，会切 SystemJS（页内无 `System` 直接暴毙）。
-4. （已删除：`postMessage` 录制桥已移除，统计走 `handleRec` 直调。）
-5. `bind:` 传 `undefined` 会炸 tab 切换（`props_invalid_value`）——必须预填 key：item/buff/debuff/scroll conditions＋enabledMap、debuff.turns、rule.weights、channel.first/useSecond、scroll.roundTypes/first、alarm.audio/audioEnable/telegram/webhook（`backfill/backfillBool/backfillNum/backfillAlarm`＋单测守护）。
-6. 集火排序恒升序（原版亦然），`ruleReverse` 只反公式不反排序；点目标前验 `onclick`（死怪没有）。
-7. 魔法 lock＋目标必须同回合两次点击（游戏机制），只锁不等于是 stall 主因之一。
-8. 发包三道门（忙/已锁/在途）会静默吞点击——看门狗（8s 补点／25s 重载）是最终兜底。
-9. `delayReload`（用户配置 30s）调试期会掀桌子（reload 清注入态）；常驻版无此问题。
-10. CDP `evaluate` 偶发把游戏页自身未捕获异常算到结果头上——`common.ts` 只在无有效值时才抛。
-11. 全仓禁 `eval`/`new Function`（CSP + 外来陌生配置）。
+4. `bind:` 传 `undefined` 会炸 tab 切换（`props_invalid_value`）——必须预填 key：item/buff/debuff/scroll conditions＋enabledMap、debuff.turns、rule.weights、channel.first/useSecond、scroll.roundTypes/first、alarm.audio/audioEnable/telegram/webhook（`backfill/backfillBool/backfillNum/backfillAlarm`＋单测守护）。
+5. 集火排序恒升序（原版亦然），`ruleReverse` 只反公式不反排序；点目标前验 `onclick`（死怪没有）。
+6. 魔法 lock＋目标必须同回合两次点击（游戏机制），只锁不等于是 stall 主因之一。
+7. 发包三道门（忙/已锁/在途）会静默吞点击——看门狗（8s 补点／25s 重载）是最终兜底。
+8. `delayReload`（用户配置 30s）调试期会掀桌子（reload 清注入态）；常驻版无此问题。
+9. CDP `evaluate` 偶发把游戏页自身未捕获异常算到结果头上——`common.ts` 只在无有效值时才抛。
+10. 全仓禁 `eval`/`new Function`（CSP + 外来陌生配置）。

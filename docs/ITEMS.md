@@ -17,7 +17,7 @@
 
 `id > 10000` 走物品栏存在性，否则走法术书可用性——两边判定不同，
 执行层必须“判哪点哪”（`src/lib/combat/execute.ts`），点错元素会静默失败。
-旧 `isOn` 已拆分，无统一函数（`dom.ts` 现无 `isOn`）：判在 `snapshot.ts:144-163`，点在 `execute.ts:76-78`，`id > 10000` 以 `Number(id)` 判定。
+旧 `isOn` 已拆分，无统一函数（`dom.ts` 现无 `isOn`）：判在 `snapshot.ts`，点在 `execute.ts`，`id > 10000` 以 `Number(id)` 判定。
 法术书直点用 `document.getElementById`（纯数字 id `querySelector` 会抛错），其余经 `qs`/选择器。
 
 ## 施放顺序

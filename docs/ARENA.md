@@ -29,7 +29,7 @@ Challenge / Highest Clear / Min Level / Rounds / EXP Mod / Entry Cost / Clear Bo
 | Secret Pony Level     | 35  | 100    | Lv. 500   | X5.0 | -          |
 
 说明：本次账号下只列出以上 14 行（`Clear Bonus` 全为 `1,000 C`）。
-旧版另有 `Lv.90 → id 16`（`legacy/hvauto.js:682`），本次未出现，按缺席记录。
+旧版另有 `Lv.90 → id 16`（见 `legacy/hvauto.js` 竞技场复选框定义），本次未出现，按缺席记录。
 
 ## Ring of Blood（`ss=rb`，均为单轮）
 
@@ -45,7 +45,7 @@ Challenge / Highest Clear / Min Level / Rounds / EXP Mod / Entry Cost / Clear Bo
 | Triple Trio and the Tree | （112，未可点） | 1      | Lv. 250   | 10 Tokens  |
 
 说明：末行无 `onclick`（`startchallenge_d.png` 置灰），按旧版复选框映射为 `id 112`
-（`legacy/hvauto.js:686` `RB250,112`）；`Clear Bonus` 全为 `1,000 C`，`EXP` 全为 `X1.0`。
+（见 `legacy/hvauto.js` RB 复选框定义）；`Clear Bonus` 全为 `1,000 C`，`EXP` 全为 `X1.0`。
 
 ## Grindfest（`ss=gr`）
 
@@ -55,7 +55,7 @@ Challenge / Highest Clear / Min Level / Rounds / EXP Mod / Entry Cost / Clear Bo
 ## 代码对应（别用反）
 
 - 开局判定（`battle.ts:newRound`）：`Initializing arena challenge <id>` 取首个数字，
-  `<= 35 → ar`，否则 `rb`（旧版另有 `>= 105 → rb` 分支，`legacy/hvauto.js:2340-2348`，
+  `<= 35 → ar`，否则 `rb`（旧版另有 `>= 105 → rb` 分支，见 `legacy/hvauto.js` arena 判定分支，
   现版 `id` 无重叠可简化）；`Initializing Grindfest → gr`；
   `(Round a / b)` 进 `ROUND_NOW/ROUND_ALL`（`ba` 遭遇战固定 `1/1`）。
 - 闲置队列（`meta.ts:idleArena`）：纯数字 `NaN → gr`，`>= 105 → rb`，否则 `ar`

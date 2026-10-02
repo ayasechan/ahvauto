@@ -5,7 +5,7 @@ Original script preserved at `legacy/hvauto.js` (reference only). No CI.
 
 ## Commands
 
-- `npm test` — unit tests (`tsc` → `/tmp` + `node --test`). Details → `docs/DEV.md`.
+- `npm test` — unit tests (`node --test` with tsx loader, no build step). Details → `docs/DEV.md`.
 - `npm run check` — `svelte-check` + `tsc -p tsconfig.node.json`. Must be 0 errors.
 - `npm run lint` / `npm run fmt:check` — read-only. `lint:fix` / `fmt` apply fixes.
 - `npm run build` — production bundle. `npm run dev` (`:5173`) for hot-reload.
@@ -22,14 +22,14 @@ stats/logging via direct `handleRec` calls (`recorder.ts`).
 - **No dynamic `import()` in `src/`** (`docs/DEV.md` 坑 #3).
 - **Never `localStorage.setItem` with `hvAA*` keys** (`docs/DEV.md` 坑 #1).
 - **`Infinity` dies in JSON** (`→null`) — normalize on read (`docs/DEV.md` 坑 #2).
-- **`bind:` must never receive `undefined`** (`docs/DEV.md` 坑 #5).
+- **`bind:` must never receive `undefined`** (`docs/DEV.md` 坑 #4).
 - **Finishing order is ascending, always** (`docs/COMBAT.md` 集火).
 - **Target clicks need a live target** (`#mkey_<id>` `onclick`) (`docs/COMBAT.md` 集火).
 - **Skill/item clicks route by kind** (item by id: `>10000` → `.bti3`, else `getElementById`; scroll/draught/infusion → shelf, buff → spellbook) (`docs/ITEMS.md`).
-- **Spells need lock+target in the same turn** (`docs/DEV.md` 坑 #7).
-- **The game silently swallows clicks** when busy/locked/in-flight — don't remove the watchdog (`docs/DEV.md` 坑 #8).
+- **Spells need lock+target in the same turn** (`docs/DEV.md` 坑 #6).
+- **The game silently swallows clicks** when busy/locked/in-flight — don't remove the watchdog (`docs/DEV.md` 坑 #7).
 - **IDB**: only `recorder.ts` may `open()` with a version number (`docs/DEV.md` 调试面).
-- **No `eval`/`new Function`** (`docs/DEV.md` 坑 #11).
+- **No `eval`/`new Function`** (`docs/DEV.md` 坑 #10).
 - Storage: `hvAA-` read-only, new keys under `ahvauto-` (`docs/DEV.md` 存储命名空间).
 
 ## Conventions
