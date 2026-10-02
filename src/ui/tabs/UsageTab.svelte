@@ -190,6 +190,7 @@
   </div>
   <div class="row">
     {L('usage.filter')} <input bind:value={$options.dropQuality} placeholder="Epic" />
+    <span class="hint">{L('usage.filterHint')}</span>
     <button type="button" onclick={refresh}>{L('ui.refresh')}</button>
   </div>
   <table>
@@ -408,6 +409,9 @@
   }
   td.sub {
     padding-left: 16px;
+    color: #555;
+  }
+  span.hint {
     color: #555;
   }
   td.sub2 {

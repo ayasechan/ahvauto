@@ -15,6 +15,8 @@ import {
   addKills,
   normalizeDrop,
   dropColorKind,
+  equipQuality,
+  displayDropKey,
   takenAvg,
   takenPhysAvg,
   takenMagAvg,
@@ -294,17 +296,24 @@ describe('parseTurn 真实数据', () => {
     assert.equal(dropColorKind('<span style="color:#A89000">[127 Credits]</span>'), 'credit');
     assert.equal(dropColorKind('plain text'), '');
   });
-  it('红装折叠 Equipment of 首词＋档位/文本过滤', () => {
+  it('红装记全名＋档位/文本过滤，无品质词不记录', () => {
     assert.deepEqual(normalizeDrop('Peerless Sword of Doom', 'equip', ''), [
-      'Equipment of Peerless',
+      'Peerless Sword of Doom',
     ]);
     assert.deepEqual(normalizeDrop('Peerless Sword of Doom', 'equip', '6'), [
-      'Equipment of Peerless',
+      'Peerless Sword of Doom',
     ]);
     assert.equal(normalizeDrop('Average Sword of Doom', 'equip', '6'), null);
     assert.equal(normalizeDrop('Peerless Sword of Doom', 'equip', 'Epic'), null);
     assert.deepEqual(normalizeDrop('Peerless Sword of Doom', 'equip', 'Peerless'), [
-      'Equipment of Peerless',
+      'Peerless Sword of Doom',
+    ]);
+    assert.equal(normalizeDrop('Sword of Doom', 'equip', ''), null);
+    assert.deepEqual(normalizeDrop('Average Sword of Doom', 'equip', '8'), [
+      'Average Sword of Doom',
+    ]);
+    assert.deepEqual(normalizeDrop('Average Sword of Doom', 'equip', '99'), [
+      'Average Sword of Doom',
     ]);
   });
   it('水晶 Nx 展开，Credit 不进 drops', () => {
@@ -315,11 +324,49 @@ describe('parseTurn 真实数据', () => {
     assert.deepEqual(normalizeDrop('Crystal of Fire', 'crystal'), ['Crystal of Fire']);
     assert.equal(normalizeDrop('127 Credits', 'credit'), null);
   });
-  it('红装行经 parseTurn 折叠（含 HTML 颜色）', () => {
+  it('红装行经 parseTurn 记全名（含 HTML 颜色）', () => {
     const { drops } = parseTurn([
       'Goblin dropped <span style="color:#FF0000">[Peerless Sword of Doom]</span>',
     ]);
-    assert.deepEqual(drops, ['Equipment of Peerless']);
+    assert.deepEqual(drops, ['Peerless Sword of Doom']);
+  });
+  it('结算奖励纳入统计：Bonus/obtained/gainCredit', () => {
+    assert.deepEqual(
+      parseTurn(['Arena Token Bonus! <span style="color:#254117">[Chaos Token]</span>']).drops,
+      ['Chaos Token'],
+    );
+    assert.deepEqual(
+      parseTurn([
+        'Battle Clear Bonus! <span style="color:#FF0000">[Superior Estoc of Slaughter]</span>',
+      ]).drops,
+      ['Superior Estoc of Slaughter'],
+    );
+    assert.deepEqual(
+      parseTurn(['You obtained 5x <span style="color:#254117">[Soul Fragments]</span>']).drops,
+      Array(5).fill('Soul Fragments'),
+    );
+    const gained = parseTurn(['You gain 1000 Credits!']);
+    assert.equal(gained.stat.credit, 1000);
+    assert.deepEqual(gained.drops, []);
+  });
+  it('展示只分品质不分基型（equipQuality/displayDropKey）', () => {
+    assert.equal(equipQuality('Superior Estoc of Slaughter'), 'Superior');
+    assert.equal(equipQuality('Superior Redwood Staff of the Fox'), 'Superior');
+    assert.equal(equipQuality('Scroll of Absorption'), null);
+    assert.equal(displayDropKey('Superior Estoc of Slaughter'), 'Equipment of Superior');
+    assert.equal(displayDropKey('Superior Redwood Staff of the Fox'), 'Equipment of Superior');
+    assert.equal(displayDropKey('Crystal of Fire'), 'Crystal of Fire');
+    assert.equal(
+      formatDrops(['Superior Estoc of Slaughter', 'Superior Redwood Staff of the Fox']),
+      'Equipment of Superior×2',
+    );
+    assert.deepEqual(
+      topDrops(
+        { drops: { 'Superior Estoc of Slaughter': 1, 'Superior Redwood Staff of the Fox': 2 } },
+        10,
+      ),
+      [['Equipment of Superior', 3]],
+    );
   });
   it('相同掉落累加折叠：首见顺序＋×n（空数组返回空）', () => {
     assert.deepEqual(foldDrops(['a', 'b', 'a', 'a', 'b', 'c']), [

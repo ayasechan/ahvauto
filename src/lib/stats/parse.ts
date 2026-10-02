@@ -114,7 +114,9 @@ export function addKills(cur: CurBattle, monsters: number, bosses: number): void
  * - cast/useItem 记录 lastAction，供无来源回复行（Recovered…/You are healed…）归因；
  * - drainHp/drainPts 在 hpHeal 之前（You drain… 归因 drain，不进 misses）；
  * - restore 系只做来源归因累加，不影响 healedHp/restoredMp/restoredSp 总量口径；
- * - dropItem 只收非 Credit 实物（Credit 另有 credit 规则）。
+ * - dropItem 只收非 Credit 实物（Credit 另有 credit 规则）；
+ *   结算奖励行（Bonus!/obtained）同样进掉落/记账；
+ *   无括号 `You gain N Credits!` 由 gainCredit 记账。
  */
 const RULES: Rule[] = [
   {
@@ -250,11 +252,35 @@ const RULES: Rule[] = [
     },
   },
   {
+    name: 'gainCredit',
+    re: /You gain (\d+) [Cc]redits?!/,
+    apply: ({ stat }, m) => {
+      stat.credit += Number(m[1]);
+    },
+  },
+  {
     name: 'dropItem',
-    re: /dropped \[(.+)\]/,
+    re: /dropped \[([^\]]+)\]/,
     apply: ({ drops, colorKind, dropQuality }, m) => {
       const folded = normalizeDrop(m[1], colorKind, dropQuality);
       if (folded) drops.push(...folded);
+    },
+  },
+  {
+    name: 'bonusDrop',
+    re: /Bonus! \[([^\]]+)\]/,
+    apply: ({ drops, colorKind, dropQuality }, m) => {
+      const folded = normalizeDrop(m[1], colorKind, dropQuality);
+      if (folded) drops.push(...folded);
+    },
+  },
+  {
+    name: 'obtainedDrop',
+    re: /obtained (?:(\d+)\s*x\s*)?\[([^\]]+)\]/,
+    apply: ({ drops, colorKind, dropQuality }, m) => {
+      const n = m[1] ? Number(m[1]) : 1;
+      const folded = normalizeDrop(m[2], colorKind, dropQuality);
+      if (folded) for (let i = 0; i < n; i++) drops.push(...folded);
     },
   },
   {
@@ -307,10 +333,11 @@ const RULES: Rule[] = [
 ];
 
 /**
- * 掉落名归一化（老 dropMonitor 口径）：
- * - 红装（colorKind=equip）：按 dropQuality 过滤并折叠为 `Equipment of <首词>`；
- *   dropQuality 为数字 0-7 时作起始档位，为文本时作子串匹配，为空时不过滤；
- *   未命中档位返回 null（过滤掉，不计入）。
+ * 掉落名归一化（记录口径：装备存全名，展示另按品质分桶）：
+ * - 红装（colorKind=equip）：按 dropQuality 过滤，通过则返回全名 `[name]`；
+ *   dropQuality 为纯数字时：档位内（0-7）作起始档位，越界回退为空（不过滤，
+ *   与 Usage 侧“纯数字直通”一致）；为文本时作子串匹配，为空时不过滤；
+ *   未命中档位、或名中无品质词（DROP_QUALITY 均不出现）一律返回 null（不记录）。
  * - 紫水晶（colorKind=crystal）：`Nx Crystal of Y` 展开为 N 个单名。
  * - 未知颜色：不断言品质，原样返回（纯文本行行为不变）。
  * - Credit 行返回 null（另有 credit 规则记账，不进 drops）。
@@ -336,22 +363,41 @@ export function normalizeDrop(name: string, colorKind: string, dropQuality = '')
   }
   if (colorKind === 'equip') {
     const q = (dropQuality ?? '').trim();
-    const asNum = Number(q);
     let start = 0;
-    if (q !== '' && Number.isInteger(asNum) && asNum >= 0 && asNum < DROP_QUALITY.length) {
-      start = asNum;
+    if (q !== '' && /^\d+$/.test(q)) {
+      const n = Number(q);
+      if (n >= 0 && n < DROP_QUALITY.length) start = n;
     } else if (q !== '') {
       if (!name.toLowerCase().includes(q.toLowerCase())) return null;
     }
     for (let j = start; j < DROP_QUALITY.length; j++) {
       if (name.includes(DROP_QUALITY[j])) {
-        const first = name.match(/^\w+/)?.[0] ?? name;
-        return [`Equipment of ${first}`];
+        return [name];
       }
     }
-    return q === '' ? [name] : null;
+    return null;
   }
   return [name];
+}
+
+/**
+ * 装备品质词提取：命中 DROP_QUALITY 中首个出现的词，否则 null。
+ * 记录侧 normalizeDrop 已保证入库装备必含品质词；展示分组用。
+ */
+export function equipQuality(name: string): string | null {
+  for (const q of DROP_QUALITY) {
+    if (name.includes(q)) return q;
+  }
+  return null;
+}
+
+/**
+ * 展示键：含品质词的掉落名归入 `Equipment of <品质>` 桶（不分基型），其余原样。
+ * 记录存全名（normalizeDrop），汇总/单场/CSV 展示时统一经此分组。
+ */
+export function displayDropKey(name: string): string {
+  const q = equipQuality(name);
+  return q ? `Equipment of ${q}` : name;
 }
 
 /** 掉落 span 颜色 → 种类（老版按计算样式 rgb 比对：红装/紫水晶/金币） */
@@ -405,9 +451,10 @@ export function foldDrops(drops: string[]): Array<[string, number]> {
   return order.map((k) => [k, counts.get(k) ?? 0]);
 }
 
-/** 单场掉落展示串：单件直书，多件 `名×n`，项间 `; ` 连接（空数组返回空串）。 */
+/** 单场掉落展示串：先按展示键分组（装备只分品质），再同桶计数，
+ * 单件直书，多件 `名×n`，项间 `; ` 连接（空数组返回空串）。 */
 export function formatDrops(drops: string[]): string {
-  return foldDrops(drops)
+  return foldDrops(drops.map(displayDropKey))
     .map(([k, v]) => (v > 1 ? `${k}×${v}` : k))
     .join('; ');
 }

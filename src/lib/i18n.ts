@@ -171,6 +171,11 @@ const D = {
   'usage.csv': ['导出CSV', '導出CSV', 'Export CSV'],
   'usage.dropsCsv': ['导出掉落CSV', '導出掉落CSV', 'Export drops CSV'],
   'usage.filter': ['品质过滤', '品質過濾', 'Quality filter'],
+  'usage.filterHint': [
+    '仅过滤场次列表，汇总与导出不受影响',
+    '僅過濾場次列表，匯總與導出不受影響',
+    'Filters the battle list only; totals and exports are unaffected',
+  ],
   'usage.drops': ['掉落汇总', '掉落匯總', 'Drops'],
   'usage.takenPhys': ['物理承伤', '物理承傷', 'Physical taken'],
   'usage.takenMag': ['魔法承伤', '魔法承傷', 'Magical taken'],

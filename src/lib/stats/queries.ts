@@ -4,7 +4,7 @@ import { logger } from '../logger';
 import { emptyTotals, bump } from './types';
 import type { BattleRow, CurBattle, Totals } from './types';
 import { backfillCur, backfillRow } from './lifecycle';
-import { formatDrops } from './parse';
+import { formatDrops, displayDropKey } from './parse';
 
 const CUR_KEY = 'cur';
 
@@ -144,10 +144,12 @@ export function battlesToCsv(rows: BattleRow[]): string {
   return '﻿' + [head.join(','), ...lines].join('\n');
 }
 
-/** 掉落汇总 topN（按件数降序，供 Usage 累计区展示；空对象返回空数组）。 */
+/** 掉落汇总 topN（按展示键重聚合：装备只分品质不分基型，再按件数降序；空对象返回空数组）。 */
 export function topDrops(totals: Pick<Totals, 'drops'>, n = 10): Array<[string, number]> {
   try {
-    return Object.entries(totals.drops ?? {})
+    const grouped: Record<string, number> = {};
+    for (const [k, v] of Object.entries(totals.drops ?? {})) bump(grouped, displayDropKey(k), v);
+    return Object.entries(grouped)
       .sort((a, b) => b[1] - a[1])
       .slice(0, n);
   } catch {
@@ -155,9 +157,11 @@ export function topDrops(totals: Pick<Totals, 'drops'>, n = 10): Array<[string, 
   }
 }
 
-/** 掉落汇总导出 CSV（name,count 按件数降序，UTF-8 BOM）。 */
+/** 掉落汇总导出 CSV（展示键聚合后 name,count 按件数降序，UTF-8 BOM）。 */
 export function dropsToCsv(totals: Pick<Totals, 'drops'>): string {
-  const rows = Object.entries(totals.drops ?? {}).sort((a, b) => b[1] - a[1]);
+  const grouped: Record<string, number> = {};
+  for (const [k, v] of Object.entries(totals.drops ?? {})) bump(grouped, displayDropKey(k), v);
+  const rows = Object.entries(grouped).sort((a, b) => b[1] - a[1]);
   const lines = rows.map(([k, v]) => [csvCell(k), v].join(','));
   return '﻿' + [['name', 'count'].join(','), ...lines].join('\n');
 }
