@@ -400,6 +400,86 @@ export function displayDropKey(name: string): string {
   return q ? `Equipment of ${q}` : name;
 }
 
+/**
+ * 总表掉落分组（market 官方口径：装备＋消耗品/素材/奖杯/遗物/手办/怪物道具＋其它兜底；
+ * 顺序固定 equip→consumable→material→trophy→relic→figure→monsteritem→other）。
+ * 战斗水晶即官方怪物道具里的 12 个 `Crystal of X`（`filter=mo` 实测），精确命中才进组；
+ * 名单外的 `Crystal of X` 与 `Chaos Token` 进 other。
+ */
+export type DropGroup =
+  | 'equip'
+  | 'consumable'
+  | 'material'
+  | 'trophy'
+  | 'relic'
+  | 'figure'
+  | 'monsteritem'
+  | 'other';
+
+const CONSUMABLE_RE =
+  /scroll of|draught|potion|elixir|infusion|energy drink|caffeinated candy|flower vase|bubble-gum|full-cure/i;
+const MATERIAL_RE =
+  /binding of|charm|(weapon|staff|armor) core|grade (cloth|leather|metal|wood)|scrap (cloth|leather|metal|wood)|energy cell|phazon|actuator|matrix|world seed|shard|shade fragment/i;
+/** 奖杯 exact 名（market `filter=tr` 全量，异形名不用正则硬套，落空进 other）。 */
+const TROPHY_NAMES = new Set([
+  "Tenbora's Box",
+  'ManBearPig Tail',
+  'Holy Hand Grenade of Antioch',
+  "Mithra's Flower",
+  'Dalek Voicebox',
+  'Lock of Blue Hair',
+  'Bunny-Girl Costume',
+  'Hinamatsuri Doll',
+  'Broken Glasses',
+  'Black T-Shirt',
+  'Sapling',
+  'Unicorn Horn',
+  'Noodly Appendage',
+  'Platinum Coupon',
+  'Gold Coupon',
+  'Silver Coupon',
+  'Bronze Coupon',
+  "Collector's Catalyst Cabinet",
+  'Bath Salts',
+]);
+const RELIC_RE = /artifact|catalyst/i;
+const FIGURE_RE = /figurine/i;
+/** 怪物道具里的水晶（market `filter=mo`，优先于普通水晶判定；全小写存键）。 */
+const MONSTER_CRYSTALS = new Set(
+  [
+    'Vigor',
+    'Finesse',
+    'Swiftness',
+    'Fortitude',
+    'Cunning',
+    'Knowledge',
+    'Flames',
+    'Frost',
+    'Lightning',
+    'Tempest',
+    'Devotion',
+    'Corruption',
+  ].map((s) => s.toLowerCase()),
+);
+const MONSTER_ITEM_RE = /monster chow|monster edible|monster cuisine|happy pill/i;
+
+/** 展示键/原名 → 组（装备认品质桶或品质词优先，其余按官方分类，未命中进 other）。 */
+export function dropGroup(name: string): DropGroup {
+  const n = name ?? '';
+  // 传奇三 Core 是素材但含品质词（Legendary），必须先于装备判定拦截。
+  if (/(weapon|staff|armor) core/i.test(n)) return 'material';
+  if (n.startsWith('Equipment of ') || equipQuality(n)) return 'equip';
+  if (CONSUMABLE_RE.test(n)) return 'consumable';
+  if (MATERIAL_RE.test(n)) return 'material';
+  if (TROPHY_NAMES.has(n) || /coupon/i.test(n)) return 'trophy';
+  if (RELIC_RE.test(n)) return 'relic';
+  if (FIGURE_RE.test(n)) return 'figure';
+  const mo = n.match(/^crystal of (\w+)$/i);
+  if ((mo && MONSTER_CRYSTALS.has(mo[1].toLowerCase())) || MONSTER_ITEM_RE.test(n))
+    return 'monsteritem';
+  return 'other';
+}
+
 /** 掉落 span 颜色 → 种类（老版按计算样式 rgb 比对：红装/紫水晶/金币） */
 export function dropColorKind(raw: string): string {
   const m = raw.match(/#([0-9a-fA-F]{6})|rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/);

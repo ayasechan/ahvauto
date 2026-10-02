@@ -96,6 +96,9 @@ scripts/cdp/         # 浏览器运维脚本（TS，npx tsx 运行，详见其 R
   `obtained Nx […]` 展开 N 件，无括号 `You gain N Credits!` 记账。
 - 展示只分品质：汇总/单场/CSV 经 `displayDropKey` 分组，
   含品质词的掉落归入 `Equipment of <品质>` 桶，其余原样。
+  总表汇总另经 `dropGroup` 按 market 官方口径分八组各一行
+  （装备/消耗品/素材/奖杯/遗物/手办/怪物道具/其它），组内同上聚合降序；
+  战斗水晶掉落官方无分组，进其它。
 - 面板文本过滤仅收窄场次列表，汇总/Top/单场详情/两份 CSV 不受影响；
   纯数字输入直通（记录侧越界纯数字回退为空，不过滤）。
 - 历史数据不兼容：旧 `Equipment of <品质>` 桶键与新分组同名 natural 合并，不迁移不清理。

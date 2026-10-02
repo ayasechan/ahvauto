@@ -11,17 +11,28 @@
     clearStats,
     battlesToCsv,
     dropsToCsv,
-    topDrops,
+    groupedDrops,
     formatDrops,
     deriveTotals,
     isPhysicalElem,
     emptyTotals,
   } from '../../lib/stats';
-  import type { BattleRow, CurBattle, Totals } from '../../lib/stats';
+  import type { BattleRow, CurBattle, DropGroup, Totals } from '../../lib/stats';
   import * as battleMod from '../../lib/battle';
 
   const L = (k: I18nKey) => tr($options.lang, k);
 
+  /** 掉落分组 → 词典 key（加组必须同步补这里，否则编译报错）。 */
+  const DROP_GROUP_KEY = {
+    equip: 'usage.dropsEquip',
+    consumable: 'usage.dropsConsumable',
+    material: 'usage.dropsMaterial',
+    trophy: 'usage.dropsTrophy',
+    relic: 'usage.dropsRelic',
+    figure: 'usage.dropsFigure',
+    monsteritem: 'usage.dropsMonster',
+    other: 'usage.dropsOther',
+  } as const satisfies Record<DropGroup, I18nKey>;
   /** 战斗类型 → 词典 key（加类型必须同步补这里，否则编译报错）。 */
   const TYPE_KEY = {
     ar: 'battle.ar',
@@ -229,13 +240,14 @@
         ></tr
       >
       <tr><td>EXP / Credit</td><td>{fmt(stats.exp)} / {fmt(stats.credit)}</td></tr>
-      <tr
-        ><td>{L('usage.drops')}</td><td
-          >{topDrops(stats, 10)
-            .map(([k, v]) => `${k}×${fmt(v)}`)
-            .join(', ') || '—'}</td
-        ></tr
-      >
+      <tr><td>{L('usage.drops')}</td><td>{fmt(stats.dropsCount)}</td></tr>
+      {#each groupedDrops(stats) as g}
+        <tr
+          ><td class="sub">{L(DROP_GROUP_KEY[g.group])}</td><td
+            >{g.entries.map(([k, v]) => `${k}×${fmt(v)}`).join(', ') || '—'}</td
+          ></tr
+        >
+      {/each}
       <tr
         ><td>Casts</td><td
           >{allList(stats.casts)

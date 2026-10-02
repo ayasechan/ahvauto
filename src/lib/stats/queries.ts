@@ -4,7 +4,8 @@ import { logger } from '../logger';
 import { emptyTotals, bump } from './types';
 import type { BattleRow, CurBattle, Totals } from './types';
 import { backfillCur, backfillRow } from './lifecycle';
-import { formatDrops, displayDropKey } from './parse';
+import { formatDrops, displayDropKey, dropGroup } from './parse';
+import type { DropGroup } from './parse';
 
 const CUR_KEY = 'cur';
 
@@ -144,16 +145,57 @@ export function battlesToCsv(rows: BattleRow[]): string {
   return '﻿' + [head.join(','), ...lines].join('\n');
 }
 
-/** 掉落汇总 topN（按展示键重聚合：装备只分品质不分基型，再按件数降序；空对象返回空数组）。 */
-export function topDrops(totals: Pick<Totals, 'drops'>, n = 10): Array<[string, number]> {
+/** 掉落汇总（按展示键重聚合：装备只分品质不分基型，再按件数降序；不传 n 即全量；空对象返回空数组）。 */
+export function topDrops(totals: Pick<Totals, 'drops'>, n?: number): Array<[string, number]> {
   try {
     const grouped: Record<string, number> = {};
     for (const [k, v] of Object.entries(totals.drops ?? {})) bump(grouped, displayDropKey(k), v);
-    return Object.entries(grouped)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, n);
+    const rows = Object.entries(grouped).sort((a, b) => b[1] - a[1]);
+    return n === undefined ? rows : rows.slice(0, n);
   } catch {
     return [];
+  }
+}
+
+/** 总表分组顺序（固定行序：装备→消耗品→素材→奖杯→遗物→手办→怪物道具→其它）。 */
+export const DROP_GROUP_ORDER: DropGroup[] = [
+  'equip',
+  'consumable',
+  'material',
+  'trophy',
+  'relic',
+  'figure',
+  'monsteritem',
+  'other',
+];
+
+/** 掉落汇总分组（组内按展示键聚合、件数降序；恒返回 8 组，空组 entries 为空数组）。 */
+export function groupedDrops(
+  totals: Pick<Totals, 'drops'>,
+): Array<{ group: DropGroup; entries: Array<[string, number]> }> {
+  const empty = (): Array<{ group: DropGroup; entries: Array<[string, number]> }> =>
+    DROP_GROUP_ORDER.map((group) => ({ group, entries: [] }));
+  try {
+    const per: Record<DropGroup, Record<string, number>> = {
+      equip: {},
+      consumable: {},
+      material: {},
+      trophy: {},
+      relic: {},
+      figure: {},
+      monsteritem: {},
+      other: {},
+    };
+    for (const [k, v] of Object.entries(totals.drops ?? {})) {
+      const dk = displayDropKey(k);
+      bump(per[dropGroup(dk)], dk, v);
+    }
+    return DROP_GROUP_ORDER.map((group) => ({
+      group,
+      entries: Object.entries(per[group]).sort((a, b) => b[1] - a[1]),
+    }));
+  } catch {
+    return empty();
   }
 }
 

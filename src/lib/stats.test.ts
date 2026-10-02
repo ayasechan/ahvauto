@@ -17,6 +17,8 @@ import {
   dropColorKind,
   equipQuality,
   displayDropKey,
+  dropGroup,
+  groupedDrops,
   takenAvg,
   takenPhysAvg,
   takenMagAvg,
@@ -317,11 +319,11 @@ describe('parseTurn 真实数据', () => {
     ]);
   });
   it('水晶 Nx 展开，Credit 不进 drops', () => {
-    assert.deepEqual(normalizeDrop('2x Crystal of Fire', 'crystal'), [
-      'Crystal of Fire',
-      'Crystal of Fire',
+    assert.deepEqual(normalizeDrop('2x Crystal of Unknown', 'crystal'), [
+      'Crystal of Unknown',
+      'Crystal of Unknown',
     ]);
-    assert.deepEqual(normalizeDrop('Crystal of Fire', 'crystal'), ['Crystal of Fire']);
+    assert.deepEqual(normalizeDrop('Crystal of Unknown', 'crystal'), ['Crystal of Unknown']);
     assert.equal(normalizeDrop('127 Credits', 'credit'), null);
   });
   it('红装行经 parseTurn 记全名（含 HTML 颜色）', () => {
@@ -355,7 +357,7 @@ describe('parseTurn 真实数据', () => {
     assert.equal(equipQuality('Scroll of Absorption'), null);
     assert.equal(displayDropKey('Superior Estoc of Slaughter'), 'Equipment of Superior');
     assert.equal(displayDropKey('Superior Redwood Staff of the Fox'), 'Equipment of Superior');
-    assert.equal(displayDropKey('Crystal of Fire'), 'Crystal of Fire');
+    assert.equal(displayDropKey('Crystal of Unknown'), 'Crystal of Unknown');
     assert.equal(
       formatDrops(['Superior Estoc of Slaughter', 'Superior Redwood Staff of the Fox']),
       'Equipment of Superior×2',
@@ -381,9 +383,9 @@ describe('parseTurn 真实数据', () => {
   });
   it('单场 CSV 相同掉落折叠为×n', () => {
     const rows: BattleRow[] = [
-      makeRow({ drops: ['Crystal of Fire', 'Crystal of Fire', 'Scroll of Absorption'] }),
+      makeRow({ drops: ['Crystal of Unknown', 'Crystal of Unknown', 'Scroll of Absorption'] }),
     ];
-    assert.ok(battlesToCsv(rows).includes('Crystal of Fire×2; Scroll of Absorption'));
+    assert.ok(battlesToCsv(rows).includes('Crystal of Unknown×2; Scroll of Absorption'));
   });
 });
 
@@ -498,5 +500,60 @@ describe('行内累加＋读时求和（v3）', () => {
   });
   it('BATTLES_CAP 为 2000（IDB 全量行上限）', () => {
     assert.equal(BATTLES_CAP, 2000);
+  });
+});
+
+describe('掉落分组（总表八行，market 官方口径）', () => {
+  it('dropGroup：装备/消耗品/素材/奖杯/遗物/手办/怪物道具/其它', () => {
+    assert.equal(dropGroup('Equipment of Superior'), 'equip');
+    assert.equal(dropGroup('Superior Estoc of Slaughter'), 'equip');
+    assert.equal(dropGroup('Scroll of Absorption'), 'consumable');
+    assert.equal(dropGroup('Health Potion'), 'consumable');
+    assert.equal(dropGroup('Mana Draught'), 'consumable');
+    assert.equal(dropGroup('Infusion of Flames'), 'consumable');
+    assert.equal(dropGroup('Flower Vase'), 'consumable');
+    assert.equal(dropGroup('Binding of Slaughter'), 'material');
+    assert.equal(dropGroup('Lesser Fire Strike Charm'), 'material');
+    assert.equal(dropGroup('Low-Grade Cloth'), 'material');
+    assert.equal(dropGroup('Legendary Weapon Core'), 'material');
+    assert.equal(dropGroup('Voidseeker Shard'), 'material');
+    assert.equal(dropGroup('Shade Fragment'), 'material');
+    assert.equal(dropGroup('Unicorn Horn'), 'trophy');
+    assert.equal(dropGroup('Gold Coupon'), 'trophy');
+    assert.equal(dropGroup('Broken Glasses'), 'trophy');
+    assert.equal(dropGroup('Bath Salts'), 'trophy');
+    assert.equal(dropGroup('Precursor Artifact'), 'relic');
+    assert.equal(dropGroup('Vibrant Catalyst (Final Edition)'), 'relic');
+    assert.equal(dropGroup('Twilight Sparkle Figurine'), 'figure');
+    assert.equal(dropGroup('Crystal of Vigor'), 'monsteritem');
+    assert.equal(dropGroup('Monster Chow'), 'monsteritem');
+    // `Crystal of Unknown` 为虚构名（真实为 Flames/Frost/…），专测名单外水晶进 other。
+    assert.equal(dropGroup('Crystal of Unknown'), 'other');
+    assert.equal(dropGroup('Chaos Token'), 'other');
+    assert.equal(dropGroup('Soul Fragments'), 'other');
+  });
+  it('groupedDrops：恒 8 组固定行序、组内聚合降序、空组空数组', () => {
+    const gs = groupedDrops({
+      drops: {
+        'Superior Estoc of Slaughter': 1,
+        'Superior Redwood Staff of the Fox': 2,
+        'Scroll of Absorption': 3,
+        'Crystal of Vigor': 4,
+        'Crystal of Unknown': 5,
+      },
+    });
+    assert.deepEqual(
+      gs.map((g) => g.group),
+      ['equip', 'consumable', 'material', 'trophy', 'relic', 'figure', 'monsteritem', 'other'],
+    );
+    assert.deepEqual(gs[0].entries, [['Equipment of Superior', 3]]);
+    assert.deepEqual(gs[1].entries, [['Scroll of Absorption', 3]]);
+    assert.deepEqual(gs[2].entries, []);
+    assert.deepEqual(gs[6].entries, [['Crystal of Vigor', 4]]);
+    assert.deepEqual(gs[7].entries, [['Crystal of Unknown', 5]]);
+    assert.deepEqual(
+      groupedDrops({ drops: {} }).map((g) => g.entries),
+      [[], [], [], [], [], [], [], []],
+    );
   });
 });
