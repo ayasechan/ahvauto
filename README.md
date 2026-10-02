@@ -40,6 +40,7 @@
 - `docs/CLASSES.md` —— 战士/法师玩法对照（先看这个配职业）
 - `docs/ARCHITECTURE.md` —— 系统架构（开发者）
 - `docs/COMBAT.md` —— 战斗算法：决策链、集火、技能（开发者）
+- `docs/ARENA.md` —— 竞技场对照表：ar/rb/gr 的 round↔id（CDP 实测）
 - `docs/ITEMS.md` —— 物品接口：ID 表、判定、消耗
 - `docs/SKILLS.md` —— 技能接口：ID 编码、消耗、开关门
 - `docs/DEV.md` —— 开发联调手册
