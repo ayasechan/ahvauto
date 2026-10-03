@@ -79,6 +79,11 @@ scripts/cdp/         # 浏览器运维脚本（TS，npx tsx 运行，详见其 R
 顺序：`encounterCheck` → 体力门槛 → `repairEquipment` → 定时起 `idleArena`。
 修装备失败只记日志（warning），绝不抛、绝不挡开战；页面跳走导致的中止静默忽略。
 
+- **跨天口径（UTC+0）**：`http.ts:todayKey()` 取 `getUTC*` 生成 `YYYY/M/D`，
+  `meta.ts:encounterCheck`（遭遇战 24 次/日）与 `idleArena`（队列＋token 按日重置）
+  均以此字符串比对缓存 `dateNow/date` 判定跨天。北京时间 08:00 才算第二天
+  （00:00–07:59 仍算前一天）。
+
 - **修装备接口**（CDP 真机录制，ON/OFF 各一次成功提交）：`GET ?s=Bazaar&ss=am&screen=repair`
   取 `postoken`＋`input[name="eqids[]"]` 的 id＋行尾 `NN%` 耐久，按 `repairValue` 阈值
   （耐久 ≤ N%）过滤后一次 POST 全修：`postoken + eqids[]×N`（`repairCharms` 开才带
