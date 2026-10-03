@@ -19,7 +19,8 @@
 - **执行**（`src/lib/combat/execute.ts`）：把动作翻译成点击。法术书/Buff 直调
   `getElementById`，其余经 `click`/`qs`（纯数字 id 回落 `getElementById`，imperil 经 `go` 回落等效直调）；卷轴/药剂/魔药走物品栏 `.bti3`；`item` 内部分流：`id > 10000` 走 `.bti3`，否则（含 Cure 311 / FC 313）走法术书（与原版“判哪点哪”同构，见 `docs/ITEMS.md`）。
 - **驱动**（`src/lib/battle.ts`）：劫持 `api_call/api_response`（游戏动态查找，
-  覆盖有效），响应→`eventEnd`（DOM 锚点，非导出函数）→统计→`main()` 下一轮。发包三道门会被游戏静默吞，
+  覆盖有效），响应→`#eventEnd`（页内一次性 DOM 锚点，`battle.ts` 内创建，非导出函数）
+  →统计→`main()` 下一轮。发包三道门会被游戏静默吞，
   看门狗（8s 补点／25s 重载）兜底。
 - **UI**（`src/ui/`）：Svelte 13 页设置面板；战斗内状态条由 `battle.ts:battleInfo` 直写 `.ahvauto-log`，非 Svelte 组件。详见下。
 - **分层约束**：纯逻辑（`combat/decide`、`expr`、`stats`）配单测；DOM 触点在
@@ -54,7 +55,7 @@ scripts/cdp/         # 浏览器运维脚本（TS，npx tsx 运行，详见其 R
 | `ARENA/ENCOUNTER_KEY`                                                          | 竞技场队列＋token／遭遇战计数                                                                                                                                                                                                                                                             |
 | `ahvauto-backup`                                                               | 配置备份字典（`store.ts:loadBackups/saveBackups`）                                                                                                                                                                                                                                        |
 | `STAMINA_LOG_KEY`                                                              | 体力消耗记录                                                                                                                                                                                                                                                                              |
-| `sessionStorage: ahvauto-spell-delay/nospell-delay`                            | 发包延迟（注入脚本与 userscript 两侧同读）                                                                                                                                                                                                                                                |
+| `sessionStorage: ahvauto-spell-delay/nospell-delay`                            | 发包延迟（注入脚本与 userscript 两侧同读，抖动 50%–150%，`http.ts:jitter`）                                                                                                                                                                                                               |
 | IDB `ahvauto-debug`（v7）                                                      | `records`（`{seq,data}` 去冗余 gzip 包，上限 2000，`seq` keyPath）、`turns`（`{t,data}` 回合现场，上限 50000，自增 key）、`logs`（运行日志原文不 gzip，上限 1000，自增 key）、`battles`（单场全量行，上限 2000）、`cur`（进行中局单行）；导出走 JSONL+gzip（面板与 CDP 共 `toJsonlLine`） |
 
 `LEGACY_BATTLE_CODE_KEY` 为旧键，仅启动清理（`clearFieldCtx`），无现行写入。
@@ -71,8 +72,7 @@ scripts/cdp/         # 浏览器运维脚本（TS，npx tsx 运行，详见其 R
    写路径只碰 `cur` 表（异步串行、fire-and-forget 不挡战斗），
    总数读时求和（`deriveTotals`：已落盘局＋进行中局，`battles` 只计已落盘），转移写 debug 日志。
 
-回合内决策是规则表（有序 first-match），不是状态机——行间无状态可跟踪，
-硬套只是 ceremony（结论见实现记录）。
+回合内决策是规则表（有序 first-match），不是状态机——行间无状态可跟踪。
 
 ## 战斗外（`main.ts` field 入口 → `meta.ts`）
 

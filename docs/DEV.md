@@ -2,15 +2,16 @@
 
 相关文档：`README.md`（用户手册）、`docs/CLASSES.md`（战士/法师玩法对照，改配置先看）、
 `docs/ARCHITECTURE.md`（系统架构）、`docs/COMBAT.md`（战斗算法）、
+`docs/ARENA.md`（竞技场对照表＋开战三态，改 idleArena 前看）、
 `docs/ITEMS.md`（物品接口）、`docs/SKILLS.md`（技能接口）、
 `src/lib/expr/GRAMMAR.md`（条件表达式规格）、`scripts/cdp/README.md`（浏览器运维）。
 
 ## 常驻后台进程
 
-| 进程                        | 启动                                                                            | 作用                                                                                               |
-| --------------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `npm run dev`（vite :5173） | `setsid nohup npm run dev > logs/dev-server.log 2>&1 < /dev/null &`             | VM dev 版（`server:` 安装）热更新源。改 `src/` 即触发页面 reload，新代码直接生效，**不用重装脚本** |
-| `vite build --watch`        | `setsid nohup npx vite build --watch > logs/build-watch.log 2>&1 < /dev/null &` | `src/` 变动自动重编 `dist/ahvauto.user.js`（生产安装包）                                           |
+| 进程                        | 启动                                                                         | 作用                                                                                               |
+| --------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `npm run dev`（vite :5173） | `setsid nohup npm run dev > logs/dev-server.log 2>&1 < /dev/null &`          | VM dev 版（`server:` 安装）热更新源。改 `src/` 即触发页面 reload，新代码直接生效，**不用重装脚本** |
+| `npm run build:watch`       | `setsid nohup npm run build:watch > logs/build-watch.log 2>&1 < /dev/null &` | `src/` 变动自动重编 `dist/ahvauto.user.js`（生产安装包）                                           |
 
 验证 dev 联通：改完 reload 页面，悬浮钮统一显示 `ahvauto·dev`（dev/dist 均此文案，不再用于区分版本；以热更新生效为准）。
 
@@ -56,7 +57,7 @@ IDB 异步路径走 CDP 真机验证。`src/**/*.test.ts` 已在 tsconfig exclud
 
 ## 已知的坑（别再踩）
 
-1. 游戏页把 `localStorage.setItem` 包了一层，静默丢弃 `hvAA*` 开头 key——`hvAA*` 禁 `setItem`，其余直接赋值（`store.ts` 有注释）。
+1. 游戏页把 `localStorage.setItem` 包了一层，静默丢弃写入——全仓一律直接赋值，禁 `setItem`（`store.ts` 有注释）。
 2. `Infinity` 过 JSON 变 `null`——读回必须归一化（死亡判定依赖）。
 3. `src` 生产入口（`src/main.ts`，monkey 打包）禁动态 `import()`，会切 SystemJS（页内无 `System` 直接暴毙）。
 4. `bind:` 传 `undefined` 会炸 tab 切换（`props_invalid_value`）——必须预填 key：item/buff/debuff/scroll conditions＋enabledMap、debuff.turns、rule.weights、channel.first/useSecond、scroll.roundTypes/first、alarm.audio/audioEnable/telegram/webhook（`backfill/backfillBool/backfillNum/backfillAlarm`＋单测守护）。
@@ -66,3 +67,7 @@ IDB 异步路径走 CDP 真机验证。`src/**/*.test.ts` 已在 tsconfig exclud
 8. `delayReload`（用户配置 30s）调试期会掀桌子（reload 清注入态）；常驻版无此问题。
 9. CDP `evaluate` 偶发把游戏页自身未捕获异常算到结果头上——`common.ts` 只在无有效值时才抛。
 10. 全仓禁 `eval`/`new Function`（CSP + 外来陌生配置）。
+11. 竞技场列表缺席≠失败——`startBattle` 返回三态（`meta.ts:StartResult`）：
+    新鲜表单无该 `initid`（提前完成/Cooldown）报 `unavailable`，直接消费队列项；
+    取表单失败/网络异常/POST 被拒报 `retry`（记 `ArenaCache.fails`＋60s 重试，连续 3 次跳过）。
+    别拿重试去等 Cooldown（十几小时），也别和坑 #7 的看门狗（8s/25s 战斗内兜底）混为一谈。
