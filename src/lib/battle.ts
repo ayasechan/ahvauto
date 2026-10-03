@@ -375,12 +375,7 @@ function readLastSend(): number {
   }
 }
 
-/**
- * 发后看门狗：游戏在 n（忙）/v（已锁目标）/f（请求在途）时静默吞掉点击，
- * 此时不会有响应、循环会饿死。这里做两级恢复：
- * 1. 8 秒无新请求 → 补点一次当前集火目标（若真有请求在途会被游戏侧吞掉，无害）；
- * 2. 25 秒 textlog 无增长 → 整页重载（原版各失败路径同理）。
- */
+/** 发后看门狗（恢复策略见 docs/COMBAT.md 看门狗节） */
 function armWatchdog(sendBefore: number, logBefore: number): void {
   after('watchdog-retry', 8000, () => {
     try {

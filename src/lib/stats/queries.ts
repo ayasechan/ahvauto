@@ -145,7 +145,7 @@ export function battlesToCsv(rows: BattleRow[]): string {
   return '﻿' + [head.join(','), ...lines].join('\n');
 }
 
-/** 掉落汇总（按展示键重聚合：装备只分品质不分基型，再按件数降序；不传 n 即全量；空对象返回空数组）。 */
+/** 掉落汇总（聚合规则见 docs/ARCHITECTURE.md 掉落口径节） */
 export function topDrops(totals: Pick<Totals, 'drops'>, n?: number): Array<[string, number]> {
   try {
     const grouped: Record<string, number> = {};

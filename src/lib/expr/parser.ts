@@ -1,18 +1,4 @@
 // 条件表达式语法：权威 EBNF 见同目录 GRAMMAR.md，改语法先改文档。
-// 此处仅保留实现对照用的精简版：
-//   expression     = or_expr ;
-//   or_expr        = and_expr { "or" and_expr } ;
-//   and_expr       = not_expr { "and" not_expr } ;
-//   not_expr       = "not" not_expr | comparison ;
-//   comparison     = additive [ comp_op additive ] ;  (* 禁止链式 a<b<c *)
-//   comp_op        = "==" | "!=" | "<=" | ">=" | "<" | ">" ;
-//   additive       = multiplicative { ("+" | "-") multiplicative } ;
-//   multiplicative = unary { ("*" | "/" | "%") unary } ;
-//   unary          = "-" unary | primary ;
-//   primary        = number | string | boolean
-//                  | func_call | var_path | "(" expression ")" ;
-//   func_call      = ident "(" [ expression { "," expression } ] ")" ;
-//   var_path       = ident { "." ident } ;
 import { tokenize, ExprSyntaxError } from './tokenizer';
 import type { Token, TokenKind } from './tokenizer';
 

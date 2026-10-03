@@ -28,11 +28,7 @@ export function levenshtein(a: string, b: string): number {
   return prev[n];
 }
 
-/**
- * 建议规则（已记入 GRAMMAR.md）：
- * 1. 有忽略大小写的完全匹配 → 优先报"区分大小写"类建议；
- * 2. 否则取编辑距离最小者，需同时满足 距离≤3 且 2*距离 ≤ 两名长度之和。
- */
+/** 补全建议（规则见同目录 GRAMMAR.md） */
 export function suggestName(input: string, pool: Candidate[]): Candidate | null {
   const lower = input.toLowerCase();
   const ci = pool.find((c) => c.name !== input && c.name.toLowerCase() === lower);

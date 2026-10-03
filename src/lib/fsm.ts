@@ -11,7 +11,7 @@ export type MachineState = 'boot' | 'field' | 'battle' | 'riddle';
 
 const timers = new Map<string, number>();
 
-/** 命名延时：同名任务覆盖前一个 */
+/** 命名延时（语义见 docs/ARCHITECTURE.md 状态机节） */
 export function after(name: string, ms: number, fn: () => void): void {
   clearTimer(name);
   timers.set(

@@ -24,10 +24,7 @@ export function compileExpression(src: string): AST {
   return ast;
 }
 
-/**
- * 求值。抛错情况（调用方 try/catch 后 fail-closed）：
- * 未知变量/函数、类型不合、除零、顶层结果非布尔。
- */
+/** 求值（抛错与 fail-closed 语义见同目录 GRAMMAR.md） */
 export function evaluateExpression(src: string, ctx: EvalContext): boolean {
   const ast = compileExpression(src);
   const v = evaluateAst(ast, ctx);

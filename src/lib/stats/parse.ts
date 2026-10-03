@@ -1,5 +1,5 @@
 /**
- * 数据收集 v2 纯解析层：行文本 → 单轮统计，可单测。
+ * 数据收集 v3 纯解析层：行文本 → 单轮统计，可单测。
  * 本文件禁止 import store/kv/logger（保持可单测的纯函数，见 docs/ARCHITECTURE.md 分层约束）。
  * 施法成本（MP/OC）与终局怪/Boss 构成不在行文本里，
  * 分别由 addCost()/addKills() 供 capture-agent 补记，parseTurn 无来源时记 0。
@@ -332,16 +332,7 @@ const RULES: Rule[] = [
   },
 ];
 
-/**
- * 掉落名归一化（记录口径：装备存全名，展示另按品质分桶）：
- * - 红装（colorKind=equip）：按 dropQuality 过滤，通过则返回全名 `[name]`；
- *   dropQuality 为纯数字时：档位内（0-7）作起始档位，越界回退为空（不过滤，
- *   与 Usage 侧“纯数字直通”一致）；为文本时作子串匹配，为空时不过滤；
- *   未命中档位、或名中无品质词（DROP_QUALITY 均不出现）一律返回 null（不记录）。
- * - 紫水晶（colorKind=crystal）：`Nx Crystal of Y` 展开为 N 个单名。
- * - 未知颜色：不断言品质，原样返回（纯文本行行为不变）。
- * - Credit 行返回 null（另有 credit 规则记账，不进 drops）。
- */
+/** 掉落名归一化（记录口径见 docs/ARCHITECTURE.md 掉落口径节） */
 export const DROP_QUALITY = [
   'Crude',
   'Fair',
@@ -391,21 +382,13 @@ export function equipQuality(name: string): string | null {
   return null;
 }
 
-/**
- * 展示键：含品质词的掉落名归入 `Equipment of <品质>` 桶（不分基型），其余原样。
- * 记录存全名（normalizeDrop），汇总/单场/CSV 展示时统一经此分组。
- */
+/** 展示键（分组规则见 docs/ARCHITECTURE.md 掉落口径节） */
 export function displayDropKey(name: string): string {
   const q = equipQuality(name);
   return q ? `Equipment of ${q}` : name;
 }
 
-/**
- * 总表掉落分组（market 官方口径：装备＋消耗品/素材/奖杯/遗物/手办/怪物道具＋其它兜底；
- * 顺序固定 equip→consumable→material→trophy→relic→figure→monsteritem→other）。
- * 战斗水晶即官方怪物道具里的 12 个 `Crystal of X`（`filter=mo` 实测），精确命中才进组；
- * 名单外的 `Crystal of X` 与 `Chaos Token` 进 other。
- */
+/** 总表掉落分组（分组口径见 docs/ARCHITECTURE.md 掉落口径节） */
 export type DropGroup =
   | 'equip'
   | 'consumable'

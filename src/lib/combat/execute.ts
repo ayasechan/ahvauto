@@ -54,8 +54,7 @@ function shelf(id: string): boolean {
 }
 
 /**
- * 执行决策动作（唯一写 DOM 的地方，除面板外）。
- * 魔法/武器/debuff 按游戏机制点两次：先锁技能，再点目标发包（同回合）。
+ * 执行决策动作（唯一写 DOM 的地方，除面板外；点击机制见 docs/COMBAT.md）。
  * trace 回调收点击标签（调用方接 debugAct）；halt 时调 onHalt。
  */
 export function executeAction(
@@ -73,7 +72,7 @@ export function executeAction(
     case 'gem':
       return go('#ikey_p');
     case 'item':
-      // Cure 311 / FC 313 是法术书按钮，其余走物品栏（与原版 isOn/click 同构：判哪点哪）
+      // Cure 311 / FC 313 是法术书按钮
       trace(action.id);
       return Number(action.id) > 10000 ? shelf(action.id) : spellbook(action.id);
     case 'scroll':

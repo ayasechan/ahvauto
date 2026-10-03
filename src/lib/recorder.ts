@@ -29,7 +29,6 @@ const TURNS_CAP = 50000;
 export const LOGS_CAP = 1000;
 // v7：与 v6 同 schema（battles/cur 建表补救：线上曾出现 v6 版本号已提交但建表未执行，
 // 读写真抛 NotFoundError；升版一次触发 onupgradeneeded 补建。禁止只升号不建表的新版本）。
-// 注意：外部工具不得用带版本号 open（会空提交版本，跳过 onupgradeneeded，导致 schema 升级永久失效）。
 const DB_VERSION = 7;
 
 let dbp: Promise<IDBDatabase> | null = null;
@@ -67,8 +66,7 @@ function openDb(): Promise<IDBDatabase> {
   return dbp;
 }
 
-/** 全仓 IDB 唯一入口（带版本号 open 仅此一处，stats/ 等只经此拿库，禁直调 indexedDB.open）。
- * 节点单测环境无 indexedDB，调用方按需捕获失败（统计/录制失败静默，不挡战斗）。 */
+/** IDB 库入口：节点单测环境无 indexedDB，调用方按需捕获失败（统计/录制失败静默，不挡战斗）。 */
 export function getDb(): Promise<IDBDatabase> {
   return openDb();
 }
@@ -331,7 +329,7 @@ export function isLogEntry(v: unknown): v is LogEntry {
   );
 }
 
-/** 写一条运行日志（fire-and-forget，失败静默）。门控在 logger 侧（logLevel），此处不查 debug。 */
+/** 写一条运行日志（fire-and-forget，失败静默） */
 export async function appendLog(entry: LogEntry): Promise<void> {
   try {
     const db = await openDb();

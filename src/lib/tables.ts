@@ -1,4 +1,4 @@
-/** 技能 / 卷轴 / 魔药 / debuff 静态表（原分散在各函数内的 Lib 收敛到此） */
+/** 技能 / 卷轴 / 魔药 / debuff 静态表 */
 
 export interface SkillDef {
   id: string;
@@ -65,7 +65,7 @@ export const DEBUFF_LIB: Record<string, SkillDef> = {
   Co: { id: 'Confuse', img: 'confuse', name: 'Confuse' },
 };
 
-/** 攻击模式 -> 魔药（id/img 与游戏一致：火12101/冰12201/雷12301/风12401/圣12501/暗12601） */
+/** 攻击模式 -> 魔药（id 对照见 docs/SKILLS.md） */
 export const INFUSION_LIB: Record<number, SkillDef> = {
   1: { id: '12101', img: 'fireinfusion', name: 'Fire Infusion' },
   2: { id: '12201', img: 'coldinfusion', name: 'Cold Infusion' },

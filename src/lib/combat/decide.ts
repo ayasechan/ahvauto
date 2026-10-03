@@ -48,8 +48,8 @@ function debuffSlotOk(
 export const HALT_MSG = '无法正常施放DEBUFF技能，请尝试手动打怪';
 
 /**
- * 决策规则表：按表顺序求值，首个命中即决策（顺序即优先级，原 main() 链）。
- * attack 为链尾，内部按原 attack() 顺序：focus → spirit → etherTap/魔法/武器/普攻。
+ * 决策规则表（求值语义见 docs/ARCHITECTURE.md 决策小节）。
+ * attack 为链尾，内部按原 attack() 顺序：focus → spirit → etherTap/武器/魔法/普攻。
  */
 const RULES: Rule[] = [
   {
@@ -347,10 +347,7 @@ const RULES: Rule[] = [
   },
 ];
 
-/**
- * 保底停机线（纯）：血量跌破阈值且开关打开 → 调用方暂停＋告警。
- * 与条件系统无关，任何情况都生效（回血链本身也可能哑火：药吃完、法术 CD/缺蓝）。
- */
+/** 保底停机线（纯），语义见 docs/COMBAT.md */
 export function shouldEmergencyPause(hp: number, enabled: boolean, floor: number): boolean {
   return enabled && Number.isFinite(hp) && Number.isFinite(floor) && hp <= floor;
 }

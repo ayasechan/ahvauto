@@ -24,11 +24,7 @@ function parseBuffName(over: string): string {
   return over.match(/'(.*?)'/)?.[1] ?? '';
 }
 
-/**
- * 集火权重（原 countMonsterHP 公式）：血量比×10 ± 身上 debuff 权重，
- * 永远升序，死怪（Infinity）垫底。返回按权重排好的怪 id。
- * 例外：活着的 Yggdrasil 永远置顶（无视 reverse，死了就地掉回权重排序）。
- */
+/** 集火排序，规则与例外见 docs/COMBAT.md 集火节 */
 export function orderTargets(
   monsters: { id: string; name: string; hpNow: number; marks: string[] }[],
   weights: Record<string, number>,
@@ -63,7 +59,7 @@ export function orderTargets(
   return [...first, ...rest];
 }
 
-/** 置顶集火的怪名（去首尾空格后大小写无关全等）。只要活着就先打它。 */
+/** 置顶集火的怪名 */
 const PRIORITY_TARGET_NAME = 'yggdrasil';
 
 function isPriorityTarget(name: string): boolean {

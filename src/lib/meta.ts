@@ -83,11 +83,7 @@ export interface RepairItem {
   durability: number;
 }
 
-/**
- * 解析修装备页：postoken（表单真凭据）＋ 可修装备 id/耐久表。
- * 行格式：`<input name="eqids[]" … value="<id>">…</label></td><td>NN%</td>`
- * （2026-10 真机录制：6 件→4 件→3 件两次成功提交均走此格式）
- */
+/** 解析修装备页，字段语义见 docs/ARCHITECTURE.md 战斗外小节 */
 export function parseRepairForm(html: string): {
   postoken: string | null;
   items: RepairItem[];
@@ -104,12 +100,7 @@ export function parseRepairForm(html: string): {
 
 const REPAIR_URL = '?s=Bazaar&ss=am&screen=repair';
 
-/**
- * 自动修装备（field 入口调用，战斗前跑一次）：
- * 取 repair 页 → 按 repairValue 阈值（耐久 ≤ N%）过滤 → 一次 POST 全修 →
- * 以被修 id 从响应列表消失为成功信号。
- * 失败只记日志（warning），绝不抛、绝不挡后续 idleArena；页面跳走导致的中止静默忽略。
- */
+/** 自动修装备（field 入口调用，战斗前跑一次），流程语义见 docs/ARCHITECTURE.md 战斗外小节 */
 export async function repairEquipment(): Promise<void> {
   const opt = snapshotOptions();
   if (!opt.main.repair) return;
@@ -159,11 +150,7 @@ export async function repairEquipment(): Promise<void> {
   }
 }
 
-/**
- * 解析战斗列表页：postoken（表单真凭据）＋ 可开战 id 表。
- * 注意 init_battle 第二参数是 entry cost（入场费），不是 token；
- * 函数定义处的 init_battle(id, entrycost) 因首参非数字被自然排除。
- */
+/** 解析战斗列表页，字段语义见 docs/ARENA.md 开头 */
 export function parseBattleForm(html: string): {
   postoken: string | null;
   ids: Record<string, string>;
@@ -184,7 +171,7 @@ async function fetchBattleForm(
   return parsed.postoken ? { postoken: parsed.postoken, ids: parsed.ids } : null;
 }
 
-/** 开战结果：started=已进战斗；unavailable=该项已不可用（用户提前完成/下架，调用方应跳过）；retry=临时失败可 60s 后重试 */
+/** 开战结果三态，语义见 docs/ARENA.md 代码对应节 */
 export type StartResult = 'started' | 'unavailable' | 'retry';
 
 /** 开战：用新鲜 postoken 提交表单，检查响应是否真的进了战斗 */
@@ -194,8 +181,6 @@ async function startBattle(href: string, initid: string): Promise<StartResult> {
     logger.warning('arena: no postoken on {href}', { href });
     return 'retry';
   }
-  // 用户提前手动完成后，该 id 会从新鲜列表消失（陈旧 cache.token 仍有它）：
-  // 此时再 POST 只会被拒绝，必须报 unavailable 让调用方跳过，否则 60s 无限重试。
   if (!(initid in form.ids)) {
     logger.warning(
       'arena {initid} no longer listed on {href}, skipping (likely completed manually)',
@@ -230,19 +215,10 @@ async function startBattle(href: string, initid: string): Promise<StartResult> {
   return 'started';
 }
 
-/** 同一天内同一队列项最多连续重试次数，超限按永久失败跳过（防提前完成/服务端永久拒绝时无限 60s 空转） */
+/** 同一队列项连续重试上限，超限跳过（见 docs/ARENA.md） */
 const ARENA_MAX_RETRY = 3;
 
-/**
- * 闲置竞技场（忠实移植＋修原版两处 bug＋补 rb 页）：
- * - 原版等 token.length<3 但只发 2 个请求 → 死锁；此处等 gr/ar/rb 三页。
- * - 原版把 entry cost 当 token 发 inittoken → 无效；此处用表单 postoken。
- * - 原版注释掉 rb 请求导致 RB 永远跳过；此处正常抓取（用户队列末尾的 RB200 可跑）。
- * 队列为纯数字 id：NaN→gr，≥105→rb，否则 ar（竞技场已是单页，无分页）；token 缺失的跳过。
- * 只有确认开战成功才消费队列项；开战前用新鲜表单校验 id 是否仍在列，
- * 用户提前手动完成导致 id 消失时直接跳过该项；临时失败保留 60 秒后重试，
- * 同一项连续失败达上限（ARENA_MAX_RETRY）也跳过，避免无限空转。
- */
+/** 闲置竞技场：队列路由与开战三态语义见 docs/ARENA.md 代码对应节 */
 export async function idleArena(): Promise<void> {
   const opt = snapshotOptions();
   if (!opt.main.idleArena) return;
@@ -302,8 +278,7 @@ export async function idleArena(): Promise<void> {
       href = 'rb';
       id = String(n);
     } else {
-      // 竞技场单页：全部 id 走 ar。勿用 ar&page=2（游戏已取消分页，
-      // 实测其 GET 与 ar 完全相同，POST 则会被服务端拒绝导致 60s 空转）。
+      // 竞技场单页：全部 id 走 ar
       href = 'ar';
       id = String(n);
     }

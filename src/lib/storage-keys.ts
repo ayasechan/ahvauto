@@ -31,9 +31,9 @@ export const LEGACY_BATTLE_CODE_KEY = 'battleCode';
 /** @deprecated 旧 localStorage 日志（已迁 IDB logs 表）：仅启动清理。 */
 export const LEGACY_LOGS_KEY = `${STORAGE_NS}logs`;
 
-/** sessionStorage：发包延迟（注入脚本与 userscript 两侧同读） */
+/** sessionStorage：发包延迟 */
 export const SPELL_DELAY_KEY = `${STORAGE_NS}spell-delay`;
 export const NO_SPELL_DELAY_KEY = `${STORAGE_NS}nospell-delay`;
 
-/** IDB 录制库（仅 recorder.ts 带版本号 open） */
+/** IDB 录制库 */
 export const IDB_NAME = `${STORAGE_NS}debug`;

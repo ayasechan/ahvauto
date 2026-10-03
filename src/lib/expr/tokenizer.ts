@@ -1,4 +1,4 @@
-// EBNF 见 parser.ts 头部注释。本文件只做词法切分。
+// 词法切分（语法见同目录 GRAMMAR.md）。
 export type TokenKind =
   | 'num'
   | 'str'

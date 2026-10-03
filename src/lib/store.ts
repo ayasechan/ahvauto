@@ -186,7 +186,7 @@ export function saveBackups(b: BackupMap): void {
   localStorage[BACKUP_KEY] = JSON.stringify(b);
 }
 
-/** 发包延迟桥（sessionStorage，注入脚本与 userscript 两侧同读）：battle.ts 经此读写。 */
+/** 发包延迟桥（sessionStorage）：battle.ts 经此读写。 */
 export function publishSpellDelays(spellDelay: number, noSpellDelay: number): void {
   try {
     sessionStorage[SPELL_DELAY_KEY] = String(spellDelay);
@@ -211,8 +211,7 @@ export function readSpellDelays(): { spellDelay: number; noSpellDelay: number } 
   }
 }
 
-/** 非战斗页上下文清理：roundType＋旧 battleCode＋旧 localStorage 日志（已迁 IDB）。
- * 另一次性清理 v2 统计旧键（v3 起数据进 IDB，不做迁移）。 */
+/** 非战斗页上下文清理：roundType＋旧 battleCode＋旧 localStorage 日志（已迁 IDB）。 */
 export function clearFieldCtx(): void {
   kvDel(ROUND_TYPE_KEY);
   kvDel(STATS_KEY);
