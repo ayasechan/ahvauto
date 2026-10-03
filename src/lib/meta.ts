@@ -184,12 +184,27 @@ async function fetchBattleForm(
   return parsed.postoken ? { postoken: parsed.postoken, ids: parsed.ids } : null;
 }
 
+/** 开战结果：started=已进战斗；unavailable=该项已不可用（用户提前完成/下架，调用方应跳过）；retry=临时失败可 60s 后重试 */
+export type StartResult = 'started' | 'unavailable' | 'retry';
+
 /** 开战：用新鲜 postoken 提交表单，检查响应是否真的进了战斗 */
-async function startBattle(href: string, initid: string): Promise<boolean> {
+async function startBattle(href: string, initid: string): Promise<StartResult> {
   const form = await requestRetry(() => fetchBattleForm(href));
   if (!form) {
     logger.warning('arena: no postoken on {href}', { href });
-    return false;
+    return 'retry';
+  }
+  // 用户提前手动完成后，该 id 会从新鲜列表消失（陈旧 cache.token 仍有它）：
+  // 此时再 POST 只会被拒绝，必须报 unavailable 让调用方跳过，否则 60s 无限重试。
+  if (!(initid in form.ids)) {
+    logger.warning(
+      'arena {initid} no longer listed on {href}, skipping (likely completed manually)',
+      {
+        href,
+        initid,
+      },
+    );
+    return 'unavailable';
   }
   const body = `initid=${encodeURIComponent(initid)}&postoken=${encodeURIComponent(form.postoken)}`;
   const html = await requestRetry(async () => {
@@ -210,9 +225,13 @@ async function startBattle(href: string, initid: string): Promise<boolean> {
       initid,
       msg: msg ?? 'no battle in response',
     });
+    return 'retry';
   }
-  return started;
+  return 'started';
 }
+
+/** 同一天内同一队列项最多连续重试次数，超限按永久失败跳过（防提前完成/服务端永久拒绝时无限 60s 空转） */
+const ARENA_MAX_RETRY = 3;
 
 /**
  * 闲置竞技场（忠实移植＋修原版两处 bug＋补 rb 页）：
@@ -220,7 +239,9 @@ async function startBattle(href: string, initid: string): Promise<boolean> {
  * - 原版把 entry cost 当 token 发 inittoken → 无效；此处用表单 postoken。
  * - 原版注释掉 rb 请求导致 RB 永远跳过；此处正常抓取（用户队列末尾的 RB200 可跑）。
  * 队列为纯数字 id：NaN→gr，≥105→rb，否则 ar（竞技场已是单页，无分页）；token 缺失的跳过。
- * 只有确认开战成功才消费队列项，失败保留 60 秒后重试（不 reload，避免空转）。
+ * 只有确认开战成功才消费队列项；开战前用新鲜表单校验 id 是否仍在列，
+ * 用户提前手动完成导致 id 消失时直接跳过该项；临时失败保留 60 秒后重试，
+ * 同一项连续失败达上限（ARENA_MAX_RETRY）也跳过，避免无限空转。
  */
 export async function idleArena(): Promise<void> {
   const opt = snapshotOptions();
@@ -308,18 +329,55 @@ export async function idleArena(): Promise<void> {
     }
     initid = String((cache.token as Record<string, string | number | undefined>).gr ?? 1);
   }
-  let started = false;
+  let result: StartResult = 'retry';
   try {
-    started = await startBattle(href, initid);
+    result = await startBattle(href, initid);
   } catch (e) {
     logger.warning('arena start failed: {err}', { err: String(e) });
+    result = 'retry';
   }
-  if (!started) {
+  // 队列项已不可用（用户提前手动完成等）：消费该项并立即试下一项，不 60s 重试。
+  if (result === 'unavailable') {
+    if (cache.fails) delete cache.fails[id];
+    if (id === 'gr') {
+      cache.gr = 0;
+      array.shift();
+    } else {
+      array.shift();
+    }
+    if (array.length === 0) cache.isOk = true;
+    cache.array = array;
+    kvSet(ARENA_KEY, cache);
+    if (!cache.isOk) await idleArena();
+    return;
+  }
+  if (result !== 'started') {
+    const fails = cache.fails ?? {};
+    const n = (fails[id] ?? 0) + 1;
+    fails[id] = n;
+    cache.fails = fails;
+    // 连续失败超限：大概率是永久拒绝（提前完成/等级/费用），跳过该项而不是无限重试。
+    if (n >= ARENA_MAX_RETRY) {
+      logger.warning('arena {id} failed {n} times, skipping', { id, n });
+      delete fails[id];
+      if (id === 'gr') {
+        cache.gr = 0;
+        array.shift();
+      } else {
+        array.shift();
+      }
+      if (array.length === 0) cache.isOk = true;
+      cache.array = array;
+      kvSet(ARENA_KEY, cache);
+      if (!cache.isOk) await idleArena();
+      return;
+    }
     cache.array = array;
     kvSet(ARENA_KEY, cache);
     after('idle-arena-retry', 60 * 1000, () => void idleArena());
     return;
   }
+  if (cache.fails) delete cache.fails[id];
   if (id === 'gr') cache.gr--;
   else array.shift();
   if (array.length === 0) cache.isOk = true;

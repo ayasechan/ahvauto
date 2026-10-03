@@ -210,4 +210,6 @@ export interface ArenaCache {
   token: Record<string, string | number | undefined>;
   array?: string[];
   isOk?: boolean;
+  /** 连续开战失败计数（key 为队列项 id，gr 记 'gr'），达上限则跳过，避免提前完成/永久拒绝时 60s 无限重试 */
+  fails?: Record<string, number>;
 }
