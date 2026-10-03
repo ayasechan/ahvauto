@@ -1,6 +1,6 @@
-// 竞技场选项（frozen 对照表，来源 `docs/ARENA.md` CDP 实测 2026-10-02）
+// 竞技场选项（frozen 对照表，来源 `docs/ARENA.md` CDP 实测 2026-10-02＋10-04）
 // id 即开战 initid；gr 表 Grindfest（队列 token，非战斗 id）。
-// RB250（112）置灰不可点，不收录。
+// RB250（112）10-02 快照时置灰，10-04 复测可点（init_battle(112,10)），收录。
 
 export interface ArenaChoice {
   id: string;
@@ -35,6 +35,7 @@ export const ARENA_RB: ArenaChoice[] = [
   { id: '109', name: 'Real Life', minLevel: 100, kind: 'rb', rounds: 1 },
   { id: '110', name: 'Invisible Pink Unicorn', minLevel: 150, kind: 'rb', rounds: 1 },
   { id: '111', name: 'Flying Spaghetti Monster', minLevel: 200, kind: 'rb', rounds: 1 },
+  { id: '112', name: 'Triple Trio and the Tree', minLevel: 250, kind: 'rb', rounds: 1 },
 ];
 
 const LABEL = new Map<string, string>([
