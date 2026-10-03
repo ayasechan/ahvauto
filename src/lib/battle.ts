@@ -355,15 +355,20 @@ export async function main(): Promise<void> {
   if (on) dbg.lastAction = '';
   const sendBefore = readLastSend();
   const logBefore = qsa('#textlog>tbody>tr>td').length;
+  let outcome: TurnOutcome;
   try {
-    await mainInner(dbg, on);
+    outcome = await mainInner(dbg, on);
   } catch (e) {
     dbg.lastError = String(e);
     logger.error('main stalled: {err}', { err: String(e) });
     document.title = `ERR: ${String(e).slice(0, 80)}`;
     return;
   }
-  armWatchdog(sendBefore, logBefore);
+  armWatchdog(sendBefore, logBefore, {
+    rule: outcome.rule,
+    action: outcome.action,
+    sent: outcome.sent,
+  });
 }
 
 /** 读页世界钩子记录的最近一次 api_call 发送时间（无则为 0） */
@@ -376,13 +381,20 @@ function readLastSend(): number {
 }
 
 /** 发后看门狗（恢复策略见 docs/COMBAT.md 看门狗节） */
-function armWatchdog(sendBefore: number, logBefore: number): void {
+function armWatchdog(
+  sendBefore: number,
+  logBefore: number,
+  ctx: { rule: string; action: string; sent: boolean },
+): void {
   after('watchdog-retry', 8000, () => {
     try {
       if (isDisabled()) return;
       if (qs('#btcp')) return;
       if (readLastSend() !== sendBefore) return;
-      logger.warning('no request sent after action, retry target click');
+      logger.warning(
+        'no request sent after action (rule={rule} action={action} clicked={sent}), retry target click',
+        { rule: ctx.rule, action: ctx.action, sent: ctx.sent },
+      );
       const snap = readSnapshot(get(battle).monsterBase);
       const opt = snapshotOptions();
       const fin = orderTargets(snap.monsters, opt.rule.weights ?? {}, opt.rule.reverse)[0];
@@ -409,6 +421,13 @@ function armWatchdog(sendBefore: number, logBefore: number): void {
 /** 调试面（仅 debug 开启时写入）：CDP 可读 step/lastError，定位 stall */
 export interface TurnRecord {
   turn: number;
+  rule: string;
+  action: string;
+}
+
+/** 单轮执行结果（供看门狗带上下文）。 */
+export interface TurnOutcome {
+  sent: boolean;
   rule: string;
   action: string;
 }
@@ -456,13 +475,14 @@ export function debugAct(action: string): void {
 }
 
 /** 战斗主循环：每 turn 只做一个动作，原 main() */
-async function mainInner(dbg: DebugSurface, trace: boolean): Promise<void> {
+async function mainInner(dbg: DebugSurface, trace: boolean): Promise<TurnOutcome> {
   const step = (s: string): void => {
     if (trace) dbg.step = s;
   };
+  const idleAction = describeAction({ kind: 'none' });
   if (isDisabled()) {
     document.title = tt('battle.paused');
-    return;
+    return { sent: false, rule: 'none', action: idleAction };
   }
   // JSON 序列化会把 Infinity 丢成 null，重载后必须还原，否则死亡判定失效
   const norm = (a: unknown): number[] | null =>
@@ -497,10 +517,12 @@ async function mainInner(dbg: DebugSurface, trace: boolean): Promise<void> {
     logger.error('emergency pause at hp {hp}', { hp: Math.round(snap.hp) });
     await setAlarm('Error');
     pauseChange();
-    return;
+    return { sent: false, rule: 'none', action: idleAction };
   }
   step('decide');
   const decided = decide(snap, opt, get(battle).otos);
+  const rule = decided.rule ?? 'none';
+  const actionLabel = describeAction(decided.action, snap.skillNames);
   if (decided.consumeOnce) {
     patchBattle({
       otos: {
@@ -529,7 +551,7 @@ async function mainInner(dbg: DebugSurface, trace: boolean): Promise<void> {
     otos: { ...get(battle).otos },
     snap,
   });
-  executeAction(
+  const sent = executeAction(
     decided.action,
     (label) => debugAct(label),
     (msg) => {
@@ -540,6 +562,7 @@ async function mainInner(dbg: DebugSurface, trace: boolean): Promise<void> {
   recordSpellCost(decided.action);
   void recordMode(decided.action.kind);
   step('done');
+  return { sent, rule, action: actionLabel };
 }
 
 /**
@@ -598,6 +621,8 @@ export function installReloader(): void {
             recordEndKills();
             void endBattle('defeat');
             kvDel(ROUND_TYPE_KEY);
+            kvDel(ROUND_NOW_KEY);
+            kvDel(ROUND_ALL_KEY);
             kvDel(MONSTER_STATUS_KEY);
             kvDel(MONSTER_BASE_KEY);
           } else if (nb.roundNow !== nb.roundAll) {
@@ -628,15 +653,17 @@ export function installReloader(): void {
               qs('#battle_main')?.replaceChild(document.adoptNode(right), qs('#battle_right')!);
               qs('#battle_main')?.replaceChild(document.adoptNode(left), qs('#battle_left')!);
             }
-            const w = window as unknown as {
-              battle?: unknown;
-              Battle?: new () => unknown;
-              clear_infopane?: () => void;
-            };
-            if (w.Battle) {
-              w.battle = new w.Battle();
-              (w.battle as { clear_infopane?: () => void }).clear_infopane?.();
+            // 必须用页世界（外层 pageScope）的 Battle：这里的 window 是隔离世界，
+            // 用它读 Battle 恒为 undefined（旧代码 `if (w.Battle)` 因此静默跳过重建，
+            // 游戏 Battle 对象停留在旧 DOM 上，后续点击全被吞＝换轮 stall 病根）。
+            const BattleCtor = w['Battle'] as (new () => unknown) | undefined;
+            if (!BattleCtor) {
+              logger.error('Battle ctor missing after round swap, reload');
+              goto();
+              return;
             }
+            w['battle'] = new BattleCtor();
+            (w['battle'] as { clear_infopane?: () => void }).clear_infopane?.();
             await newRound();
             await main();
           } else {
@@ -644,6 +671,8 @@ export function installReloader(): void {
             recordEndKills();
             void endBattle('victory');
             kvDel(ROUND_TYPE_KEY);
+            kvDel(ROUND_NOW_KEY);
+            kvDel(ROUND_ALL_KEY);
             kvDel(MONSTER_STATUS_KEY);
             kvDel(MONSTER_BASE_KEY);
             setTimeout(goto, 3000);
@@ -704,23 +733,51 @@ export function installReloader(): void {
     } catch {
       /* ignore */
     }
-    b.open('POST', (w['MAIN_URL'] as string) + 'json');
-    b.setRequestHeader('Content-Type', 'application/json');
-    b.withCredentials = true;
-    b.onreadystatechange = d;
-    b.onload = () => {
+    // lastSend 先写、发送在后：发送抛错必须回滚计数，否则看门狗误判已发包。
+    const unmarkSend = (): void => {
       try {
         const h = (window as unknown as { __ahvauto?: DebugSurface }).__ahvauto;
-        if (h) h.fired += 1;
+        if (h) {
+          h.apiCalls -= 1;
+          h.lastSend = 0;
+        }
       } catch {
         /* ignore */
       }
-      document.getElementById('eventEnd')?.click();
     };
-    document.getElementById('eventStart')?.click();
-    const base = a.mode === 'magic' && a.skill >= 200 ? spellDelay : noSpellDelay;
-    if (base <= 0) b.send(JSON.stringify(a));
-    else setTimeout(() => b.send(JSON.stringify(a)), (base * (Math.random() * 100 + 50)) / 100);
+    try {
+      b.open('POST', (w['MAIN_URL'] as string) + 'json');
+      b.setRequestHeader('Content-Type', 'application/json');
+      b.withCredentials = true;
+      b.onreadystatechange = d;
+      b.onload = () => {
+        try {
+          const h = (window as unknown as { __ahvauto?: DebugSurface }).__ahvauto;
+          if (h) h.fired += 1;
+        } catch {
+          /* ignore */
+        }
+        document.getElementById('eventEnd')?.click();
+      };
+      document.getElementById('eventStart')?.click();
+      const base = a.mode === 'magic' && a.skill >= 200 ? spellDelay : noSpellDelay;
+      if (base <= 0) b.send(JSON.stringify(a));
+      else
+        setTimeout(
+          () => {
+            try {
+              b.send(JSON.stringify(a));
+            } catch (e) {
+              unmarkSend();
+              logger.error('api_call delayed send failed: {err}', { err: String(e) });
+            }
+          },
+          (base * (Math.random() * 100 + 50)) / 100,
+        );
+    } catch (e) {
+      unmarkSend();
+      logger.error('api_call send failed: {err}', { err: String(e) });
+    }
   };
   w['api_response'] = function (b: {
     readyState: number;

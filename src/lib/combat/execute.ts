@@ -89,12 +89,12 @@ export function executeAction(
     case 'spirit':
       return go('#ckey_spirit');
     case 'imperil':
-      go('213');
+      if (!go('213')) trace('miss:213');
       return go(`#mkey_${action.target}`);
     case 'debuff':
     case 'magic':
     case 'weapon':
-      go(action.id);
+      if (!go(action.id)) trace(`miss:${action.id}`);
       return go(`#mkey_${action.target}`);
     case 'attack':
       return go(`#mkey_${action.target}`);

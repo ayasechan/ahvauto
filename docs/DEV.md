@@ -71,3 +71,6 @@ IDB 异步路径走 CDP 真机验证。`src/**/*.test.ts` 已在 tsconfig exclud
     新鲜表单无该 `initid`（提前完成/Cooldown）报 `unavailable`，直接消费队列项；
     取表单失败/网络异常/POST 被拒报 `retry`（记 `ArenaCache.fails`＋60s 重试，连续 3 次跳过）。
     别拿重试去等 Cooldown（十几小时），也别和坑 #7 的看门狗（8s/25s 战斗内兜底）混为一谈。
+12. 页世界对象必须经 `pageScope()`（`unsafeWindow`）取：内容脚本的 `window` 是隔离世界，
+    没有 `Battle`/`MAIN_URL`。换轮 `new Battle()` 写错世界会静默跳过重建（旧代码即此，
+    游戏对象停留旧 DOM → 换轮 stall），`api_call` 钩子同理认准外层页世界引用。
