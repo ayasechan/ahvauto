@@ -18,7 +18,7 @@
     emptyTotals,
   } from '../../lib/stats';
   import type { BattleRow, CurBattle, DropGroup, Totals } from '../../lib/stats';
-  import { qualityFilterLabel } from '../../lib/stats';
+  import { DROP_QUALITY, normalizeQualityFilter } from '../../lib/stats';
   import * as battleMod from '../../lib/battle';
 
   const L = (k: I18nKey) => tr($options.lang, k);
@@ -129,13 +129,9 @@
         readMs: Math.round((t1 - t0) * 10) / 10,
         deriveMs: Math.round((t2 - t1) * 10) / 10,
       });
-      const all = [...rows].reverse();
-      // 文本子串只收窄场次列表；数字档位只过滤掉落汇总与掉落CSV（展示层，记录侧全量）。
-      const q = ($options.dropQuality ?? '').trim();
-      battles =
-        q !== '' && !/^\d+$/.test(q)
-          ? all.filter((b) => b.drops.some((d) => d.toLowerCase().includes(q.toLowerCase())))
-          : all;
+      // 老文本筛选值已退役：归一化到预设域；场次列表恒全量，档位只过滤汇总与掉落CSV。
+      $options.dropQuality = normalizeQualityFilter($options.dropQuality ?? '');
+      battles = [...rows].reverse();
       cur = c;
       staminaLog = readStamina();
       encounter = readEncounter();
@@ -203,13 +199,13 @@
     <button type="button" onclick={clear}>{L('ui.clear')}</button>
   </div>
   <div class="row">
-    {L('usage.filter')} <input bind:value={$options.dropQuality} placeholder="Epic" />
-    <span class="hint"
-      >{L('usage.filterHint')}（{L('usage.filterActive')}：{qualityFilterLabel(
-        $options.dropQuality ?? '',
-      ) || L('usage.filterAll')}）</span
-    >
-    <button type="button" onclick={refresh}>{L('ui.refresh')}</button>
+    {L('usage.filter')}
+    <select bind:value={$options.dropQuality} onchange={refresh}>
+      <option value="">{L('usage.filterAll')}</option>
+      {#each DROP_QUALITY as g, i}
+        <option value={String(i)}>{g}+</option>
+      {/each}
+    </select>
   </div>
   <table>
     <tbody>
@@ -428,9 +424,6 @@
   }
   td.sub {
     padding-left: 16px;
-    color: #555;
-  }
-  span.hint {
     color: #555;
   }
   td.sub2 {

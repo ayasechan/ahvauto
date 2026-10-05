@@ -387,31 +387,36 @@ export function displayDropKey(name: string): string {
   return q ? `${EQUIP_PREFIX}${q}` : name;
 }
 
-/** 展示层品质过滤（数字 0-7 起始档 / 文本子串 / 空或越界不过滤）。
+/** 展示层品质过滤（数字 0-7 起始档 / 空或越界不过滤）。
  * 无品质词的掉落恒显示（无法定级，不应被阈值吞掉）。 */
 export function meetsDropQuality(name: string, q = ''): boolean {
   const t = (q ?? '').trim();
   if (t === '') return true;
-  if (/^\d+$/.test(t)) {
-    const n = Number(t);
-    if (n < 0 || n >= DROP_QUALITY.length) return true;
-    const hit = equipQuality(name);
-    if (!hit) return true;
-    return DROP_QUALITY.indexOf(hit) >= n;
-  }
-  return name.toLowerCase().includes(t.toLowerCase());
+  if (!/^\d+$/.test(t)) return true;
+  const n = Number(t);
+  if (n < 0 || n >= DROP_QUALITY.length) return true;
+  const hit = equipQuality(name);
+  if (!hit) return true;
+  return DROP_QUALITY.indexOf(hit) >= n;
 }
 
-/** 展示层阈值标签（''=全部；数字档='Legendary+'；文本='"xxx"'），供面板提示用。 */
+/** 展示层阈值标签（''=全部；数字档='Legendary+'），供面板提示用。 */
 export function qualityFilterLabel(q = ''): string {
   const t = (q ?? '').trim();
+  if (!/^\d+$/.test(t)) return '';
+  const n = Number(t);
+  if (n < 0 || n >= DROP_QUALITY.length) return '';
+  return `${DROP_QUALITY[n]}+`;
+}
+
+/** 筛选值归一化：预设（''或0-7）原样返回，其余（老文本子串等）回退为全部。 */
+export function normalizeQualityFilter(q = ''): string {
+  const t = (q ?? '').trim();
   if (t === '') return '';
-  if (/^\d+$/.test(t)) {
-    const n = Number(t);
-    if (n < 0 || n >= DROP_QUALITY.length) return '';
-    return `${DROP_QUALITY[n]}+`;
-  }
-  return `“${t}”`;
+  if (!/^\d+$/.test(t)) return '';
+  const n = Number(t);
+  if (n < 0 || n >= DROP_QUALITY.length) return '';
+  return t;
 }
 
 /** 总表掉落分组（分组口径见 docs/ARCHITECTURE.md 掉落口径节） */

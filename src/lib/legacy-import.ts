@@ -9,6 +9,7 @@ import {
   SCROLL_COND_KEYS,
 } from './defaults';
 import { BATTLE_VAR_NAMES, groupsToExpr } from './expr/migrate';
+import { normalizeQualityFilter } from './stats/parse';
 import type { ConditionGroups } from './types';
 
 type Raw = Record<string, unknown>;
@@ -238,7 +239,7 @@ export function importLegacyOption(old: Raw): HvOptions {
       weights: numMap(old.weight),
       reverse: bool(old.ruleReverse),
     },
-    dropQuality: str(old.dropQuality),
+    dropQuality: normalizeQualityFilter(str(old.dropQuality)),
     recordUsage: bool(old.recordUsage) || bool(old.dropMonitor),
   };
 }

@@ -18,6 +18,7 @@ import {
   equipQuality,
   displayDropKey,
   meetsDropQuality,
+  normalizeQualityFilter,
   qualityFilterLabel,
   dropGroup,
   groupedDrops,
@@ -331,13 +332,14 @@ describe('parseTurn 真实数据', () => {
       'Equipment of Legendary',
     ]);
   });
-  it('展示层品质过滤 meetsDropQuality：数字档/文本/空/越界/无品质词恒显示', () => {
+  it('展示层品质过滤 meetsDropQuality：数字档/空/越界/无品质词恒显示', () => {
     assert.equal(meetsDropQuality('Peerless Sword of Doom', ''), true);
     assert.equal(meetsDropQuality('Peerless Sword of Doom', '6'), true);
     assert.equal(meetsDropQuality('Average Sword of Doom', '6'), false);
     assert.equal(meetsDropQuality('Magnificent Rapier of Balance', '6'), false);
     assert.equal(meetsDropQuality('Magnificent Rapier of Balance', '5'), true);
-    assert.equal(meetsDropQuality('Peerless Sword of Doom', 'Epic'), false);
+    // 非数字（老文本子串已退役）一律不过滤
+    assert.equal(meetsDropQuality('Peerless Sword of Doom', 'Epic'), true);
     assert.equal(meetsDropQuality('Peerless Sword of Doom', 'Peerless'), true);
     assert.equal(meetsDropQuality('Average Sword of Doom', '8'), true);
     assert.equal(meetsDropQuality('Average Sword of Doom', '99'), true);
@@ -346,12 +348,22 @@ describe('parseTurn 真实数据', () => {
     assert.equal(meetsDropQuality('Sword of Doom', '7'), true);
     assert.equal(meetsDropQuality('Equipment of Sword of Doom', '7'), true);
   });
-  it('qualityFilterLabel：空/越界为空，数字档给 X+，文本给子串', () => {
+  it('qualityFilterLabel：空/非数字/越界为空，数字档给 X+', () => {
     assert.equal(qualityFilterLabel(''), '');
     assert.equal(qualityFilterLabel('6'), 'Legendary+');
     assert.equal(qualityFilterLabel('0'), 'Crude+');
     assert.equal(qualityFilterLabel('99'), '');
-    assert.equal(qualityFilterLabel('Epic'), '“Epic”');
+    assert.equal(qualityFilterLabel('Epic'), '');
+  });
+  it('normalizeQualityFilter：预设透传，其余回退全部', () => {
+    assert.equal(normalizeQualityFilter(''), '');
+    assert.equal(normalizeQualityFilter('6'), '6');
+    assert.equal(normalizeQualityFilter('0'), '0');
+    assert.equal(normalizeQualityFilter(' 6 '), '6');
+    assert.equal(normalizeQualityFilter('Epic'), '');
+    assert.equal(normalizeQualityFilter('Peerless'), '');
+    assert.equal(normalizeQualityFilter('99'), '');
+    assert.equal(normalizeQualityFilter('-1'), '');
   });
   it('水晶 Nx 展开，Credit 不进 drops', () => {
     assert.deepEqual(normalizeDrop('2x Crystal of Unknown', 'crystal'), [

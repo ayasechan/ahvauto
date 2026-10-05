@@ -172,12 +172,6 @@ const D = {
   'usage.csv': ['导出CSV', '導出CSV', 'Export CSV'],
   'usage.dropsCsv': ['导出掉落CSV', '導出掉落CSV', 'Export drops CSV'],
   'usage.filter': ['品质过滤', '品質過濾', 'Quality filter'],
-  'usage.filterHint': [
-    '数字档位只过滤掉落汇总与掉落CSV，单场列表/详情与单场CSV为全量',
-    '數字檔位只過濾掉落匯總與掉落CSV，單場列表/詳情與單場CSV為全量',
-    'Numeric grade filters the drops summary and drops CSV only; battle list, details and battle CSV stay complete',
-  ],
-  'usage.filterActive': ['汇总阈值', '匯總閾值', 'Summary threshold'],
   'usage.filterAll': ['全部', '全部', 'All'],
   'usage.drops': ['掉落汇总', '掉落匯總', 'Drops'],
   'usage.dropsEquip': ['装备', '裝備', 'Equipment'],
