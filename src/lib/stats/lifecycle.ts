@@ -301,10 +301,8 @@ export function recordBattleTurn(rows: string[]): Promise<void> {
       if (!opt.recordUsage) return;
       const raw = rows.filter((r) => stripHtml(r).trim());
       if (raw.length === 0) return;
-      const { stat: st, drops } = parseTurn(
-        raw,
-        (opt as unknown as { dropQuality?: string }).dropQuality ?? '',
-      );
+      // 记录侧全量入库：不再按 dropQuality 过滤，过滤只在展示层做。
+      const { stat: st, drops } = parseTurn(raw);
       const cur = backfillCur((await idbGet<CurBattle>(CUR_STORE, CUR_KEY)) ?? newCur('?', '?'));
       if (cur.rounds === 0 && cur.turns === 0) transition('turn:auto-open', 'turn-without-battle');
       applyTurnToCur(cur, st, drops);

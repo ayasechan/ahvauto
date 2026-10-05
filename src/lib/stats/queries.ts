@@ -4,7 +4,7 @@ import { logger } from '../logger';
 import { emptyTotals, bump } from './types';
 import type { BattleRow, CurBattle, Totals } from './types';
 import { backfillCur, backfillRow } from './lifecycle';
-import { formatDrops, displayDropKey, dropGroup } from './parse';
+import { formatDrops, displayDropKey, dropGroup, meetsDropQuality } from './parse';
 import type { DropGroup } from './parse';
 
 const CUR_KEY = 'cur';
@@ -145,11 +145,18 @@ export function battlesToCsv(rows: BattleRow[]): string {
   return '﻿' + [head.join(','), ...lines].join('\n');
 }
 
-/** 掉落汇总（聚合规则见 docs/ARCHITECTURE.md 掉落口径节） */
-export function topDrops(totals: Pick<Totals, 'drops'>, n?: number): Array<[string, number]> {
+/** 掉落汇总（聚合规则见 docs/ARCHITECTURE.md 掉落口径节；q 为展示层品质过滤） */
+export function topDrops(
+  totals: Pick<Totals, 'drops'>,
+  n?: number,
+  q = '',
+): Array<[string, number]> {
   try {
     const grouped: Record<string, number> = {};
-    for (const [k, v] of Object.entries(totals.drops ?? {})) bump(grouped, displayDropKey(k), v);
+    for (const [k, v] of Object.entries(totals.drops ?? {})) {
+      if (!meetsDropQuality(k, q)) continue;
+      bump(grouped, displayDropKey(k), v);
+    }
     const rows = Object.entries(grouped).sort((a, b) => b[1] - a[1]);
     return n === undefined ? rows : rows.slice(0, n);
   } catch {
@@ -169,9 +176,10 @@ export const DROP_GROUP_ORDER: DropGroup[] = [
   'other',
 ];
 
-/** 掉落汇总分组（组内按展示键聚合、件数降序；恒返回 8 组，空组 entries 为空数组）。 */
+/** 掉落汇总分组（组内按展示键聚合、件数降序；恒返回 8 组，空组 entries 为空数组；q 为展示层品质过滤）。 */
 export function groupedDrops(
   totals: Pick<Totals, 'drops'>,
+  q = '',
 ): Array<{ group: DropGroup; entries: Array<[string, number]> }> {
   const empty = (): Array<{ group: DropGroup; entries: Array<[string, number]> }> =>
     DROP_GROUP_ORDER.map((group) => ({ group, entries: [] }));
@@ -187,8 +195,10 @@ export function groupedDrops(
       other: {},
     };
     for (const [k, v] of Object.entries(totals.drops ?? {})) {
+      if (!meetsDropQuality(k, q)) continue;
       const dk = displayDropKey(k);
-      bump(per[dropGroup(dk)], dk, v);
+      // 按原键分组：无品质词红装标记（Equipment of 原名）归装备组，传奇 Core 归素材。
+      bump(per[dropGroup(k)], dk, v);
     }
     return DROP_GROUP_ORDER.map((group) => ({
       group,
@@ -199,10 +209,13 @@ export function groupedDrops(
   }
 }
 
-/** 掉落汇总导出 CSV（展示键聚合后 name,count 按件数降序，UTF-8 BOM）。 */
-export function dropsToCsv(totals: Pick<Totals, 'drops'>): string {
+/** 掉落汇总导出 CSV（展示键聚合后 name,count 按件数降序，UTF-8 BOM；q 为展示层品质过滤）。 */
+export function dropsToCsv(totals: Pick<Totals, 'drops'>, q = ''): string {
   const grouped: Record<string, number> = {};
-  for (const [k, v] of Object.entries(totals.drops ?? {})) bump(grouped, displayDropKey(k), v);
+  for (const [k, v] of Object.entries(totals.drops ?? {})) {
+    if (!meetsDropQuality(k, q)) continue;
+    bump(grouped, displayDropKey(k), v);
+  }
   const rows = Object.entries(grouped).sort((a, b) => b[1] - a[1]);
   const lines = rows.map(([k, v]) => [csvCell(k), v].join(','));
   return '﻿' + [['name', 'count'].join(','), ...lines].join('\n');

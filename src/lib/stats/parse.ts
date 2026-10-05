@@ -18,7 +18,7 @@ interface RuleCtx {
   lastAction: string | null;
   /** 本行掉落 span 颜色种类（equip/crystal/credit/''未知），供 dropItem 折叠 */
   colorKind: string;
-  /** 掉落品质过滤（原 dropQuality：数字档位或文本子串），供 dropItem */
+  /** 保留签名兼容：记录侧已全量入库不再过滤，过滤只在展示层经 meetsDropQuality 做 */
   dropQuality: string;
 }
 
@@ -344,7 +344,10 @@ export const DROP_QUALITY = [
   'Peerless',
 ];
 
-export function normalizeDrop(name: string, colorKind: string, dropQuality = ''): string[] | null {
+/** 无品质词红装的入库标记前缀（展示层剥回原名，仍归装备组）。 */
+export const EQUIP_PREFIX = 'Equipment of ';
+
+export function normalizeDrop(name: string, colorKind: string, _dropQuality = ''): string[] | null {
   if (/credits?/i.test(name)) return null;
   if (colorKind === 'crystal') {
     const nx = name.match(/^(\d+)x (Crystal of \w+)$/);
@@ -353,20 +356,11 @@ export function normalizeDrop(name: string, colorKind: string, dropQuality = '')
     return [single ? single[1] : name];
   }
   if (colorKind === 'equip') {
-    const q = (dropQuality ?? '').trim();
-    let start = 0;
-    if (q !== '' && /^\d+$/.test(q)) {
-      const n = Number(q);
-      if (n >= 0 && n < DROP_QUALITY.length) start = n;
-    } else if (q !== '') {
-      if (!name.toLowerCase().includes(q.toLowerCase())) return null;
-    }
-    for (let j = start; j < DROP_QUALITY.length; j++) {
-      if (name.includes(DROP_QUALITY[j])) {
-        return [name];
-      }
-    }
-    return null;
+    // 记录侧全量入库，不过滤（过滤只在展示层经 meetsDropQuality 做）。
+    // 无品质词红装加 Equipment of 前缀标记，展示层剥回原名、仍归装备组。
+    if (name.startsWith(EQUIP_PREFIX)) return [name];
+    if (equipQuality(name)) return [name];
+    return [`${EQUIP_PREFIX}${name}`];
   }
   return [name];
 }
@@ -384,8 +378,40 @@ export function equipQuality(name: string): string | null {
 
 /** 展示键（分组规则见 docs/ARCHITECTURE.md 掉落口径节） */
 export function displayDropKey(name: string): string {
+  if (name.startsWith(EQUIP_PREFIX)) {
+    const rest = name.slice(EQUIP_PREFIX.length);
+    // 无品质词红装标记：剥回原名展示（分组仍走原键认装备组）
+    if (!equipQuality(rest)) return rest;
+  }
   const q = equipQuality(name);
-  return q ? `Equipment of ${q}` : name;
+  return q ? `${EQUIP_PREFIX}${q}` : name;
+}
+
+/** 展示层品质过滤（数字 0-7 起始档 / 文本子串 / 空或越界不过滤）。
+ * 无品质词的掉落恒显示（无法定级，不应被阈值吞掉）。 */
+export function meetsDropQuality(name: string, q = ''): boolean {
+  const t = (q ?? '').trim();
+  if (t === '') return true;
+  if (/^\d+$/.test(t)) {
+    const n = Number(t);
+    if (n < 0 || n >= DROP_QUALITY.length) return true;
+    const hit = equipQuality(name);
+    if (!hit) return true;
+    return DROP_QUALITY.indexOf(hit) >= n;
+  }
+  return name.toLowerCase().includes(t.toLowerCase());
+}
+
+/** 展示层阈值标签（''=全部；数字档='Legendary+'；文本='"xxx"'），供面板提示用。 */
+export function qualityFilterLabel(q = ''): string {
+  const t = (q ?? '').trim();
+  if (t === '') return '';
+  if (/^\d+$/.test(t)) {
+    const n = Number(t);
+    if (n < 0 || n >= DROP_QUALITY.length) return '';
+    return `${DROP_QUALITY[n]}+`;
+  }
+  return `“${t}”`;
 }
 
 /** 总表掉落分组（分组口径见 docs/ARCHITECTURE.md 掉落口径节） */

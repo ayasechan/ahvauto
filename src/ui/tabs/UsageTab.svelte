@@ -18,6 +18,7 @@
     emptyTotals,
   } from '../../lib/stats';
   import type { BattleRow, CurBattle, DropGroup, Totals } from '../../lib/stats';
+  import { qualityFilterLabel } from '../../lib/stats';
   import * as battleMod from '../../lib/battle';
 
   const L = (k: I18nKey) => tr($options.lang, k);
@@ -129,7 +130,7 @@
         deriveMs: Math.round((t2 - t1) * 10) / 10,
       });
       const all = [...rows].reverse();
-      // 原 Drop 页过滤并入：数字档位记录侧已过滤，此处只对文本做子串过滤
+      // 文本子串只收窄场次列表；数字档位只过滤掉落汇总与掉落CSV（展示层，记录侧全量）。
       const q = ($options.dropQuality ?? '').trim();
       battles =
         q !== '' && !/^\d+$/.test(q)
@@ -164,7 +165,9 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   }
   async function exportDropsCsv() {
-    const blob = new Blob([dropsToCsv(await getTotals())], { type: 'text/csv;charset=utf-8' });
+    const blob = new Blob([dropsToCsv(await getTotals(), $options.dropQuality ?? '')], {
+      type: 'text/csv;charset=utf-8',
+    });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `ahvauto-drops-${Date.now()}.csv`;
@@ -201,7 +204,11 @@
   </div>
   <div class="row">
     {L('usage.filter')} <input bind:value={$options.dropQuality} placeholder="Epic" />
-    <span class="hint">{L('usage.filterHint')}</span>
+    <span class="hint"
+      >{L('usage.filterHint')}（{L('usage.filterActive')}：{qualityFilterLabel(
+        $options.dropQuality ?? '',
+      ) || L('usage.filterAll')}）</span
+    >
     <button type="button" onclick={refresh}>{L('ui.refresh')}</button>
   </div>
   <table>
@@ -241,7 +248,7 @@
       >
       <tr><td>EXP / Credit</td><td>{fmt(stats.exp)} / {fmt(stats.credit)}</td></tr>
       <tr><td>{L('usage.drops')}</td><td>{fmt(stats.dropsCount)}</td></tr>
-      {#each groupedDrops(stats) as g}
+      {#each groupedDrops(stats, $options.dropQuality ?? '') as g}
         <tr
           ><td class="sub">{L(DROP_GROUP_KEY[g.group])}</td><td
             >{g.entries.map(([k, v]) => `${k}×${fmt(v)}`).join(', ') || '—'}</td

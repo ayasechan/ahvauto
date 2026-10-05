@@ -17,6 +17,8 @@ import {
   dropColorKind,
   equipQuality,
   displayDropKey,
+  meetsDropQuality,
+  qualityFilterLabel,
   dropGroup,
   groupedDrops,
   takenAvg,
@@ -298,25 +300,58 @@ describe('parseTurn 真实数据', () => {
     assert.equal(dropColorKind('<span style="color:#A89000">[127 Credits]</span>'), 'credit');
     assert.equal(dropColorKind('plain text'), '');
   });
-  it('红装记全名＋档位/文本过滤，无品质词不记录', () => {
+  it('红装全量入库：档位/文本不再过滤，无品质词加标记前缀', () => {
     assert.deepEqual(normalizeDrop('Peerless Sword of Doom', 'equip', ''), [
       'Peerless Sword of Doom',
     ]);
     assert.deepEqual(normalizeDrop('Peerless Sword of Doom', 'equip', '6'), [
       'Peerless Sword of Doom',
     ]);
-    assert.equal(normalizeDrop('Average Sword of Doom', 'equip', '6'), null);
-    assert.equal(normalizeDrop('Peerless Sword of Doom', 'equip', 'Epic'), null);
+    // 低档位照记（过滤只在展示层）
+    assert.deepEqual(normalizeDrop('Average Sword of Doom', 'equip', '6'), [
+      'Average Sword of Doom',
+    ]);
+    assert.deepEqual(normalizeDrop('Peerless Sword of Doom', 'equip', 'Epic'), [
+      'Peerless Sword of Doom',
+    ]);
     assert.deepEqual(normalizeDrop('Peerless Sword of Doom', 'equip', 'Peerless'), [
       'Peerless Sword of Doom',
     ]);
-    assert.equal(normalizeDrop('Sword of Doom', 'equip', ''), null);
+    // 无品质词红装：加标记前缀，展示层剥回原名
+    assert.deepEqual(normalizeDrop('Sword of Doom', 'equip', ''), ['Equipment of Sword of Doom']);
+    assert.deepEqual(normalizeDrop('Sword of Doom', 'equip', '6'), ['Equipment of Sword of Doom']);
     assert.deepEqual(normalizeDrop('Average Sword of Doom', 'equip', '8'), [
       'Average Sword of Doom',
     ]);
     assert.deepEqual(normalizeDrop('Average Sword of Doom', 'equip', '99'), [
       'Average Sword of Doom',
     ]);
+    // 旧桶键不再叠加前缀
+    assert.deepEqual(normalizeDrop('Equipment of Legendary', 'equip', ''), [
+      'Equipment of Legendary',
+    ]);
+  });
+  it('展示层品质过滤 meetsDropQuality：数字档/文本/空/越界/无品质词恒显示', () => {
+    assert.equal(meetsDropQuality('Peerless Sword of Doom', ''), true);
+    assert.equal(meetsDropQuality('Peerless Sword of Doom', '6'), true);
+    assert.equal(meetsDropQuality('Average Sword of Doom', '6'), false);
+    assert.equal(meetsDropQuality('Magnificent Rapier of Balance', '6'), false);
+    assert.equal(meetsDropQuality('Magnificent Rapier of Balance', '5'), true);
+    assert.equal(meetsDropQuality('Peerless Sword of Doom', 'Epic'), false);
+    assert.equal(meetsDropQuality('Peerless Sword of Doom', 'Peerless'), true);
+    assert.equal(meetsDropQuality('Average Sword of Doom', '8'), true);
+    assert.equal(meetsDropQuality('Average Sword of Doom', '99'), true);
+    assert.equal(meetsDropQuality('Crystal of Frost', '6'), true);
+    // 无品质词恒显示（含标记前缀形态）
+    assert.equal(meetsDropQuality('Sword of Doom', '7'), true);
+    assert.equal(meetsDropQuality('Equipment of Sword of Doom', '7'), true);
+  });
+  it('qualityFilterLabel：空/越界为空，数字档给 X+，文本给子串', () => {
+    assert.equal(qualityFilterLabel(''), '');
+    assert.equal(qualityFilterLabel('6'), 'Legendary+');
+    assert.equal(qualityFilterLabel('0'), 'Crude+');
+    assert.equal(qualityFilterLabel('99'), '');
+    assert.equal(qualityFilterLabel('Epic'), '“Epic”');
   });
   it('水晶 Nx 展开，Credit 不进 drops', () => {
     assert.deepEqual(normalizeDrop('2x Crystal of Unknown', 'crystal'), [
@@ -368,6 +403,22 @@ describe('parseTurn 真实数据', () => {
         10,
       ),
       [['Equipment of Superior', 3]],
+    );
+    // 阈值只在展示层：6 档下 Superior 被滤掉，Peerless 保留
+    assert.deepEqual(
+      topDrops(
+        { drops: { 'Superior Estoc of Slaughter': 1, 'Peerless Sword of Doom': 2 } },
+        10,
+        '6',
+      ),
+      [['Equipment of Peerless', 2]],
+    );
+    // 无品质词红装标记：展示剥回原名
+    assert.equal(displayDropKey('Equipment of Sword of Doom'), 'Sword of Doom');
+    assert.equal(displayDropKey('Equipment of Legendary'), 'Equipment of Legendary');
+    assert.equal(
+      formatDrops(['Equipment of Sword of Doom', 'Superior Estoc of Slaughter']),
+      'Sword of Doom; Equipment of Superior',
     );
   });
   it('相同掉落累加折叠：首见顺序＋×n（空数组返回空）', () => {
@@ -555,5 +606,36 @@ describe('掉落分组（总表八行，market 官方口径）', () => {
       groupedDrops({ drops: {} }).map((g) => g.entries),
       [[], [], [], [], [], [], [], []],
     );
+  });
+  it('groupedDrops 按原键分组＋展示阈值：传奇 Core 归素材、无品质词红装归装备', () => {
+    const gs = groupedDrops(
+      {
+        drops: {
+          'Superior Estoc of Slaughter': 1,
+          'Legendary Weapon Core': 2,
+          'Equipment of Sword of Doom': 3,
+          'Equipment of Legendary': 4,
+        },
+      },
+      '3',
+    );
+    // Superior(3) 过阈值进装备桶；Core 按原键拦截进素材；无品质词标记原名展示进装备
+    assert.deepEqual(gs[0].entries, [
+      ['Equipment of Legendary', 4],
+      ['Sword of Doom', 3],
+      ['Equipment of Superior', 1],
+    ]);
+    assert.deepEqual(gs[2].entries, [['Equipment of Legendary', 2]]);
+    // 阈值 6 下 Superior 被滤掉，无品质词恒显示
+    const hi = groupedDrops(
+      {
+        drops: {
+          'Superior Estoc of Slaughter': 1,
+          'Equipment of Sword of Doom': 3,
+        },
+      },
+      '6',
+    );
+    assert.deepEqual(hi[0].entries, [['Sword of Doom', 3]]);
   });
 });

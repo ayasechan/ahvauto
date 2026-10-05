@@ -93,20 +93,21 @@ scripts/cdp/         # 浏览器运维脚本（TS，npx tsx 运行，详见其 R
 
 ## 掉落口径（`stats/parse.ts` 记录，`stats/queries.ts`＋Usage 展示）
 
-- 记录存全名：红装（textlog 掉落 span `#FF0000`）按 `dropQuality` 过滤
-  （数字 `0-7` 起始档 / 文本子串 / 空不过滤），通过则存全名；
-  未命中档位、名中无品质词（`Crude…Peerless` 均不出现）一律不记录。
+- 记录全量入库：红装（textlog 掉落 span `#FF0000`）存全名，不做品质过滤；
+  名中无品质词（`Crude…Peerless` 均不出现）加 `Equipment of ` 前缀标记后入库。
   水晶 `Nx` 展开，Credit 只记账不进 drops。
-  结算奖励同样纳入：`Bonus! […]` 走掉落口径（含红装品质过滤），
-  `obtained Nx […]` 展开 N 件，无括号 `You gain N Credits!` 记账。
-- 展示只分品质：汇总/单场/CSV 经 `displayDropKey` 分组，
-  含品质词的掉落归入 `Equipment of <品质>` 桶，其余原样。
-  总表汇总另经 `dropGroup` 按 market 官方口径分八组各一行
-  （装备/消耗品/素材/奖杯/遗物/手办/怪物道具/其它），组内同上聚合降序；
-  战斗水晶掉落官方无分组，进其它。
-- 面板文本过滤仅收窄场次列表，汇总/Top/单场详情/两份 CSV 不受影响；
-  纯数字输入直通（记录侧越界纯数字回退为空，不过滤）。
-- 历史数据不兼容：旧 `Equipment of <品质>` 桶键与新分组同名 natural 合并，不迁移不清理。
+  结算奖励同样纳入：`Bonus! […]` 走掉落口径，`obtained Nx […]` 展开 N 件，
+  无括号 `You gain N Credits!` 记账。
+- 展示分组＋过滤：汇总/单场/CSV 经 `displayDropKey` 分组，
+  含品质词的掉落归入 `Equipment of <品质>` 桶，无品质词标记剥回原名展示；
+  总表汇总另经 `dropGroup` 按原键分八组（装备/消耗品/素材/奖杯/遗物/手办/怪物道具/其它），
+  组内同上聚合降序；战斗水晶掉落官方无分组，进其它。
+  `dropQuality` 只在展示层经 `meetsDropQuality` 生效
+  （数字 `0-7` 起始档 / 文本子串 / 空或越界不过滤，无品质词恒显示），
+  作用于掉落汇总与掉落 CSV；单场列表（文本子串收窄）/单场详情/单场 CSV 为全量。
+  面板汇总行标注当前阈值（`qualityFilterLabel`），阈值期历史缺数不可恢复。
+- 历史数据不兼容：旧 `Equipment of <品质>` 桶键与新分组同名 natural 合并，不迁移不清理；
+  阈值期已丢的低品质装备无法找回。
 
 ## 测试
 
