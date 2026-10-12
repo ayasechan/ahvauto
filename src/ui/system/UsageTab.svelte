@@ -660,7 +660,7 @@
     gap: 6px;
     margin-left: auto;
     font-size: 12px;
-    color: var(--hv-t2);
+    color: var(--ahvauto-t2);
   }
   .kpis {
     display: grid;
@@ -674,15 +674,15 @@
     }
   }
   .kpi {
-    background: var(--hv-card);
-    border: 1px solid var(--hv-line);
-    border-radius: var(--hv-radius-card);
+    background: var(--ahvauto-card);
+    border: 1px solid var(--ahvauto-line);
+    border-radius: var(--ahvauto-radius-card);
     padding: 10px 12px;
   }
   .kpi-t {
     font-size: 11px;
     font-weight: 700;
-    color: var(--hv-t3);
+    color: var(--ahvauto-t3);
   }
   .kpi-v {
     font-size: 18px;
@@ -690,7 +690,7 @@
   }
   .kpi-s {
     font-size: 11px;
-    color: var(--hv-t2);
+    color: var(--ahvauto-t2);
   }
   table {
     border-collapse: collapse;
@@ -698,12 +698,12 @@
   }
   td,
   th {
-    border-bottom: 1px solid var(--hv-line);
+    border-bottom: 1px solid var(--ahvauto-line);
     padding: 6px 8px;
     text-align: left;
   }
   th {
-    background: var(--hv-input);
+    background: var(--ahvauto-input);
     position: sticky;
     top: 0;
   }
@@ -712,7 +712,7 @@
     font-variant-numeric: tabular-nums;
   }
   tbody tr:nth-child(even) td {
-    background: var(--hv-muted-bg);
+    background: var(--ahvauto-muted-bg);
   }
   .bar-row {
     display: flex;
@@ -728,25 +728,25 @@
     flex: 1;
     height: 8px;
     border-radius: 999px;
-    background: var(--hv-input);
+    background: var(--ahvauto-input);
     overflow: hidden;
   }
   .bar-fill {
     height: 100%;
     border-radius: 999px;
-    background: var(--hv-primary);
+    background: var(--ahvauto-primary);
   }
   .bar-fill.soft {
     background: #7c6cff;
   }
   .bar-title {
     font-size: 12px;
-    color: var(--hv-t2);
+    color: var(--ahvauto-t2);
     margin-top: 8px;
   }
   .muted {
     font-size: 12px;
-    color: var(--hv-t3);
+    color: var(--ahvauto-t3);
   }
   .pies {
     display: flex;
@@ -798,23 +798,23 @@
   }
   .chip {
     border-radius: 999px;
-    border: 1px solid var(--hv-primary-border);
-    background: var(--hv-primary-soft);
-    color: var(--hv-primary);
+    border: 1px solid var(--ahvauto-primary-border);
+    background: var(--ahvauto-primary-soft);
+    color: var(--ahvauto-primary);
     padding: 2px 10px;
     font-size: 12px;
   }
   details summary {
     cursor: pointer;
-    color: var(--hv-t2);
+    color: var(--ahvauto-t2);
   }
   .table-wrap {
     overflow-x: auto;
   }
   .pill {
     border-radius: 999px;
-    background: var(--hv-success-soft);
-    color: var(--hv-success);
+    background: var(--ahvauto-success-soft);
+    color: var(--ahvauto-success);
     padding: 1px 10px;
     font-size: 12px;
     font-weight: 700;
@@ -824,25 +824,25 @@
     width: 100%;
     text-align: left;
     border-radius: 8px;
-    border: 1px solid var(--hv-success-border);
-    background: var(--hv-success-soft);
-    color: var(--hv-success);
+    border: 1px solid var(--ahvauto-success-border);
+    background: var(--ahvauto-success-soft);
+    color: var(--ahvauto-success);
     font-weight: 700;
     margin: 8px 0;
   }
   .live-banner:hover {
-    background: var(--hv-success-border);
-    border-color: var(--hv-primary);
-    color: var(--hv-primary);
+    background: var(--ahvauto-success-border);
+    border-color: var(--ahvauto-primary);
+    color: var(--ahvauto-primary);
   }
   tr.clickable {
     cursor: pointer;
   }
   tr.clickable:hover td {
-    background: var(--hv-primary-soft);
+    background: var(--ahvauto-primary-soft);
   }
   tr.clickable.active td {
-    background: var(--hv-primary-soft);
+    background: var(--ahvauto-primary-soft);
     font-weight: 700;
   }
   tr.detail-row td {
@@ -853,10 +853,10 @@
     margin: 0 0 8px;
   }
   .detail {
-    border: 1px solid var(--hv-line);
-    border-radius: var(--hv-radius-card);
+    border: 1px solid var(--ahvauto-line);
+    border-radius: var(--ahvauto-radius-card);
     margin: 8px 0;
     padding: 8px;
-    background: var(--hv-card);
+    background: var(--ahvauto-card);
   }
 </style>

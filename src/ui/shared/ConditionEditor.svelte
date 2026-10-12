@@ -73,26 +73,26 @@
   .cond textarea {
     width: 100%;
     box-sizing: border-box;
-    font-family: var(--hv-mono);
-    background: var(--hv-input);
+    font-family: var(--ahvauto-mono);
+    background: var(--ahvauto-input);
     border: 1px solid #cbd5e1;
     border-radius: 8px;
     padding: 8px 10px;
-    color: var(--hv-t1);
+    color: var(--ahvauto-t1);
     resize: vertical;
   }
   .cond textarea.bad {
-    border-color: var(--hv-danger-border);
-    background: var(--hv-danger-soft);
-    outline: 2px solid var(--hv-danger-border);
+    border-color: var(--ahvauto-danger-border);
+    background: var(--ahvauto-danger-soft);
+    outline: 2px solid var(--ahvauto-danger-border);
   }
   .ok {
-    color: var(--hv-success);
+    color: var(--ahvauto-success);
     font-size: 12px;
     margin-top: 4px;
   }
   .err {
-    color: var(--hv-danger);
+    color: var(--ahvauto-danger);
     font-size: 12px;
     margin-top: 4px;
   }
@@ -106,13 +106,13 @@
     margin: 0;
     font-size: 12px;
     border-radius: 999px;
-    border: 1px solid var(--hv-primary-border);
-    background: var(--hv-primary-soft);
-    color: var(--hv-primary);
+    border: 1px solid var(--ahvauto-primary-border);
+    background: var(--ahvauto-primary-soft);
+    color: var(--ahvauto-primary);
     padding: 2px 10px;
   }
   .hints button:hover {
-    background: var(--hv-primary-hover);
-    color: var(--hv-primary-active);
+    background: var(--ahvauto-primary-hover);
+    color: var(--ahvauto-primary-active);
   }
 </style>

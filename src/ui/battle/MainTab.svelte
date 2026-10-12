@@ -285,6 +285,6 @@
 
 <style>
   .hot {
-    color: var(--hv-danger);
+    color: var(--ahvauto-danger);
   }
 </style>

@@ -12,8 +12,8 @@ try {
     `(() => { const b = document.querySelector("#ahvauto-panel"); if (!b) return {};
       const cs = getComputedStyle(b);
       return { width: cs.width, bg: cs.backgroundColor, radius: cs.borderRadius,
-        primary: cs.getPropertyValue("--hv-primary").trim(),
-        panel: cs.getPropertyValue("--hv-panel").trim() }; })()`,
+        primary: cs.getPropertyValue("--ahvauto-primary").trim(),
+        panel: cs.getPropertyValue("--ahvauto-panel").trim() }; })()`,
   );
   const crumbs = await cdp.ev<string>(
     'document.querySelector("#ahvauto-panel .ahvauto-crumb")?.textContent ?? "NO-CRUMB"',

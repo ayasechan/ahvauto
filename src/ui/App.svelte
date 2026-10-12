@@ -121,19 +121,19 @@
     overflow: hidden;
     position: fixed;
     text-align: left;
-    background-color: var(--hv-panel);
-    border: 1px solid var(--hv-line);
-    border-radius: var(--hv-radius-panel);
-    font-family: var(--hv-font);
-    color: var(--hv-t1);
-    box-shadow: var(--hv-shadow-panel);
+    background-color: var(--ahvauto-panel);
+    border: 1px solid var(--ahvauto-line);
+    border-radius: var(--ahvauto-radius-panel);
+    font-family: var(--ahvauto-font);
+    color: var(--ahvauto-t1);
+    box-shadow: var(--ahvauto-shadow-panel);
   }
   .ahvauto-center {
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 10px 16px;
-    border-bottom: 1px solid var(--hv-line);
+    border-bottom: 1px solid var(--ahvauto-line);
     text-align: left;
   }
   .ahvauto-center h1 {
@@ -160,12 +160,12 @@
     padding: 12px 10px;
     overflow-y: auto;
     min-height: 0;
-    border-right: 1px solid var(--hv-line);
-    background: var(--hv-side);
+    border-right: 1px solid var(--ahvauto-line);
+    background: var(--ahvauto-side);
   }
   .ahvauto-group {
     font-size: 11px;
-    color: var(--hv-t3);
+    color: var(--ahvauto-t3);
     font-weight: 700;
     padding: 8px 8px 2px;
   }
@@ -177,22 +177,22 @@
     border: 1px solid transparent;
     font-size: 13px;
     border-radius: 8px;
-    color: var(--hv-t2);
+    color: var(--ahvauto-t2);
   }
   .ahvauto-tabitem:not(.active):hover {
-    background: var(--hv-primary-soft);
+    background: var(--ahvauto-primary-soft);
   }
   .ahvauto-tabitem:not(.active):hover button {
-    color: var(--hv-primary);
+    color: var(--ahvauto-primary);
   }
   .ahvauto-tabitem.active {
-    background: var(--hv-primary);
+    background: var(--ahvauto-primary);
     color: #fff;
     font-weight: 700;
   }
   .ahvauto-tabitem.active:hover,
   .ahvauto-tabitem.active:hover button {
-    background: var(--hv-primary);
+    background: var(--ahvauto-primary);
     color: #fff;
   }
   .ahvauto-tabitem.active button {
@@ -217,7 +217,7 @@
   .ahvauto-content {
     flex: 1;
     min-width: 0;
-    background: var(--hv-bg);
+    background: var(--ahvauto-bg);
     padding: 12px 16px 16px;
     overflow: hidden;
     display: flex;
@@ -225,7 +225,7 @@
   }
   .ahvauto-crumb {
     font-size: 12px;
-    color: var(--hv-t3);
+    color: var(--ahvauto-t3);
   }
   .ahvauto-title {
     font-size: 18px;
@@ -237,7 +237,7 @@
     min-height: 0;
     overflow: auto;
     padding: 2px;
-    color: var(--hv-t1);
+    color: var(--ahvauto-t1);
     background-color: transparent;
     border: none;
   }

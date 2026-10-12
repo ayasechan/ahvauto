@@ -150,23 +150,23 @@
   .chat {
     width: 280px;
     max-width: 70%;
-    font-family: var(--hv-mono);
+    font-family: var(--ahvauto-mono);
   }
   .field {
     margin-top: 8px;
   }
   .hint {
-    color: var(--hv-t2);
+    color: var(--ahvauto-t2);
     font-size: 12px;
     margin-top: 4px;
   }
   .msg {
     margin-left: 8px;
-    color: var(--hv-t2);
+    color: var(--ahvauto-t2);
   }
   .tpl {
     width: 100%;
-    font-family: var(--hv-mono);
+    font-family: var(--ahvauto-mono);
     font-size: 12px;
     margin-top: 4px;
   }

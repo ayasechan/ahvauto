@@ -1,11 +1,11 @@
 # UI 规范（ahvauto 面板）
 
 设计源：Penpot `C-监控数据 / C1-Usage-数据记录`（实现细节看画布注释，不进界面）。
-实现：`src/ui/App.svelte`（960px 壳＋208px 侧栏）＋ `src/ui/{battle,item,system,shared}/*.svelte`（注册表 `src/ui/tabs.ts`，分组 battle/item/monitor/sys，其中 monitor 组即 `system/UsageTab.svelte`、sys 组即 `system/` 其余页） ＋ `src/ui/theme.css`（`#ahvauto-panel` 作用域 `--hv-*` token）。
+实现：`src/ui/App.svelte`（960px 壳＋208px 侧栏）＋ `src/ui/{battle,item,system,shared}/*.svelte`（注册表 `src/ui/tabs.ts`，分组 battle/item/monitor/sys，其中 monitor 组即 `system/UsageTab.svelte`、sys 组即 `system/` 其余页） ＋ `src/ui/theme.css`（`#ahvauto-panel` 作用域 `--ahvauto-*` token）。
 
-## 设计 token（`#ahvauto-panel --hv-*`）
+## 设计 token（`#ahvauto-panel --ahvauto-*`）
 
-`--hv-bg #EDF1F7 / --hv-panel #FFF / --hv-card #FFF / --hv-line #E2E8F0 / --hv-primary #2563EB / --hv-t1 #1E293B / --hv-t2 #475569 / --hv-t3 #94A3B8 / --hv-input #F1F5F9`；圆角卡片 10 / 输入 8 / 胶囊 999；主按钮蓝底白字，次按钮白底灰边，危险红字红边（`#DC2626/#FECACA`）；胜 pill `#DCFCE7/#15803D`；chips `#EEF2FF/#BFDBFE`；zebra `#F8FAFC`；表头 `#F1F5F9` sticky。
+`--ahvauto-bg #EDF1F7 / --ahvauto-panel #FFF / --ahvauto-card #FFF / --ahvauto-line #E2E8F0 / --ahvauto-primary #2563EB / --ahvauto-t1 #1E293B / --ahvauto-t2 #475569 / --ahvauto-t3 #94A3B8 / --ahvauto-input #F1F5F9`；圆角卡片 10 / 输入 8 / 胶囊 999；主按钮蓝底白字，次按钮白底灰边，危险红字红边（`#DC2626/#FECACA`）；胜 pill `#DCFCE7/#15803D`；chips `#EEF2FF/#BFDBFE`；zebra `#F8FAFC`；表头 `#F1F5F9` sticky。
 
 ## 数据记录页（Usage）
 
