@@ -1,5 +1,7 @@
 # 物品接口（`src/config/tables.ts:ITEM_IDS/DRAUGHT_LIB/BUFF_LIB/SCROLL_LIB/INFUSION_LIB`）
 
+> 官方文档：[Items](https://ehwiki.org/wiki/Items)、[Loot Drop Rolls](https://ehwiki.org/wiki/Loot_Drop_Rolls)（总入口见 `README.md` 官方游戏文档节）。
+
 ## ID 表
 
 | key                 | id    | 形态              | 说明                                                                        |

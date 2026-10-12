@@ -1,5 +1,7 @@
 # 竞技场对照表（ar / rb / gr）
 
+> 官方文档：[The Arena](https://ehwiki.org/wiki/The_Arena)、[Ring of Blood](https://ehwiki.org/wiki/Ring_of_Blood)、[Grindfest](https://ehwiki.org/wiki/Grindfest)（总入口见 `README.md` 官方游戏文档节）。
+
 来源：`12422` CDP 只读采集（2026-10-02 建表，2026-10-04 复核，
 `PFUDOR Lv.500 / Persistent`），对 `?s=Battle&ss=ar|rb|gr` 做页内
 `fetch`＋`DOMParser` 解析 `#arena_list`，未点击任何开战按钮。

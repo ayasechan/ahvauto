@@ -1,5 +1,7 @@
 # 职业玩法对照（战士 / 法师）
 
+> 官方文档：[Fighting Styles](https://ehwiki.org/wiki/Fighting_Styles)、[Skills](https://ehwiki.org/wiki/Skills)、[Spells](https://ehwiki.org/wiki/Spells)、[Spirit & Overcharge](https://ehwiki.org/wiki/Spirit_%26_Overcharge)（总入口见 `README.md` 官方游戏文档节）。
+
 > 本文档是**配置层**的既定事实，原脚本无显式的战士/法师概念（代码只认两条正交轴，
 > 见下），混搭不会被阻止。这里记录“怎么配才对”，改玩法先改本文。
 

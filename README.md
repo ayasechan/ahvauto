@@ -37,6 +37,16 @@
 
 ## 文档
 
+### 官方游戏文档（EHWiki）
+
+- 入口：[HentaiVerse](https://ehwiki.org/wiki/HentaiVerse) —— 新手先看 [FAQ](https://ehwiki.org/wiki/HentaiVerse_FAQ)＋[Advice](https://ehwiki.org/wiki/HentaiVerse_Advice)
+- 战斗：[Battles](https://ehwiki.org/wiki/Battles)、[Damage](https://ehwiki.org/wiki/Damage)、[Action Speed](https://ehwiki.org/wiki/Action_Speed)
+- 玩法：[Fighting Styles](https://ehwiki.org/wiki/Fighting_Styles)、[Skills](https://ehwiki.org/wiki/Skills)、[Spells](https://ehwiki.org/wiki/Spells)、[Spirit & Overcharge](https://ehwiki.org/wiki/Spirit_%26_Overcharge)
+- 模式：[The Arena](https://ehwiki.org/wiki/The_Arena)、[Ring of Blood](https://ehwiki.org/wiki/Ring_of_Blood)、[Grindfest](https://ehwiki.org/wiki/Grindfest)、[Item World](https://ehwiki.org/wiki/Item_World)
+- 物品：[Items](https://ehwiki.org/wiki/Items)、[Loot Drop Rolls](https://ehwiki.org/wiki/Loot_Drop_Rolls)
+
+### 本仓库文档
+
 - `docs/CLASSES.md` —— 战士/法师玩法对照（先看这个配职业）
 - `docs/ARCHITECTURE.md` —— 系统架构（开发者）
 - `docs/COMBAT.md` —— 战斗算法：决策链、集火、技能（开发者）

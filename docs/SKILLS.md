@@ -1,5 +1,7 @@
 # 技能接口
 
+> 官方文档：[Skills](https://ehwiki.org/wiki/Skills)、[Spells](https://ehwiki.org/wiki/Spells)（总入口见 `README.md` 官方游戏文档节）。
+
 ## ID 编码规律
 
 | 系列                     | 编码               | 例子                                                 |

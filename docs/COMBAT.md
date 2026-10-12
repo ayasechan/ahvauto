@@ -1,5 +1,7 @@
 # 战斗算法
 
+> 官方文档：[Battles](https://ehwiki.org/wiki/Battles)、[Damage](https://ehwiki.org/wiki/Damage)、[Action Speed](https://ehwiki.org/wiki/Action_Speed)（总入口见 `README.md` 官方游戏文档节）。
+
 ## 主循环（`combat/loop.ts:main`）
 
 每回合：读快照 → `decide()` → 执行 → 看门狗布防。一回合只做一个逻辑动作
