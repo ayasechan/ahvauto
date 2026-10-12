@@ -58,28 +58,28 @@
 
 | key | id  | 展示名（恒英文） |
 | --- | --- | ---------------- |
-| Pr  | 411 | Protection |
-| SL  | 422 | Spark of Life |
-| SS  | 423 | Spirit Shield |
-| Ha  | 412 | Haste |
-| AF  | 432 | Arcane Focus |
-| He  | 431 | Heartseeker |
-| Re  | 312 | Regen |
-| SV  | 413 | Shadow Veil |
-| Ab  | 421 | Absorb |
+| Pr  | 411 | Protection       |
+| SL  | 422 | Spark of Life    |
+| SS  | 423 | Spirit Shield    |
+| Ha  | 412 | Haste            |
+| AF  | 432 | Arcane Focus     |
+| He  | 431 | Heartseeker      |
+| Re  | 312 | Regen            |
+| SV  | 413 | Shadow Veil      |
+| Ab  | 421 | Absorb           |
 
 Buff 动作走法术书直点（`execute.ts:buff→spellbook`），判定看法术书可用性。
 
 ## 卷轴（`SCROLL_LIB`，走物品栏 `.bti3`）
 
-| key | id    | 展示名（恒英文） |
-| --- | ----- | ---------------- |
-| Go  | 13299 | Scroll of the Gods |
+| key | id    | 展示名（恒英文）     |
+| --- | ----- | -------------------- |
+| Go  | 13299 | Scroll of the Gods   |
 | Av  | 13199 | Scroll of the Avatar |
 | Pr  | 13111 | Scroll of Protection |
-| Sw  | 13101 | Scroll of Swiftness |
-| Li  | 13221 | Scroll of Life |
-| Sh  | 13211 | Scroll of Shadows |
+| Sw  | 13101 | Scroll of Swiftness  |
+| Li  | 13221 | Scroll of Life       |
+| Sh  | 13211 | Scroll of Shadows    |
 | Ab  | 13201 | Scroll of Absorption |
 
 卷轴页按小写码对照 Usage 台账 `TYPE_KEY`（见 `ScrollTab.svelte`）；展示名恒英文专名，不进i18n。
@@ -87,12 +87,12 @@ Buff 动作走法术书直点（`execute.ts:buff→spellbook`），判定看法�
 ## 魔药（`INFUSION_LIB`，走物品栏 `.bti3`）
 
 | key（攻击模式） | id    | 展示名（恒英文） |
-| --- | ----- | ---------------- |
-| 1   | 12101 | Fire Infusion |
-| 2   | 12201 | Cold Infusion |
-| 3   | 12301 | Elec Infusion |
-| 4   | 12401 | Wind Infusion |
-| 5   | 12501 | Holy Infusion |
-| 6   | 12601 | Dark Infusion |
+| --------------- | ----- | ---------------- |
+| 1               | 12101 | Fire Infusion    |
+| 2               | 12201 | Cold Infusion    |
+| 3               | 12301 | Elec Infusion    |
+| 4               | 12401 | Wind Infusion    |
+| 5               | 12501 | Holy Infusion    |
+| 6               | 12601 | Dark Infusion    |
 
 决策按 `attackStatus` 查表（`decide.ts` infusion 规则），魔药页仅全局 `enabled+condition`（`InfusionTab.svelte`），无 per-key 开关。
