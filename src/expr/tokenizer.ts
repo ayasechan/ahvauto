@@ -50,6 +50,13 @@ const KEYWORDS: Record<string, TokenKind> = {
   false: 'false',
 };
 
+const TWO_CHAR_OP: Record<string, TokenKind> = {
+  '==': 'eq',
+  '!=': 'ne',
+  '<=': 'le',
+  '>=': 'ge',
+};
+
 export function tokenize(input: string): Token[] {
   const out: Token[] = [];
   let i = 0;
@@ -119,8 +126,7 @@ export function tokenize(input: string): Token[] {
     }
     const two = input.slice(i, i + 2);
     if (two === '==' || two === '!=' || two === '<=' || two === '>=') {
-      const kind: TokenKind =
-        two === '==' ? 'eq' : two === '!=' ? 'ne' : two === '<=' ? 'le' : 'ge';
+      const kind: TokenKind = TWO_CHAR_OP[two] ?? 'ge';
       out.push({ kind, pos: i });
       i += 2;
       continue;

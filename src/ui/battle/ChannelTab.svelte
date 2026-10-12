@@ -6,10 +6,11 @@
 
   const L = (k: I18nKey) => tr($options.lang, k);
   const KEYS = Object.keys(BUFF_LIB);
+  const CHANNEL_SECOND_ID: Record<string, string> = { Cu: '311', FC: '313' };
   let newKey = $state('Cu');
 
   function addSecond() {
-    const id = newKey === 'Cu' ? '311' : newKey === 'FC' ? '313' : (BUFF_LIB[newKey]?.id ?? newKey);
+    const id = CHANNEL_SECOND_ID[newKey] ?? BUFF_LIB[newKey]?.id ?? newKey;
     if ($options.channel.secondOrder.some((o) => o.id === id)) return;
     $options.channel.secondOrder = [...$options.channel.secondOrder, { key: newKey, id }];
   }

@@ -1,4 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "ignorePatterns": ["dist/**", "legacy/**", "logs/**", "__tmp-*/**"]
+  "ignorePatterns": ["dist/**", "legacy/**", "logs/**", "__tmp-*/**"],
+  "rules": {
+    "no-nested-ternary": "error"
+  }
 }

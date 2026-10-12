@@ -52,15 +52,14 @@
     return tr($options.lang, key);
   }
 
+  const RESULT_KEY = {
+    victory: 'battle.victory',
+    defeat: 'battle.defeat',
+    interrupted: 'battle.interrupted',
+  } as const satisfies Record<string, I18nKey>;
+
   function resultLabel(r: string | undefined): string {
-    const key =
-      r === 'victory'
-        ? 'battle.victory'
-        : r === 'defeat'
-          ? 'battle.defeat'
-          : r === 'interrupted'
-            ? 'battle.interrupted'
-            : null;
+    const key = (RESULT_KEY as Record<string, I18nKey | undefined>)[r ?? ''] ?? null;
     return key ? tr($options.lang, key) : (r ?? '?');
   }
 

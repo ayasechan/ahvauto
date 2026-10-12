@@ -27,12 +27,12 @@ function spellCost(skillId: string): { mp: number; oc: number } {
  */
 export function recordSpellCost(action: Action): void {
   try {
-    const id =
-      action.kind === 'magic' || action.kind === 'debuff' || action.kind === 'buff'
-        ? action.id
-        : action.kind === 'imperil'
-          ? '213'
-          : null;
+    let id: string | null = null;
+    if (action.kind === 'magic' || action.kind === 'debuff' || action.kind === 'buff') {
+      id = action.id;
+    } else if (action.kind === 'imperil') {
+      id = '213';
+    }
     if (!id) return;
     const opt = snapshotOptions();
     if (!opt.recordUsage) return;

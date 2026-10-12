@@ -24,6 +24,13 @@ function parseBuffName(over: string): string {
   return over.match(/'(.*?)'/)?.[1] ?? '';
 }
 
+/** 集火权重（纯）：死怪 Infinity，否则按血量正/反比缩放，见 docs/COMBAT.md 集火节 */
+function weightFor(hpNow: number, lo: number, hi: number, reverse: boolean): number {
+  if (hpNow === Infinity) return Infinity;
+  if (reverse) return (hi / Math.max(1, hpNow)) * 10;
+  return (hpNow / Math.max(1, lo)) * 10;
+}
+
 /** 集火排序，规则与例外见 docs/COMBAT.md 集火节 */
 export function orderTargets(
   monsters: { id: string; name: string; hpNow: number; marks: string[] }[],
@@ -40,12 +47,7 @@ export function orderTargets(
   const rest = [...monsters]
     .filter((m) => !first.includes(m.id))
     .map((m) => {
-      let w =
-        m.hpNow === Infinity
-          ? Infinity
-          : reverse
-            ? (hi / Math.max(1, m.hpNow)) * 10
-            : (m.hpNow / Math.max(1, lo)) * 10;
+      let w = weightFor(m.hpNow, lo, hi, reverse);
       for (const mark of m.marks) {
         for (const key of Object.keys(DEBUFF_WEIGHT_IMGS)) {
           if (mark === DEBUFF_WEIGHT_IMGS[key])

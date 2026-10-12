@@ -34,13 +34,15 @@ try {
     ahvautoPanel: await cdp.ev<boolean>('!!document.querySelector("#ahvauto-panel")'),
     ahvautoPause: await cdp.ev<boolean>('!!document.querySelector("#ahvauto-pause")'),
   };
-  report.mode = report.hasRiddle
-    ? 'riddle'
-    : !report.hasNavbar
-      ? 'battle?'
-      : report.hasTextlog
-        ? 'field?'
-        : 'other';
+  if (report.hasRiddle) {
+    report.mode = 'riddle';
+  } else if (!report.hasNavbar) {
+    report.mode = 'battle?';
+  } else if (report.hasTextlog) {
+    report.mode = 'field?';
+  } else {
+    report.mode = 'other';
+  }
   const optRaw = await cdp.ev<string | null>('localStorage.getItem("hvAA-option") ?? null');
   if (optRaw) {
     try {
