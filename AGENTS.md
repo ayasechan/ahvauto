@@ -35,4 +35,4 @@ stats/logging via direct `handleRec` calls (`recorder.ts`).
 ## Conventions
 
 - Workflow: commits → `docs/DEV.md` 常用命令; i18n/layering → `docs/ARCHITECTURE.md`.
-- Doc index → `README.md` (文档节); spec → `src/lib/expr/GRAMMAR.md`.
+- Doc index → `README.md` (文档节); spec → `src/expr/GRAMMAR.md`.

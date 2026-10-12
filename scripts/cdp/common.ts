@@ -1,6 +1,6 @@
 // CDP 共享客户端。安全原则：默认只读；任何点击/写入由各脚本显式执行并自行负责。
 // 环境变量：CDP_URL（默认 http://127.0.0.1:12422），CDP_PAGE_WS（直接指定 ws，跳过自动发现）.
-import { DISABLED_KEY } from '../../src/lib/storage-keys.js';
+import { DISABLED_KEY } from '../../src/platform/storage-keys.js';
 
 export const CDP_BASE: string = process.env.CDP_URL ?? 'http://127.0.0.1:12422';
 

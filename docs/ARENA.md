@@ -7,7 +7,7 @@
 Challenge / Highest Clear / Min Level / Rounds / EXP Mod / Entry Cost / Clear Bonus。
 
 `id` 即 `init_battle(id, entrycost)` 第一参数（开战 `initid`）；
-第二参数是入场费（token 数），不是凭据（见 `meta.ts:parseBattleForm`）。
+第二参数是入场费（token 数），不是凭据（见 `field/idle-arena.ts:parseBattleForm`）。
 开战凭据是表单 `postoken`，每次现抓现用。
 
 ## The Arena（`ss=ar`，单页无分页）
@@ -59,14 +59,14 @@ Challenge / Highest Clear / Min Level / Rounds / EXP Mod / Entry Cost / Clear Bo
 
 ## 代码对应（别用反）
 
-- 开局判定（`battle.ts:newRound`）：`Initializing arena challenge <id>` 取首个数字，
+- 开局判定（`combat/round.ts:newRound`）：`Initializing arena challenge <id>` 取首个数字，
   `<= 35 → ar`，否则 `rb`；`Initializing Grindfest → gr`；
   `(Round a / b)` 进 `ROUND_NOW/ROUND_ALL`（`ba` 遭遇战固定 `1/1`）。
-- 闲置队列（`meta.ts:idleArena`）：纯数字 `NaN → gr`，`>= 105 → rb`，否则 `ar`
+- 闲置队列（`field/idle-arena.ts:idleArena`）：纯数字 `NaN → gr`，`>= 105 → rb`，否则 `ar`
   （竞技场单页，勿用 `ar&page=2`，其实测 GET 与 `ar` 相同、POST 会被拒绝）；
   队列中单个 `'gr'` 配 `cache.gr` 计数：开战成功只 `gr--` 不移出队列，
-  耗尽/`unavailable`/超限才移出。定时抖动 90%–110%（`main.ts` field 入口）。
-- 开战三态（`meta.ts:StartResult`）：`startBattle` 开战前用新鲜表单校验
+  耗尽/`unavailable`/超限才移出。定时抖动 90%–110%（`app/main.ts` field 入口）。
+- 开战三态（`field/idle-arena.ts:StartResult`）：`startBattle` 开战前用新鲜表单校验
   `initid` 是否仍在列——缺席（用户提前完成/Cooldown）报 `unavailable`，
   调用方直接消费该项并试下一项；取表单失败（无 postoken）/网络异常/POST 被拒
   （响应无战斗）报 `retry`，保留队列 60 秒后重试；

@@ -2,7 +2,7 @@
 // inject 前必须先 verify 通过（角色暂停），由调用方保证顺序。
 import { readFileSync, writeFileSync } from 'node:fs';
 import { pickPage, connect, assertPaused, autoDismissDialogs } from './common.js';
-import { STORAGE_NS, DISABLED_KEY } from '../../src/lib/storage-keys.js';
+import { STORAGE_NS, DISABLED_KEY } from '../../src/platform/storage-keys.js';
 
 const [cmd, arg] = process.argv.slice(2);
 const cdp = await connect(await pickPage());

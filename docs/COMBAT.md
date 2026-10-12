@@ -1,6 +1,6 @@
 # 战斗算法
 
-## 主循环（`battle.ts:main`）
+## 主循环（`combat/loop.ts:main`）
 
 每回合：读快照 → `decide()` → 执行 → 看门狗布防。一回合只做一个逻辑动作
 （魔法/武器是“锁技能＋点目标”两次点击，发一次包）。
@@ -35,7 +35,7 @@
 - **与原版实效一致**：魔法点了不返回，武器能放就覆盖，最后必点目标。
 - OFC（1111，需 8 OC）/ FRD（1101，需 4 OC）/ T3/T2/T1（`2<fightingStyle>0<阶>`，
   各需 2 OC），要求：Spirit 开启中＋条件＋可用＋OC 足＋OTOS 未用。
-- OTOS（一回合一次）每轮清零（`newRound`）。
+- OTOS（一回合一次）每轮清零（`combat/round.ts:newRound`）。
 - Merciful Blow：仅单手（style 2）＋T3，目标血 <25% 且流血则转火。
 - EtherTap：集火目标有 Coalesced Mana 且（无 Ether Tap(x2) 或 x2 快过期）且条件通过时**只跳过魔法**，武器照走。
 

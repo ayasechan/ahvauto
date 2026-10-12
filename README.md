@@ -45,5 +45,5 @@
 - `docs/SKILLS.md` —— 技能接口：ID 编码、消耗、开关门
 - `docs/DEV.md` —— 开发联调手册
 - `docs/UI.md` —— 面板 UI 规范（对稿 C1，实现细节看 Penpot 注释）
-- `src/lib/expr/GRAMMAR.md` —— 条件表达式语言规格
+- `src/expr/GRAMMAR.md` —— 条件表达式语言规格
 - `docs/TODO.md` —— 待办（冲突复核挂起项）

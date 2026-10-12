@@ -4,7 +4,7 @@
 `docs/ARCHITECTURE.md`（系统架构）、`docs/COMBAT.md`（战斗算法）、
 `docs/ARENA.md`（竞技场对照表＋开战三态，改 idleArena 前看）、
 `docs/ITEMS.md`（物品接口）、`docs/SKILLS.md`（技能接口）、
-`src/lib/expr/GRAMMAR.md`（条件表达式规格）、`scripts/cdp/README.md`（浏览器运维）。
+`src/expr/GRAMMAR.md`（条件表达式规格）、`scripts/cdp/README.md`（浏览器运维）。
 
 ## 常驻后台进程
 
@@ -34,8 +34,8 @@ IDB 异步路径走 CDP 真机验证。`src/**/*.test.ts` 已在 tsconfig exclud
 ## 存储命名空间（铁律）
 
 - 旧脚本：`hvAA-` 前缀——**只读不写**。
-- 新脚本：`ahvauto-` 前缀，key 唯一来源 `src/lib/storage-keys.ts`；读写唯一入口 `src/lib/store.ts`（配置 `options/sanitizeOptions/snapshotOptions`、KV `kv*`＋短键常量、备份 `loadBackups/saveBackups`、发包延迟 `publishSpellDelays/readSpellDelays`、进页清理 `clearFieldCtx`；运行日志已迁 IDB `logs` 表）。引擎/UI 不直碰 `localStorage/sessionStorage`。
-- 旧配置不再自动导入，需面板“关于→导入旧配置”手动触发（含权重、条件翻译），见 `src/lib/legacy-import.ts`。
+- 新脚本：`ahvauto-` 前缀，key 唯一来源 `src/platform/storage-keys.ts`；读写唯一入口 `src/config/store.ts`（配置 `options/sanitizeOptions/snapshotOptions`、KV `kv*`＋短键常量、备份 `loadBackups/saveBackups`、发包延迟 `publishSpellDelays/readSpellDelays`、进页清理 `clearFieldCtx`；运行日志已迁 IDB `logs` 表）。引擎/UI 不直碰 `localStorage/sessionStorage`。
+- 旧配置不再自动导入，需面板“关于→导入旧配置”手动触发（含权重、条件翻译），见 `src/config/legacy-import.ts`。
 
 ## 安全铁律（测战斗时）
 
@@ -59,7 +59,7 @@ IDB 异步路径走 CDP 真机验证。`src/**/*.test.ts` 已在 tsconfig exclud
 
 1. 游戏页把 `localStorage.setItem` 包了一层，静默丢弃写入——全仓一律直接赋值，禁 `setItem`（`store.ts` 有注释）。
 2. `Infinity` 过 JSON 变 `null`——读回必须归一化（死亡判定依赖）。
-3. `src` 生产入口（`src/main.ts`，monkey 打包）禁动态 `import()`，会切 SystemJS（页内无 `System` 直接暴毙）。
+3. `src` 生产入口（`src/app/main.ts`，monkey 打包）禁动态 `import()`，会切 SystemJS（页内无 `System` 直接暴毙）。
 4. `bind:` 传 `undefined` 会炸 tab 切换（`props_invalid_value`）——必须预填 key：item/buff/debuff/scroll conditions＋enabledMap、debuff.turns、rule.weights、channel.first/useSecond、scroll.roundTypes/first、alarm.audio/audioEnable/telegram/webhook（`backfill/backfillBool/backfillNum/backfillAlarm`＋单测守护）。
 5. 集火排序恒升序（原版亦然），`ruleReverse` 只反公式不反排序；点目标前验 `onclick`（死怪没有）。
 6. 魔法 lock＋目标必须同回合两次点击（游戏机制），只锁不等于是 stall 主因之一。
@@ -67,7 +67,7 @@ IDB 异步路径走 CDP 真机验证。`src/**/*.test.ts` 已在 tsconfig exclud
 8. `delayReload`（用户配置 30s）调试期会掀桌子（reload 清注入态）；常驻版无此问题。
 9. CDP `evaluate` 偶发把游戏页自身未捕获异常算到结果头上——`common.ts` 只在无有效值时才抛。
 10. 全仓禁 `eval`/`new Function`（CSP + 外来陌生配置）。
-11. 竞技场列表缺席≠失败——`startBattle` 返回三态（`meta.ts:StartResult`）：
+11. 竞技场列表缺席≠失败——`startBattle` 返回三态（`field/idle-arena.ts:StartResult`）：
     新鲜表单无该 `initid`（提前完成/Cooldown）报 `unavailable`，直接消费队列项；
     取表单失败/网络异常/POST 被拒报 `retry`（记 `ArenaCache.fails`＋60s 重试，连续 3 次跳过）。
     别拿重试去等 Cooldown（十几小时），也别和坑 #7 的看门狗（8s/25s 战斗内兜底）混为一谈。

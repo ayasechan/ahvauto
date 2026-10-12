@@ -1,5 +1,5 @@
 import { pickPage, connect } from './common.js';
-import { IDB_NAME } from '../../src/lib/storage-keys.js';
+import { IDB_NAME } from '../../src/platform/storage-keys.js';
 
 // 观察战斗：title/__ahvauto/log 行数/血条/IDB，每 4 秒一行，共 ~60 秒。只读。
 const cdp = await connect(await pickPage());

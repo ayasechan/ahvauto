@@ -1,74 +1,46 @@
 <script lang="ts">
   import type { Component } from 'svelte';
   import './theme.css';
-  import { panelOpen, activeTab, options } from '../lib/store';
-  import { tr } from '../lib/i18n';
-  import type { I18nKey } from '../lib/i18n';
-  import MainTab from './tabs/MainTab.svelte';
-  import ItemTab from './tabs/ItemTab.svelte';
-  import ChannelTab from './tabs/ChannelTab.svelte';
-  import BuffTab from './tabs/BuffTab.svelte';
-  import DebuffTab from './tabs/DebuffTab.svelte';
-  import SkillTab from './tabs/SkillTab.svelte';
-  import ScrollTab from './tabs/ScrollTab.svelte';
-  import InfusionTab from './tabs/InfusionTab.svelte';
-  import AlarmTab from './tabs/AlarmTab.svelte';
-  import RuleTab from './tabs/RuleTab.svelte';
-  import UsageTab from './tabs/UsageTab.svelte';
-  import AboutTab from './tabs/AboutTab.svelte';
-  import FeedbackTab from './tabs/FeedbackTab.svelte';
+  import { panelOpen, activeTab, options } from '../config/store';
+  import { tr } from '../platform/i18n';
+  import type { I18nKey } from '../platform/i18n';
+  import MainTab from './battle/MainTab.svelte';
+  import ItemTab from './item/ItemTab.svelte';
+  import ChannelTab from './battle/ChannelTab.svelte';
+  import BuffTab from './battle/BuffTab.svelte';
+  import DebuffTab from './battle/DebuffTab.svelte';
+  import SkillTab from './battle/SkillTab.svelte';
+  import ScrollTab from './item/ScrollTab.svelte';
+  import InfusionTab from './item/InfusionTab.svelte';
+  import AlarmTab from './system/AlarmTab.svelte';
+  import RuleTab from './battle/RuleTab.svelte';
+  import UsageTab from './system/UsageTab.svelte';
+  import AboutTab from './system/AboutTab.svelte';
+  import FeedbackTab from './system/FeedbackTab.svelte';
+  import { TAB_DEFS, TAB_GROUPS } from './tabs';
 
-  const TABS: { name: string; labelKey: I18nKey; comp: Component; check?: string }[] = [
-    { name: 'Main', labelKey: 'tab.main', comp: MainTab },
-    { name: 'Item', labelKey: 'tab.item', comp: ItemTab },
-    { name: 'Channel', labelKey: 'tab.channel', comp: ChannelTab, check: 'channel' },
-    { name: 'Buff', labelKey: 'tab.buff', comp: BuffTab, check: 'buff' },
-    { name: 'Debuff', labelKey: 'tab.debuff', comp: DebuffTab, check: 'debuff' },
-    { name: 'Skill', labelKey: 'tab.skill', comp: SkillTab, check: 'skill' },
-    { name: 'Scroll', labelKey: 'tab.scroll', comp: ScrollTab, check: 'scroll' },
-    { name: 'Infusion', labelKey: 'tab.infusion', comp: InfusionTab, check: 'infusion' },
-    { name: 'Alarm', labelKey: 'tab.alarm', comp: AlarmTab },
-    { name: 'Rule', labelKey: 'tab.rule', comp: RuleTab },
-    { name: 'Usage', labelKey: 'tab.usage', comp: UsageTab, check: 'recordUsage' },
-    { name: 'About', labelKey: 'tab.about', comp: AboutTab },
-    { name: 'Feedback', labelKey: 'tab.feedback', comp: FeedbackTab },
-  ];
+  const COMPS: Record<string, Component> = {
+    Main: MainTab,
+    Item: ItemTab,
+    Channel: ChannelTab,
+    Buff: BuffTab,
+    Debuff: DebuffTab,
+    Skill: SkillTab,
+    Scroll: ScrollTab,
+    Infusion: InfusionTab,
+    Alarm: AlarmTab,
+    Rule: RuleTab,
+    Usage: UsageTab,
+    About: AboutTab,
+    Feedback: FeedbackTab,
+  };
 
-  function switchCheck(name: string): boolean {
-    if (name === 'channel') return $options.channel.enabled;
-    if (name === 'buff') return $options.buff.enabled;
-    if (name === 'debuff') return $options.debuff.enabled;
-    if (name === 'skill') return $options.skill.enabled;
-    if (name === 'scroll') return $options.scroll.enabled;
-    if (name === 'infusion') return $options.infusion.enabled;
-    if (name === 'recordUsage') return $options.recordUsage;
-    return true;
-  }
+  const TABS = TAB_DEFS.map((t) => ({ ...t, comp: COMPS[t.name] }));
 
-  function setCheck(name: string, v: boolean) {
-    if (name === 'channel') $options.channel.enabled = v;
-    else if (name === 'buff') $options.buff.enabled = v;
-    else if (name === 'debuff') $options.debuff.enabled = v;
-    else if (name === 'skill') $options.skill.enabled = v;
-    else if (name === 'scroll') $options.scroll.enabled = v;
-    else if (name === 'infusion') $options.infusion.enabled = v;
-    else if (name === 'recordUsage') $options.recordUsage = v;
-  }
-
-  const GROUPS: { titleKey: I18nKey; tabs: typeof TABS }[] = [
-    {
-      titleKey: 'group.battle',
-      tabs: TABS.filter((t) =>
-        ['Main', 'Channel', 'Buff', 'Debuff', 'Skill', 'Rule', 'Alarm'].includes(t.name),
-      ),
-    },
-    {
-      titleKey: 'group.item',
-      tabs: TABS.filter((t) => ['Item', 'Scroll', 'Infusion'].includes(t.name)),
-    },
-    { titleKey: 'group.monitor', tabs: TABS.filter((t) => ['Usage'].includes(t.name)) },
-    { titleKey: 'group.sys', tabs: TABS.filter((t) => ['About', 'Feedback'].includes(t.name)) },
-  ];
+  const GROUPS: { titleKey: I18nKey; tabs: typeof TABS }[] = TAB_GROUPS.map((g) => ({
+    titleKey: g.titleKey,
+    tabs: TABS.filter((t) => t.group === g.key),
+  }));
 
   const current = $derived(TABS.find((t) => t.name === $activeTab) ?? TABS[0]);
   const crumb = $derived(() => {
@@ -105,9 +77,9 @@
               {#if t.check}
                 <input
                   type="checkbox"
-                  checked={switchCheck(t.check)}
+                  checked={t.check.get($options)}
                   onclick={(e) => e.stopPropagation()}
-                  onchange={(e) => setCheck(t.check!, e.currentTarget.checked)}
+                  onchange={(e) => t.check?.set($options, e.currentTarget.checked)}
                   aria-label={tr($options.lang, t.labelKey)}
                 />
               {/if}

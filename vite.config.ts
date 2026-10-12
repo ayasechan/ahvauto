@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [
     svelte(),
     monkey({
-      entry: 'src/main.ts',
+      entry: 'src/app/main.ts',
       userscript: {
         name: 'ahvauto',
         description: 'HV auto attack script, TS + Svelte rewrite.',

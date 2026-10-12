@@ -2,8 +2,8 @@ import { createWriteStream, mkdirSync, statSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { createGzip } from 'node:zlib';
 import { pickPage, connect, type Cdp } from './common.js';
-import { IDB_NAME } from '../../src/lib/storage-keys.js';
-import { toJsonlLine } from '../../src/lib/recorder.js';
+import { IDB_NAME } from '../../src/platform/storage-keys.js';
+import { toJsonlLine } from '../../src/data/debug.js';
 // 导出 IDB 战斗记录为 JSONL+gzip（逐行一对象，可流式读）。
 // records 行 {seq, data} → 解压得配对体 {seq,tReq,req,tRes,res,rttMs}；
 // turns 行 {t, data} → 解压得 {t,round,turn,rule,action,otos,snap}（key 另附为行号）。

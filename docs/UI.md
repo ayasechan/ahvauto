@@ -1,7 +1,7 @@
 # UI 规范（ahvauto 面板）
 
 设计源：Penpot `C-监控数据 / C1-Usage-数据记录`（实现细节看画布注释，不进界面）。
-实现：`src/ui/App.svelte`（960px 壳＋208px 侧栏）＋ `src/ui/tabs/*.svelte` ＋ `src/ui/theme.css`（`hv-light` token）。
+实现：`src/ui/App.svelte`（960px 壳＋208px 侧栏）＋ `src/ui/{battle,item,system,shared}/*.svelte`（注册表 `src/ui/tabs.ts`） ＋ `src/ui/theme.css`（`hv-light` token）。
 
 ## 设计 token（`hv-light`）
 
@@ -20,7 +20,7 @@
 
 ## 界面禁区
 
-dev 备注（TopN 规则、列定义、sticky/zebra、分页备选、log 公式）只进 Penpot 注释，不上界面；用户文案禁技术黑话（`log 刻度` 只出现在 tooltip）；中/繁/英三语 key 全放 `src/lib/i18n.ts`（`usage.*`）。
+dev 备注（TopN 规则、列定义、sticky/zebra、分页备选、log 公式）只进 Penpot 注释，不上界面；用户文案禁技术黑话（`log 刻度` 只出现在 tooltip）；中/繁/英三语 key 全放 `src/platform/i18n.ts`（`usage.*`）。
 
 ## 验证
 
