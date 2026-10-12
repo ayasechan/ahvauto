@@ -91,6 +91,52 @@ export async function getBattles(): Promise<BattleRow[]> {
   }
 }
 
+/** 时间范围（展示层过滤语义，见 docs/UI.md；纯函数可单测）。 */
+export type UsageRange = '1d' | '7d' | 'all';
+
+export function normalizeUsageRange(v: unknown): UsageRange {
+  return v === '1d' || v === '7d' || v === 'all' ? v : '7d';
+}
+
+/** 按时间范围过滤单场行（startedAt 缺失的行只在 all 下保留；不改原数组）。 */
+export function filterBattlesByRange(
+  rows: BattleRow[],
+  range: string,
+  now = Date.now(),
+): BattleRow[] {
+  const r = normalizeUsageRange(range);
+  if (r === 'all') return [...rows];
+  const span = r === '1d' ? 86_400_000 : 7 * 86_400_000;
+  return rows.filter((b) => (b.startedAt ?? 0) > 0 && b.startedAt >= now - span);
+}
+
+/** 对数条宽（排除断层 Top1 后的第二组对比用；log10(v+1) 归一化，最大项占满 maxWidth）。 */
+export function logBarWidths(
+  entries: Array<[string, number]>,
+  maxWidth: number,
+): Array<{ key: string; value: number; width: number }> {
+  const sorted = [...entries].sort((a, b) => b[1] - a[1]);
+  const top = sorted.length > 0 ? Math.max(sorted[0][1], 0) : 0;
+  const denom = top > 0 ? Math.log10(top + 1) : 0;
+  return sorted.map(([key, value]) => ({
+    key,
+    value,
+    width:
+      denom <= 0 || value <= 0
+        ? 0
+        : Math.round((Math.log10(value + 1) / denom) * maxWidth * 10) / 10,
+  }));
+}
+
+/** 紧凑数字（k/M：9084→9.1k，1362591→1.4M，千以下保持千分位；hover 全量由调用方 title 承担）。 */
+export function fmtCompact(n: number | undefined | null): string {
+  const v = n ?? 0;
+  if (v < 1000) return v.toLocaleString('en-US');
+  const [d, u] = v < 1_000_000 ? [v / 1000, 'k'] : [v / 1_000_000, 'M'];
+  const r = Math.round(d * 10) / 10;
+  return `${Number.isInteger(r) ? r.toFixed(0) : r}${u}`;
+}
+
 /** 进行中局（无则 null；失败回落 null）。 */
 export async function getCurBattle(): Promise<CurBattle | null> {
   try {

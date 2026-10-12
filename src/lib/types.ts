@@ -177,6 +177,8 @@ export interface HvOptions {
   alarm: AlarmOptions;
   rule: RuleOptions;
   dropQuality: string;
+  /** 数据记录页时间范围：'1d' | '7d' | 'all'（bind: 禁 undefined，见 store 守卫） */
+  usageTimeRange: string;
   recordUsage: boolean;
 }
 

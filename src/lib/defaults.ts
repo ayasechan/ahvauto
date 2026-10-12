@@ -134,6 +134,7 @@ export function defaultOptions(): HvOptions {
     },
     rule: { weights: {}, reverse: false },
     dropQuality: '',
+    usageTimeRange: '7d',
     recordUsage: false,
   };
 }

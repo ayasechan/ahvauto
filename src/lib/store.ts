@@ -52,8 +52,13 @@ export function sanitizeOptions(raw: unknown): HvOptions | null {
       pm.noSpellDelay = pm.delay2;
     delete pm.delay;
     delete pm.delay2;
-    // 顶层字符串守卫：bind: 禁 undefined/null，坏档回默认（dropQuality 供面板输入框绑定）
+    // 顶层字符串守卫：bind: 禁 undefined/null，坏档回默认（dropQuality/usageTimeRange 供面板输入框绑定）
     if (typeof merged.dropQuality !== 'string') merged.dropQuality = d.dropQuality;
+    if (
+      typeof merged.usageTimeRange !== 'string' ||
+      !['1d', '7d', 'all'].includes(merged.usageTimeRange)
+    )
+      merged.usageTimeRange = d.usageTimeRange;
     migrateOptions(merged as unknown as Record<string, unknown>);
     return merged;
   } catch {

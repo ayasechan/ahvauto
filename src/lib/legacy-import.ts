@@ -240,6 +240,7 @@ export function importLegacyOption(old: Raw): HvOptions {
       reverse: bool(old.ruleReverse),
     },
     dropQuality: normalizeQualityFilter(str(old.dropQuality)),
+    usageTimeRange: '7d',
     recordUsage: bool(old.recordUsage) || bool(old.dropMonitor),
   };
 }

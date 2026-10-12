@@ -9,6 +9,10 @@ import {
   foldDrops,
   formatDrops,
   deriveTotals,
+  filterBattlesByRange,
+  logBarWidths,
+  fmtCompact,
+  normalizeUsageRange,
   applyTurnToCur,
   rowFromCur,
   addCost,
@@ -354,6 +358,51 @@ describe('parseTurn 真实数据', () => {
     assert.equal(qualityFilterLabel('0'), 'Crude+');
     assert.equal(qualityFilterLabel('99'), '');
     assert.equal(qualityFilterLabel('Epic'), '');
+  });
+  it('normalizeUsageRange：预设透传，其余回退 7d', () => {
+    assert.equal(normalizeUsageRange('1d'), '1d');
+    assert.equal(normalizeUsageRange('7d'), '7d');
+    assert.equal(normalizeUsageRange('all'), 'all');
+    assert.equal(normalizeUsageRange(''), '7d');
+    assert.equal(normalizeUsageRange('30d'), '7d');
+    assert.equal(normalizeUsageRange(undefined), '7d');
+  });
+  it('filterBattlesByRange：按 startedAt 切窗，无戳行只在 all 下保留', () => {
+    const now = 1_700_000_000_000;
+    const rows = [
+      { startedAt: now - 1_000 } as BattleRow,
+      { startedAt: now - 2 * 86_400_000 } as BattleRow,
+      { startedAt: now - 10 * 86_400_000 } as BattleRow,
+      { startedAt: 0 } as BattleRow,
+    ];
+    assert.equal(filterBattlesByRange(rows, '1d', now).length, 1);
+    assert.equal(filterBattlesByRange(rows, '7d', now).length, 2);
+    assert.equal(filterBattlesByRange(rows, 'all', now).length, 4);
+    assert.equal(filterBattlesByRange(rows, 'bogus', now).length, 2);
+  });
+  it('logBarWidths：最大项占满，量级差仍可见，零值零宽', () => {
+    const bars = logBarWidths(
+      [
+        ['elec', 1362591],
+        ['other', 3000],
+        ['zero', 0],
+      ],
+      400,
+    );
+    assert.equal(bars[0].width, 400);
+    assert.ok(bars[1].width > 40 && bars[1].width < 400);
+    assert.equal(bars[2].width, 0);
+    assert.deepEqual(logBarWidths([], 400), []);
+  });
+  it('fmtCompact：千以下全量，k/M 一位小数去尾零', () => {
+    assert.equal(fmtCompact(0), '0');
+    assert.equal(fmtCompact(208), '208');
+    assert.equal(fmtCompact(999), '999');
+    assert.equal(fmtCompact(9084), '9.1k');
+    assert.equal(fmtCompact(288824), '288.8k');
+    assert.equal(fmtCompact(1362591), '1.4M');
+    assert.equal(fmtCompact(4443326999), '4443.3M');
+    assert.equal(fmtCompact(undefined), '0');
   });
   it('normalizeQualityFilter：预设透传，其余回退全部', () => {
     assert.equal(normalizeQualityFilter(''), '');
