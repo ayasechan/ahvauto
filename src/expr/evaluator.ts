@@ -1,6 +1,10 @@
 import type { AST } from './parser';
 import { KEYWORDS, formatSuggestion } from './suggest';
 import type { Candidate } from './suggest';
+import { ExprEvalError, UnknownNameError } from './errors';
+import type { I18nKey } from '../platform/i18n-dict';
+
+export { ExprEvalError, UnknownNameError };
 
 export type Value = number | string | boolean;
 
@@ -9,39 +13,22 @@ export interface EvalContext {
   funcs: Record<string, (...args: Value[]) => Value>;
 }
 
-export class ExprEvalError extends Error {
-  pos: number;
-  constructor(message: string, pos: number) {
-    super(`列 ${pos}: ${message}`);
-    this.name = 'ExprEvalError';
-    this.pos = pos;
-  }
-}
-
-/** 未知变量名（带完整路径），调用方据此附加"你是不是想说"建议。 */
-export class UnknownNameError extends ExprEvalError {
-  fullName: string;
-  constructor(fullName: string, pos: number) {
-    super(`未知变量 \`${fullName}\``, pos);
-    this.name = 'UnknownNameError';
-    this.fullName = fullName;
-  }
-}
-
 function isValue(v: unknown): v is Value {
   const t = typeof v;
   return t === 'number' || t === 'string' || t === 'boolean';
 }
 
-function num(v: Value, pos: number, what: string): number {
+/** what 取词条 expr.what.*（嵌套翻译），调用方传 key 名。 */
+function num(v: Value, pos: number, what: I18nKey): number {
   if (typeof v !== 'number' || Number.isNaN(v)) {
-    throw new ExprEvalError(`${what}要求数字，实际是 ${show(v)}`, pos);
+    throw new ExprEvalError('expr.expectNum', { what: { k: what }, actual: show(v) }, pos);
   }
   return v;
 }
 
-function bool(v: Value, pos: number, what: string): boolean {
-  if (typeof v !== 'boolean') throw new ExprEvalError(`${what}要求布尔值，实际是 ${show(v)}`, pos);
+function bool(v: Value, pos: number, what: I18nKey): boolean {
+  if (typeof v !== 'boolean')
+    throw new ExprEvalError('expr.expectBool', { what: { k: what }, actual: show(v) }, pos);
   return v;
 }
 
@@ -61,8 +48,7 @@ function resolvePath(vars: Record<string, unknown>, path: string[], pos: number)
     }
     cur = (cur as Record<string, unknown>)[seg];
   }
-  if (!isValue(cur))
-    throw new ExprEvalError(`变量 \`${path.join('.')}\` 不是数字/字符串/布尔值`, pos);
+  if (!isValue(cur)) throw new ExprEvalError('expr.badVarType', { name: path.join('.') }, pos);
   return cur;
 }
 
@@ -73,7 +59,7 @@ function collectVarPaths(vars: Record<string, unknown>, prefix: string, out: Can
     const v = vars[k];
     const p = prefix ? `${prefix}.${k}` : k;
     if (isValue(v)) {
-      out.push({ name: p, kind: '变量' });
+      out.push({ name: p, kind: 'var' });
     } else if (
       typeof v === 'object' &&
       v !== null &&
@@ -98,7 +84,8 @@ export function evaluateAst(node: AST, ctx: EvalContext): Value {
           const pool: Candidate[] = [];
           collectVarPaths(ctx.vars, '', pool);
           pool.push(...KEYWORDS);
-          throw new ExprEvalError(formatSuggestion(e.fullName, pool, '变量'), node.pos);
+          const s = formatSuggestion(e.fullName, pool, 'var');
+          throw new ExprEvalError(s.key, s.vars, node.pos);
         }
         throw e;
       }
@@ -110,30 +97,31 @@ export function evaluateAst(node: AST, ctx: EvalContext): Value {
       if (typeof fn !== 'function') {
         const pool: Candidate[] = Object.keys(ctx.funcs).map((name) => ({
           name,
-          kind: '函数' as const,
+          kind: 'fn' as const,
         }));
-        throw new ExprEvalError(formatSuggestion(node.name, pool, '函数'), node.pos);
+        const s = formatSuggestion(node.name, pool, 'fn');
+        throw new ExprEvalError(s.key, s.vars, node.pos);
       }
       const args = node.args.map((a) => evaluateAst(a, ctx));
       return fn(...args);
     }
     case 'not':
-      return !bool(evaluateAst(node.expr, ctx), node.pos, 'not');
+      return !bool(evaluateAst(node.expr, ctx), node.pos, 'expr.what.notKw');
     case 'or': {
       const l = evaluateAst(node.left, ctx);
-      if (bool(l, node.pos, 'or 左边')) return true;
-      return bool(evaluateAst(node.right, ctx), node.pos, 'or 右边');
+      if (bool(l, node.pos, 'expr.what.orLeft')) return true;
+      return bool(evaluateAst(node.right, ctx), node.pos, 'expr.what.orRight');
     }
     case 'and': {
       const l = evaluateAst(node.left, ctx);
-      if (!bool(l, node.pos, 'and 左边')) return false;
-      return bool(evaluateAst(node.right, ctx), node.pos, 'and 右边');
+      if (!bool(l, node.pos, 'expr.what.andLeft')) return false;
+      return bool(evaluateAst(node.right, ctx), node.pos, 'expr.what.andRight');
     }
     case 'neg':
-      return -num(evaluateAst(node.expr, ctx), node.pos, '负号');
+      return -num(evaluateAst(node.expr, ctx), node.pos, 'expr.what.neg');
     case 'arith': {
-      const l = num(evaluateAst(node.left, ctx), node.pos, '算术');
-      const r = num(evaluateAst(node.right, ctx), node.pos, '算术');
+      const l = num(evaluateAst(node.left, ctx), node.pos, 'expr.what.arith');
+      const r = num(evaluateAst(node.right, ctx), node.pos, 'expr.what.arith');
       switch (node.op) {
         case 'plus':
           return l + r;
@@ -142,10 +130,10 @@ export function evaluateAst(node: AST, ctx: EvalContext): Value {
         case 'star':
           return l * r;
         case 'slash':
-          if (r === 0) throw new ExprEvalError('除数不能为零', node.pos);
+          if (r === 0) throw new ExprEvalError('expr.divZero', {}, node.pos);
           return l / r;
         case 'percent':
-          if (r === 0) throw new ExprEvalError('取余除数不能为零', node.pos);
+          if (r === 0) throw new ExprEvalError('expr.modZero', {}, node.pos);
           return l % r;
       }
       break;
@@ -159,16 +147,16 @@ export function evaluateAst(node: AST, ctx: EvalContext): Value {
         case 'ne':
           return !(typeof l === typeof r && l === r);
         case 'le':
-          return num(l, node.pos, '比较') <= num(r, node.pos, '比较');
+          return num(l, node.pos, 'expr.what.cmp') <= num(r, node.pos, 'expr.what.cmp');
         case 'ge':
-          return num(l, node.pos, '比较') >= num(r, node.pos, '比较');
+          return num(l, node.pos, 'expr.what.cmp') >= num(r, node.pos, 'expr.what.cmp');
         case 'lt':
-          return num(l, node.pos, '比较') < num(r, node.pos, '比较');
+          return num(l, node.pos, 'expr.what.cmp') < num(r, node.pos, 'expr.what.cmp');
         case 'gt':
-          return num(l, node.pos, '比较') > num(r, node.pos, '比较');
+          return num(l, node.pos, 'expr.what.cmp') > num(r, node.pos, 'expr.what.cmp');
       }
       break;
     }
   }
-  throw new ExprEvalError('未知节点', (node as { pos: number }).pos);
+  throw new ExprEvalError('expr.unknownNode', {}, (node as { pos: number }).pos);
 }

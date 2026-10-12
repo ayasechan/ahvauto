@@ -2,7 +2,7 @@ import { kvGet, kvSet, snapshotOptions } from '../config/store';
 import { ARENA_KEY } from '../platform/storage-keys';
 import { todayKey, httpGet, httpPost, requestRetry } from '../platform/http';
 import { logger } from '../platform/logger';
-import { tt } from '../platform/i18n';
+import { tr } from '../platform/i18n';
 import { after } from '../app/fsm';
 import { staminaNow } from './encounter';
 import type { ArenaCache } from '../config/types';
@@ -142,7 +142,7 @@ export async function idleArena(): Promise<void> {
     if (!(id in (cache.token as Record<string, unknown>))) array.shift();
     else break;
   }
-  document.title = tt('main.idleArena');
+  document.title = tr(opt.lang, 'main.idleArena');
   if (array.length === 0) {
     cache.isOk = true;
     cache.array = array;

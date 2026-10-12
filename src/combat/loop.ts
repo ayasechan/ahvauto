@@ -3,7 +3,7 @@ import { battle } from '../config/battle-state';
 import { kvGet, snapshotOptions, isDisabled } from '../config/store';
 import { qs, qsa } from '../platform/dom';
 import { pause, resume } from '../app/fsm';
-import { tt } from '../platform/i18n';
+import { tr } from '../platform/i18n';
 import { logger } from '../platform/logger';
 import { setAlarm } from '../notify/notify';
 import { recordTurn } from '../data/debug';
@@ -20,13 +20,14 @@ import { armWatchdog, readLastSend } from './watchdog';
 import { MONSTER_STATUS_KEY, MONSTER_BASE_KEY } from '../platform/storage-keys';
 
 export function pauseChange(): void {
+  const lang = snapshotOptions().lang;
   if (!isDisabled()) {
     const btn = qs('.pauseChange');
-    if (btn) btn.innerHTML = tt('app.resume');
+    if (btn) btn.innerHTML = tr(lang, 'app.resume');
     pause('button');
   } else {
     const btn = qs('.pauseChange');
-    if (btn) btn.innerHTML = tt('app.pause');
+    if (btn) btn.innerHTML = tr(lang, 'app.pause');
     resume('button');
     void main();
   }
@@ -58,9 +59,9 @@ async function mainInner(dbg: DebugSurface, trace: boolean): Promise<TurnOutcome
   const step = (s: string): void => {
     if (trace) dbg.step = s;
   };
-  const idleAction = describeAction({ kind: 'none' });
+  const idleAction = describeAction(snapshotOptions().lang, { kind: 'none' });
   if (isDisabled()) {
-    document.title = tt('battle.paused');
+    document.title = tr(snapshotOptions().lang, 'battle.paused');
     return { sent: false, rule: 'none', action: idleAction };
   }
   // JSON 序列化会把 Infinity 丢成 null，重载后必须还原，否则死亡判定失效
@@ -90,7 +91,7 @@ async function mainInner(dbg: DebugSurface, trace: boolean): Promise<TurnOutcome
   snap.attackStatus = b.attackStatus;
   snap.fightingStyle = opt.main.fightingStyle;
 
-  battleInfo();
+  battleInfo(opt.lang);
   if (shouldEmergencyPause(snap.hp, opt.main.hpFloorPause, opt.main.hpFloor)) {
     step('emergency');
     logger.error('emergency pause at hp {hp}', { hp: Math.round(snap.hp) });
@@ -101,7 +102,7 @@ async function mainInner(dbg: DebugSurface, trace: boolean): Promise<TurnOutcome
   step('decide');
   const decided = decide(snap, opt, get(battle).otos);
   const rule = decided.rule ?? 'none';
-  const actionLabel = describeAction(decided.action, snap.skillNames);
+  const actionLabel = describeAction(opt.lang, decided.action, snap.skillNames);
   if (decided.consumeOnce) {
     patchBattle({
       otos: {
@@ -116,7 +117,7 @@ async function mainInner(dbg: DebugSurface, trace: boolean): Promise<TurnOutcome
     hist.push({
       turn: snap.turn,
       rule: decided.rule ?? 'none',
-      action: describeAction(decided.action, snap.skillNames),
+      action: describeAction(opt.lang, decided.action, snap.skillNames),
     });
     if (hist.length > 20) hist.splice(0, hist.length - 20);
   } catch {
@@ -134,7 +135,7 @@ async function mainInner(dbg: DebugSurface, trace: boolean): Promise<TurnOutcome
     decided.action,
     (label) => debugAct(label),
     (msg) => {
-      alert(msg === HALT_MSG ? tt('battle.haltDebuff') : msg);
+      alert(msg === HALT_MSG ? tr(opt.lang, 'battle.haltDebuff') : msg);
       pauseChange();
     },
   );

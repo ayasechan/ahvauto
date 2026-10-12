@@ -1,7 +1,7 @@
 <script lang="ts">
   import { options, kvGet } from '../../config/store';
   import { ENCOUNTER_KEY, STAMINA_LOG_KEY } from '../../platform/storage-keys';
-  import { tr } from '../../platform/i18n';
+  import { tr, LANG_LOCALE } from '../../platform/i18n';
   import type { I18nKey } from '../../platform/i18n';
   import { logger } from '../../platform/logger';
   import {
@@ -81,12 +81,18 @@
   let staminaLog = $state<Array<[string, number]>>([]);
   let encounter = $state<{ time: number; lastTime: number } | null>(null);
 
-  // 大数字千分位全量（hover/tooltip 用）；展示用 short() 紧凑 k/M
+  // 大数字千分位全量（hover/tooltip 用）；展示用 short() 紧凑 k/M；locale 跟 options.lang
+  function loc(): string {
+    return LANG_LOCALE[$options.lang] ?? 'en-US';
+  }
   function fmt(n: number | undefined | null): string {
-    return (n ?? 0).toLocaleString('en-US');
+    return (n ?? 0).toLocaleString(loc());
   }
   function short(n: number | undefined | null): string {
-    return fmtCompact(n);
+    return fmtCompact(n, loc());
+  }
+  function fmtDate(t: number): string {
+    return new Date(t).toLocaleString(loc());
   }
   function top(rec: Record<string, number>, n = 5): Array<[string, number]> {
     return Object.entries(rec)
@@ -132,13 +138,13 @@
   }
   /** 饼图分段（top5＋其余聚合为 Other；标准配方：pathLength=100，dasharray "pct 100-pct"
    *  周期恒 100，dashoffset=25-acc 从 12 点起笔；hover 全量由 <title> 承担） */
-  function pieSlices(rec: Record<string, number> | undefined | null): PieSeg[] {
+  function pieSlices(rec: Record<string, number> | undefined | null, otherLabel: string): PieSeg[] {
     const all = Object.entries(rec ?? {}).sort((a, b) => b[1] - a[1]);
     const total = all.reduce((a, [, v]) => a + v, 0);
     if (total <= 0) return [];
     const head = all.slice(0, 5);
     const rest = all.slice(5).reduce((a, [, v]) => a + v, 0);
-    const rows: Array<[string, number]> = rest > 0 ? [...head, ['Other', rest]] : head;
+    const rows: Array<[string, number]> = rest > 0 ? [...head, [otherLabel, rest]] : head;
     let acc = 0;
     return rows.map(([key, value], i) => {
       const pct = (value / total) * 100;
@@ -147,8 +153,12 @@
       return seg;
     });
   }
-  const physPie = $derived(pieSlices(Object.fromEntries(topTakenBy(true, 20))));
-  const magPie = $derived(pieSlices(Object.fromEntries(topTakenBy(false, 20))));
+  const physPie = $derived(
+    pieSlices(Object.fromEntries(topTakenBy(true, 20)), tr($options.lang, 'usage.dropsOther')),
+  );
+  const magPie = $derived(
+    pieSlices(Object.fromEntries(topTakenBy(false, 20)), tr($options.lang, 'usage.dropsOther')),
+  );
   interface PiePanel {
     title: string;
     total: number;
@@ -312,22 +322,26 @@
 
   <div class="kpis">
     <div class="kpi">
-      <div class="kpi-t">Rounds</div>
+      <div class="kpi-t">{L('usage.detail.rounds')}</div>
       <div class="kpi-v" title={fmt(stats.turns)}>{short(stats.turns)}</div>
-      <div class="kpi-s">{L('usage.showing')}{fmt(stats.battles)}{L('usage.battlesUnit')}</div>
+      <div class="kpi-s">{L('usage.showing')} {fmt(stats.battles)} {L('usage.battlesUnit')}</div>
     </div>
     <div class="kpi">
       <div class="kpi-t">{L('usage.damage')}</div>
       <div class="kpi-v" title={fmt(stats.damage)}>{short(stats.damage)}</div>
-      <div class="kpi-s">crit {fmt(stats.crits)}</div>
+      <div class="kpi-s">{L('usage.detail.crit')} {fmt(stats.crits)}</div>
     </div>
     <div class="kpi">
       <div class="kpi-t">{L('usage.hurt')}</div>
       <div class="kpi-v" title={fmt(stats.taken)}>{short(stats.taken)}</div>
-      <div class="kpi-s">evade {fmt(stats.evades)} / miss {fmt(stats.misses)}</div>
+      <div class="kpi-s">
+        {L('usage.detail.evade')}
+        {fmt(stats.evades)} / {L('usage.detail.miss')}
+        {fmt(stats.misses)}
+      </div>
     </div>
     <div class="kpi">
-      <div class="kpi-t">EXP / Credit</div>
+      <div class="kpi-t">{L('usage.detail.exp')} / {L('usage.detail.credit')}</div>
       <div class="kpi-v" title={`${fmt(stats.exp)} / ${fmt(stats.credit)}`}>
         {short(stats.exp)} / {short(stats.credit)}
       </div>
@@ -456,31 +470,42 @@
     <div class="title-row">
       <b>{L('usage.single')}</b>
       <span class="muted"
-        >{L('usage.showing')}{fmt(filteredRows.length)}{L('usage.battlesUnit')} · {L(
-          'usage.singleHint',
-        )}</span
+        >{L('usage.showing')}
+        {fmt(filteredRows.length)}
+        {L('usage.battlesUnit')} · {L('usage.singleHint')}</span
       >
     </div>
     {#if cur}
       <button
         type="button"
         class="live-banner"
-        title={`${fmt(cur.turns)} turns / ${fmt(cur.damage)} dmg / ${fmt(cur.kills)} kills`}
+        aria-expanded={liveOpen}
+        title={`${fmt(cur.turns)} ${L('usage.detail.turns')} / ${fmt(cur.damage)} ${L('usage.detail.damage')} / ${fmt(cur.kills)} ${L('usage.detail.kills')}`}
         onclick={() => (liveOpen = !liveOpen)}
       >
         <span aria-hidden="true">●</span>
-        {L('usage.live')} · {short(cur.turns)} turns / {short(cur.damage)} dmg / {short(cur.kills)} kills
+        {L('usage.live')} · {short(cur.turns)}
+        {L('usage.detail.turns')} / {short(cur.damage)}
+        {L('usage.detail.damage')} / {short(cur.kills)}
+        {L('usage.detail.kills')}
         /
-        {fmt(cur.drops.length)} drops · {L('usage.liveDetail')} →
+        {fmt(cur.drops.length)}
+        {L('usage.detail.drops')} · {L('usage.liveDetail')} →
       </button>
     {/if}
     {#if liveOpen && cur}
       {@const c = cur}
       <div class="detail">
         <b>{L('usage.live')}</b>
-        <button type="button" onclick={() => (liveOpen = false)}>✕</button>
+        <button type="button" onclick={() => (liveOpen = false)} aria-label={L('ui.close')}
+          >✕</button
+        >
         <div class="muted">
-          {fmt(c.turns)} turns / {fmt(c.damage)} dmg / {fmt(c.taken)} taken / {fmt(c.kills)} kills
+          {fmt(c.turns)}
+          {L('usage.detail.turns')} / {fmt(c.damage)}
+          {L('usage.detail.damage')} / {fmt(c.taken)}
+          {L('usage.detail.taken')} / {fmt(c.kills)}
+          {L('usage.detail.kills')}
         </div>
         <div class="muted">{c.drops.length > 0 ? formatDrops(c.drops) : '—'}</div>
       </div>
@@ -488,30 +513,24 @@
     {#snippet battleDetail(b: BattleRow)}
       <div class="detail">
         <b>{b.key}</b>
-        <button type="button" onclick={() => (selected = null)}>✕</button>
+        <button type="button" onclick={() => (selected = null)} aria-label={L('ui.close')}>✕</button
+        >
         <table>
           <tbody>
-            <tr
-              ><td>{L('usage.detail.start')}</td><td>{new Date(b.startedAt).toLocaleString()}</td
-              ></tr
-            >
-            <tr
-              ><td>{L('usage.detail.end')}</td><td
-                >{b.endedAt ? new Date(b.endedAt).toLocaleString() : '—'}</td
-              ></tr
-            >
+            <tr><td>{L('usage.detail.start')}</td><td>{fmtDate(b.startedAt)}</td></tr>
+            <tr><td>{L('usage.detail.end')}</td><td>{b.endedAt ? fmtDate(b.endedAt) : '—'}</td></tr>
             <tr><td>{L('usage.detail.type')}</td><td>{typeLabel(b.type)}</td></tr>
             <tr><td>{L('usage.detail.code')}</td><td>{b.code || '—'}</td></tr>
             <tr><td>{L('usage.detail.result')}</td><td>{resultLabel(b.result)}</td></tr>
             <tr><td>{L('usage.detail.rounds')}</td><td>{fmt(b.rounds)}</td></tr>
-            <tr><td>Turns</td><td>{fmt(b.turns)}</td></tr>
+            <tr><td>{L('usage.detail.turns')}</td><td>{fmt(b.turns)}</td></tr>
             <tr><td>{L('usage.detail.damage')}</td><td>{fmt(b.damage)}</td></tr>
             <tr><td>{L('usage.detail.taken')}</td><td>{fmt(b.taken)}</td></tr>
             <tr><td>{L('usage.detail.kills')}</td><td>{fmt(b.kills)}</td></tr>
-            <tr><td>Monster</td><td>{fmt(b.monsters)}</td></tr>
-            <tr><td>Boss</td><td>{fmt(b.bosses)}</td></tr>
-            <tr><td>EXP</td><td>{fmt(b.exp)}</td></tr>
-            <tr><td>Credit</td><td>{fmt(b.credit)}</td></tr>
+            <tr><td>{L('usage.detail.monsters')}</td><td>{fmt(b.monsters)}</td></tr>
+            <tr><td>{L('usage.detail.bosses')}</td><td>{fmt(b.bosses)}</td></tr>
+            <tr><td>{L('usage.detail.exp')}</td><td>{fmt(b.exp)}</td></tr>
+            <tr><td>{L('usage.detail.credit')}</td><td>{fmt(b.credit)}</td></tr>
             <tr
               ><td>{L('usage.detail.drops')}</td><td
                 >{b.drops.length > 0 ? formatDrops(b.drops) : '—'}</td
@@ -562,17 +581,30 @@
         <table>
           <thead
             ><tr
-              ><th>{L('usage.table.time')}</th><th>{L('usage.table.type')}</th><th>DMG</th><th
-                >Taken</th
-              ><th>{L('usage.table.result')}</th></tr
+              ><th>{L('usage.table.time')}</th><th>{L('usage.table.type')}</th><th
+                >{L('usage.detail.damage')}</th
+              ><th>{L('usage.detail.taken')}</th><th>{L('usage.table.result')}</th></tr
             ></thead
           >
           <tbody>
             {#each shown as b}
-              <tr class="clickable" class:active={isSelected(b)} onclick={() => toggleBattle(b)}>
-                <td>{b.key}</td><td>{typeLabel(b.type)}</td><td class="num" title={fmt(b.damage)}
+              <tr
+                class="clickable"
+                class:active={isSelected(b)}
+                onclick={() => toggleBattle(b)}
+                onkeydown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleBattle(b);
+                  }
+                }}
+                tabindex="0"
+                role="button"
+                aria-expanded={isSelected(b)}
+              >
+                <td>{b.key}</td><td>{typeLabel(b.type)}</td><td class="tnum" title={fmt(b.damage)}
                   >{short(b.damage)}</td
-                ><td class="num" title={fmt(b.taken)}>{short(b.taken)}</td><td
+                ><td class="tnum" title={fmt(b.taken)}>{short(b.taken)}</td><td
                   ><span class="pill">{resultLabel(b.result)}</span></td
                 >
               </tr>
@@ -606,7 +638,7 @@
         <tr
           ><td>{L('usage.encounters')}</td><td
             >{encounter
-              ? `${encounter.time} ${L('usage.times')} / ${L('usage.lastTime')} ${encounter.lastTime ? new Date(encounter.lastTime).toLocaleString() : L('usage.noRecord')}`
+              ? `${encounter.time} ${L('usage.times')} / ${L('usage.lastTime')} ${encounter.lastTime ? fmtDate(encounter.lastTime) : L('usage.noRecord')}`
               : L('usage.noRecord')}</td
           ></tr
         >
@@ -622,16 +654,6 @@
     gap: 8px;
     align-items: center;
   }
-  button.primary {
-    background: var(--hv-primary);
-    border-color: var(--hv-primary);
-    color: #fff;
-    font-weight: 700;
-  }
-  button.danger {
-    color: #dc2626;
-    border-color: #fecaca;
-  }
   .filter {
     display: inline-flex;
     align-items: center;
@@ -646,10 +668,15 @@
     gap: 12px;
     margin: 0 0 12px;
   }
+  @media (max-width: 700px) {
+    .kpis {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
   .kpi {
     background: var(--hv-card);
     border: 1px solid var(--hv-line);
-    border-radius: 10px;
+    border-radius: var(--hv-radius-card);
     padding: 10px 12px;
   }
   .kpi-t {
@@ -680,12 +707,12 @@
     position: sticky;
     top: 0;
   }
-  td.num {
+  td.tnum {
     text-align: right;
     font-variant-numeric: tabular-nums;
   }
   tbody tr:nth-child(even) td {
-    background: #f8fafc;
+    background: var(--hv-muted-bg);
   }
   .bar-row {
     display: flex;
@@ -771,8 +798,8 @@
   }
   .chip {
     border-radius: 999px;
-    border: 1px solid #bfdbfe;
-    background: #eef2ff;
+    border: 1px solid var(--hv-primary-border);
+    background: var(--hv-primary-soft);
     color: var(--hv-primary);
     padding: 2px 10px;
     font-size: 12px;
@@ -786,8 +813,8 @@
   }
   .pill {
     border-radius: 999px;
-    background: #dcfce7;
-    color: #15803d;
+    background: var(--hv-success-soft);
+    color: var(--hv-success);
     padding: 1px 10px;
     font-size: 12px;
     font-weight: 700;
@@ -797,14 +824,14 @@
     width: 100%;
     text-align: left;
     border-radius: 8px;
-    border: 1px solid #86efac;
-    background: #dcfce7;
-    color: #15803d;
+    border: 1px solid var(--hv-success-border);
+    background: var(--hv-success-soft);
+    color: var(--hv-success);
     font-weight: 700;
     margin: 8px 0;
   }
   .live-banner:hover {
-    background: #bbf7d0;
+    background: var(--hv-success-border);
     border-color: var(--hv-primary);
     color: var(--hv-primary);
   }
@@ -812,10 +839,10 @@
     cursor: pointer;
   }
   tr.clickable:hover td {
-    background: #eef2ff;
+    background: var(--hv-primary-soft);
   }
   tr.clickable.active td {
-    background: #eef2ff;
+    background: var(--hv-primary-soft);
     font-weight: 700;
   }
   tr.detail-row td {
@@ -827,7 +854,7 @@
   }
   .detail {
     border: 1px solid var(--hv-line);
-    border-radius: 10px;
+    border-radius: var(--hv-radius-card);
     margin: 8px 0;
     padding: 8px;
     background: var(--hv-card);

@@ -7,6 +7,30 @@ export const VERSION = '3.0.0';
 const blank = (keys: string[]): Record<string, string> =>
   Object.fromEntries(keys.map((k) => [k, '']));
 
+const falseMap = (keys: string[]): Record<string, boolean> =>
+  Object.fromEntries(keys.map((k) => [k, false]));
+
+const zeroMap = (keys: string[]): Record<string, number> =>
+  Object.fromEntries(keys.map((k) => [k, 0]));
+
+const RULE_WEIGHT_KEYS = [
+  'Sle',
+  'Bl',
+  'Slo',
+  'Im',
+  'MN',
+  'Si',
+  'Dr',
+  'We',
+  'Co',
+  'CM',
+  'Stun',
+  'PA',
+  'BW',
+];
+
+const ALARM_KINDS = ['Common', 'Error', 'Defeat', 'Riddle', 'Victory'];
+
 export const ITEM_KEYS = Object.keys(ITEM_IDS);
 export const BUFF_COND_KEYS = [...Object.keys(DRAUGHT_LIB), ...Object.keys(BUFF_LIB)];
 export const DEBUFF_COND_KEYS = Object.keys(DEBUFF_LIB);
@@ -68,13 +92,18 @@ export function defaultOptions(): HvOptions {
       fightingStyle: '1',
       debug: false,
     },
-    item: { order: [], enabled: {}, conditions: blank(ITEM_KEYS) },
-    channel: { enabled: false, first: {}, useSecond: false, secondOrder: [] },
+    item: { order: [], enabled: falseMap(ITEM_KEYS), conditions: blank(ITEM_KEYS) },
+    channel: {
+      enabled: false,
+      first: falseMap(Object.keys(BUFF_LIB)),
+      useSecond: false,
+      secondOrder: [],
+    },
     buff: {
       enabled: false,
       order: [],
       condition: '',
-      enabledMap: {},
+      enabledMap: falseMap(BUFF_COND_KEYS),
       conditions: blank(BUFF_COND_KEYS),
     },
     debuff: {
@@ -82,10 +111,10 @@ export function defaultOptions(): HvOptions {
       order: [],
       allIm: false,
       condition: '',
-      enabledMap: {},
+      enabledMap: falseMap(DEBUFF_COND_KEYS),
       conditions: blank(DEBUFF_COND_KEYS),
       turnAlert: false,
-      turns: {},
+      turns: zeroMap(DEBUFF_COND_KEYS),
     },
     skill: {
       enabled: false,
@@ -112,13 +141,13 @@ export function defaultOptions(): HvOptions {
       roundTypes: { ar: false, rb: false, gr: false, iw: false, ba: false },
       first: false,
       condition: '',
-      enabledMap: {},
+      enabledMap: falseMap(SCROLL_COND_KEYS),
       conditions: blank(SCROLL_COND_KEYS),
     },
     infusion: { enabled: false, condition: '' },
     alarm: {
       audioEnable: { Common: false, Error: false, Defeat: false, Riddle: false, Victory: false },
-      audio: {},
+      audio: blank(ALARM_KINDS),
       telegram: {
         enabled: false,
         botToken: '',
@@ -132,7 +161,7 @@ export function defaultOptions(): HvOptions {
         kinds: { Common: true, Error: true, Defeat: true, Riddle: true, Victory: true },
       },
     },
-    rule: { weights: {}, reverse: false },
+    rule: { weights: zeroMap(RULE_WEIGHT_KEYS), reverse: false },
     dropQuality: '',
     usageTimeRange: '7d',
     recordUsage: false,

@@ -45,5 +45,5 @@ try {
 
 1. 文件必须放在本目录（`scripts/cdp/__tmp-<名>.ts`），放 `/tmp` 会因 tsx CJS 解析报顶层 await 错误；`common.js` 用相对路径引入。
 2. 默认只读（`Runtime.evaluate` 取值、`IDBKeyRange` 翻页）；写操作（点击/注入/写 IDB）需用户明确批准。
-3. IDB 只用无版本号 `open`＋`readonly` 事务（带版本号 `open` 仅 `recorder.ts` 可用）。
+3. IDB 只用无版本号 `open`＋`readonly` 事务（带版本号 `open` 仅 `src/data/db.ts` 可用）。
 4. 跑完用 `trash-put` 删除（禁用 `rm`），`__tmp-*` 永不提交：`npx tsx scripts/cdp/__tmp-<名>.ts`。

@@ -14,8 +14,8 @@ Original script preserved at `legacy/hvauto.js` (reference only). No CI.
 
 ## Architecture (see `docs/ARCHITECTURE.md`)
 
-`snapshot → decide → execute → api_call → eventEnd（DOM 锚点） → next turn`;
-stats/logging via direct `handleRec` calls (`recorder.ts`).
+`snapshot → decide → execute → api_call → XHR onload 点 eventEnd（DOM 锚点） → next turn`;
+stats/logging via direct `handleRec` calls (`data/bridge.ts`).
 
 ## Gotchas (rules only; explanations live in docs/ — do not re-expand here)
 
@@ -27,8 +27,8 @@ stats/logging via direct `handleRec` calls (`recorder.ts`).
 - **Target clicks need a live target** (`#mkey_<id>` `onclick`) (`docs/COMBAT.md` 集火).
 - **Skill/item clicks route by kind** (item by id: `>10000` → `.bti3`, else `getElementById`; scroll/draught/infusion → shelf, buff → spellbook) (`docs/ITEMS.md`).
 - **Spells need lock+target in the same turn** (`docs/DEV.md` 坑 #6).
-- **The game silently swallows clicks** when busy/locked/in-flight — don't remove the watchdog (`docs/DEV.md` 坑 #7).
-- **IDB**: only `recorder.ts` may `open()` with a version number (`docs/DEV.md` 调试面).
+- **The game silently swallows clicks** on send failure — don't remove the watchdog (`docs/DEV.md` 坑 #7).
+- **IDB**: only `data/db.ts` may `open()` with a version number (`docs/DEV.md` 调试面).
 - **No `eval`/`new Function`** (`docs/DEV.md` 坑 #10).
 - Storage: `hvAA-` read-only, new keys under `ahvauto-` (`docs/DEV.md` 存储命名空间).
 

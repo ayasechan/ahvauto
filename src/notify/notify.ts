@@ -1,7 +1,8 @@
 import type { GmResponseEvent, GmXmlhttpRequestOption } from 'vite-plugin-monkey/dist/client';
 import { snapshotOptions } from '../config/store';
 import type { AlarmKind, NotifyKind } from '../config/types';
-import { tr, tt, alarmKindKey } from '../platform/i18n';
+import { tr, alarmKindKey } from '../platform/i18n';
+import type { Lang } from '../config/types';
 import { logger } from '../platform/logger';
 import { renderTemplate } from './template';
 import type { WebhookVars } from './template';
@@ -16,7 +17,7 @@ interface PostResult {
 }
 
 /** 油猴 XHR（无视 CORS/混合内容，直达站外）。回调式 API 包成 Promise。 */
-function gmPostText(url: string, body: string): Promise<PostResult> {
+function gmPostText(url: string, body: string, lang: Lang): Promise<PostResult> {
   return new Promise((resolve, reject) => {
     let done = false;
     const finish = (fn: () => void): void => {
@@ -33,17 +34,17 @@ function gmPostText(url: string, body: string): Promise<PostResult> {
       timeout: 15_000,
       onload: (res: GmResponseEvent<'text', undefined>) =>
         finish(() => resolve({ status: res.status, text: res.responseText })),
-      onerror: () => finish(() => reject(new Error(tt('alarm.error.netError')))),
-      ontimeout: () => finish(() => reject(new Error(tt('alarm.error.timeout')))),
-      onabort: () => finish(() => reject(new Error(tt('alarm.error.abort')))),
+      onerror: () => finish(() => reject(new Error(tr(lang, 'alarm.error.netError')))),
+      ontimeout: () => finish(() => reject(new Error(tr(lang, 'alarm.error.timeout')))),
+      onabort: () => finish(() => reject(new Error(tr(lang, 'alarm.error.abort')))),
     });
   });
 }
 
 /** 非油猴环境（预览页）降级 fetch；油猴内请求失败不降级（避免重复发送）。 */
-async function postText(url: string, body: string): Promise<PostResult> {
+async function postText(url: string, body: string, lang: Lang): Promise<PostResult> {
   try {
-    return await gmPostText(url, body);
+    return await gmPostText(url, body, lang);
   } catch (e) {
     if (e instanceof TypeError || e instanceof ReferenceError) {
       const ctrl = new AbortController();
@@ -74,25 +75,28 @@ export function normalizeTelegramChatId(v: unknown): string {
 
 /** Telegram Bot 直连（油猴 XHR）。未启用/未勾选该事件直接跳过。 */
 export async function sendTelegram(kind: AlarmKind, text: string, force = false): Promise<void> {
-  const tg = snapshotOptions().alarm.telegram;
+  const so = snapshotOptions();
+  const lang = so.lang;
+  const tg = so.alarm.telegram;
   if (!force && (!tg?.enabled || !tg.kinds?.[kind])) return;
   const botToken = typeof tg?.botToken === 'string' ? tg.botToken.trim() : '';
   const chatId = normalizeTelegramChatId(tg?.chatId);
-  if (!botToken || !chatId) throw new Error(tt('alarm.error.noConfig'));
+  if (!botToken || !chatId) throw new Error(tr(lang, 'alarm.error.noConfig'));
   const res = await postText(
     `https://api.telegram.org/bot${botToken}/sendMessage`,
     JSON.stringify({
       chat_id: chatId,
       text,
     }),
+    lang,
   );
   if (res.status < 200 || res.status >= 300)
-    throw new Error(tt('alarm.error.httpTelegram').replace('{status}', String(res.status)));
+    throw new Error(tr(lang, 'alarm.error.httpTelegram', { status: res.status }));
   try {
     const data = JSON.parse(res.text) as { ok?: boolean; description?: string };
-    if (!data.ok) throw new Error(data.description ?? tt('alarm.error.sendFail'));
+    if (!data.ok) throw new Error(data.description ?? tr(lang, 'alarm.error.sendFail'));
   } catch (e) {
-    if (e instanceof SyntaxError) throw new Error(tt('alarm.error.badResponse'));
+    if (e instanceof SyntaxError) throw new Error(tr(lang, 'alarm.error.badResponse'));
     throw e;
   }
 }
@@ -109,14 +113,16 @@ export async function sendWebhook(
   text: string,
   force = false,
 ): Promise<void> {
-  const wh = snapshotOptions().alarm.webhook;
+  const so = snapshotOptions();
+  const lang = so.lang;
+  const wh = so.alarm.webhook;
   if (!force && (!wh?.enabled || !wh.kinds?.[kind])) return;
-  if (!wh?.url) throw new Error(tt('alarm.error.noUrl'));
-  if (!wh.template?.trim()) throw new Error(tt('alarm.error.emptyTemplate'));
+  if (!wh?.url) throw new Error(tr(lang, 'alarm.error.noUrl'));
+  if (!wh.template?.trim()) throw new Error(tr(lang, 'alarm.error.emptyTemplate'));
   const body = renderTemplate(wh.template, webhookVars(kind, title, text));
-  const res = await postText(wh.url, body);
+  const res = await postText(wh.url, body, lang);
   if (res.status < 200 || res.status >= 300)
-    throw new Error(tt('alarm.error.httpWebhook').replace('{status}', String(res.status)));
+    throw new Error(tr(lang, 'alarm.error.httpWebhook', { status: res.status }));
 }
 
 /** 告警推送（Telegram＋Webhook）：失败只记 debug 日志，不打断战斗。 */
@@ -124,7 +130,7 @@ export async function pushAlarm(kind: AlarmKind): Promise<void> {
   const opt = snapshotOptions();
   const label = tr(opt.lang, alarmKindKey[kind]);
   const title = `ahvauto ${label}`;
-  const text = `${title}\n${location.href}\n${new Date().toLocaleString()}`;
+  const text = `${title}\n${location.href}\n${new Date().toLocaleString()}`; // 推送正文时间：浏览器默认 locale，不跟 options.lang
   await Promise.all([
     sendTelegram(kind, text).catch((e) => {
       logger.debug('telegram push failed: {err}', { err: String(e) });

@@ -1,4 +1,5 @@
 import { evaluateExpression } from '../expr/index';
+import { ExprError } from '../expr/errors';
 import type { EvalContext, Value } from '../expr/index';
 import type { Snapshot } from './types';
 
@@ -25,11 +26,12 @@ export function evalContext(snap: Snapshot): EvalContext {
     funcs: {
       isCd: (id: Value): Value => {
         if (typeof id !== 'number' || !Number.isFinite(id))
-          throw new Error('isCd 参数必须是技能 id 数字');
+          throw new ExprError('expr.argIsCdNum', {}, -1);
         return snap.skills[String(id)] ? 0 : 1;
       },
       buffTurn: (img: Value): Value => {
-        if (typeof img !== 'string' || img === '') throw new Error('buffTurn 参数必须是非空字符串');
+        if (typeof img !== 'string' || img === '')
+          throw new ExprError('expr.argBuffTurnStr', {}, -1);
         const hit = snap.buffs.find((b) => b.src.includes(img));
         if (!hit) return 0;
         return Number.isNaN(hit.turns) ? Infinity : hit.turns;

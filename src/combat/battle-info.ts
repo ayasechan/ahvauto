@@ -1,7 +1,8 @@
 import { get } from 'svelte/store';
 import { battle } from '../config/battle-state';
 import { qs, el } from '../platform/dom';
-import { tt } from '../platform/i18n';
+import { tr } from '../platform/i18n';
+import type { Lang } from '../config/types';
 import type { I18nKey } from '../platform/i18n';
 import type { RuleName } from './types';
 import { LOG_CLASS, PAUSE_BOX_ID } from '../platform/dom-ids';
@@ -22,10 +23,10 @@ const RULE_LABEL: Record<RuleName | 'none', I18nKey> = {
   none: 'action.none',
 };
 /** 历史/录像里的规则名字符串 → 本地化标签（未知旧串回 action.none，绝不抛）。 */
-function actionLabel(rule: string): string {
-  return tt((RULE_LABEL as Record<string, I18nKey | undefined>)[rule] ?? 'action.none');
+function actionLabel(rule: string, lang: Lang): string {
+  return tr(lang, (RULE_LABEL as Record<string, I18nKey | undefined>)[rule] ?? 'action.none');
 }
-export function battleInfo(): void {
+export function battleInfo(lang: Lang): void {
   const b = get(battle);
   let log = qs(`.${LOG_CLASS}`);
   if (!log) {
@@ -44,16 +45,23 @@ export function battleInfo(): void {
       'main.elem.divine',
       'main.elem.forbidden',
     ] as const satisfies readonly I18nKey[]
-  ).map((k) => tt(k));
+  ).map((k) => tr(lang, k));
   const hist = (debugSurface().history ?? []).slice(-10).reverse();
+  const turnsLabel = tr(lang, 'battle.turns');
+  const speedLabel = tr(lang, 'battle.speed');
+  const roundLabel = tr(lang, 'battle.round');
+  const perSec = tr(lang, 'battle.perSec');
+  const turnOne = tr(lang, 'battle.turn');
   log.innerHTML =
-    `Turns: ${b.turn}<br>Speed: ${b.runSpeed} t/s` +
-    `<br>Round: ${b.roundNow}/${b.roundAll}` +
-    `<br>${tt('battle.mode')}: ${names[b.attackStatus] ?? ''}` +
-    `<br>${tt('battle.foes')}: ${b.monsterAlive}/${b.monsterAll}` +
+    `${turnsLabel}: ${b.turn}<br>${speedLabel}: ${b.runSpeed} ${perSec}` +
+    `<br>${roundLabel}: ${b.roundNow}/${b.roundAll}` +
+    `<br>${tr(lang, 'battle.mode')}: ${names[b.attackStatus] ?? ''}` +
+    `<br>${tr(lang, 'battle.foes')}: ${b.monsterAlive}/${b.monsterAll}` +
     (hist.length > 0
       ? '<br>——<br>' +
-        hist.map((h) => `Turn ${h.turn} [${actionLabel(h.rule)}] ${h.action}`).join('<br>')
+        hist
+          .map((h) => `${turnOne} ${h.turn} [${actionLabel(h.rule, lang)}] ${h.action}`)
+          .join('<br>')
       : '');
-  document.title = `${b.turn}||${b.runSpeed}||${b.roundNow}/${b.roundAll}||${b.monsterAlive}/${b.monsterAll}`;
+  document.title = `${turnsLabel}: ${b.turn} | ${speedLabel}: ${b.runSpeed} ${perSec} | ${roundLabel}: ${b.roundNow}/${b.roundAll} | ${tr(lang, 'battle.foes')}: ${b.monsterAlive}/${b.monsterAll}`;
 }

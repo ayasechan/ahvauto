@@ -8,12 +8,35 @@
   --hv-input: #f1f5f9;
   --hv-primary: #2563eb;
   --hv-primary-soft: #eef2ff;
+  --hv-primary-border: #bfdbfe;
+  --hv-primary-hover: #dbeafe;
+  --hv-primary-active: #1d4ed8;
+  --hv-danger: #dc2626;
+  --hv-danger-soft: #fef2f2;
+  --hv-danger-border: #fecaca;
+  --hv-success: #15803d;
+  --hv-success-soft: #dcfce7;
+  --hv-success-border: #bbf7d0;
   --hv-t1: #1e293b;
   --hv-t2: #475569;
   --hv-t3: #94a3b8;
+  --hv-muted-bg: #f8fafc;
+  --hv-radius-panel: 12px;
   --hv-radius-card: 10px;
   --hv-radius-input: 8px;
   --hv-input-num: 56px;
+  --hv-shadow-panel: 0 12px 40px rgba(15, 23, 42, 0.18);
+  --hv-shadow-fab: 0 0 4px #000;
+  --hv-font: 'Microsoft Yahei', 'Noto Sans TC', sans-serif;
+  --hv-mono: ui-monospace, monospace;
+}
+
+/* 盒模型统一：100%+padding 不再溢出 .row */
+#ahvauto-panel,
+#ahvauto-panel *,
+#ahvauto-panel *::before,
+#ahvauto-panel *::after {
+  box-sizing: border-box;
 }
 
 #ahvauto-panel .ahvauto-tab button {
@@ -25,40 +48,86 @@
   padding: 3px 10px;
   font-size: 13px;
 }
-#ahvauto-panel .ahvauto-tab button:hover {
+#ahvauto-panel .ahvauto-tab button:hover:not(:disabled) {
   border-color: var(--hv-primary);
   color: var(--hv-primary);
 }
+#ahvauto-panel .ahvauto-tab button:focus-visible,
+#ahvauto-panel .ahvauto-tabmenu > button:focus-visible,
+#ahvauto-panel button.ahvauto-close:focus-visible {
+  outline: 2px solid var(--hv-primary);
+  outline-offset: 1px;
+}
+#ahvauto-panel .ahvauto-tab button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+#ahvauto-panel .ahvauto-tab button.primary {
+  background: var(--hv-primary);
+  border-color: var(--hv-primary);
+  color: #fff;
+}
+#ahvauto-panel .ahvauto-tab button.primary:hover:not(:disabled) {
+  background: var(--hv-primary-active);
+  border-color: var(--hv-primary-active);
+  color: #fff;
+}
+#ahvauto-panel .ahvauto-tab button.danger {
+  color: var(--hv-danger);
+  border-color: var(--hv-danger-border);
+  background: #fff;
+}
+#ahvauto-panel .ahvauto-tab button.danger:hover:not(:disabled) {
+  background: var(--hv-danger-soft);
+  border-color: var(--hv-danger);
+  color: var(--hv-danger);
+}
+
+/* 卡片唯一定义：各 Tab 不再各自重复 .row */
+#ahvauto-panel .ahvauto-tab .row {
+  background: var(--hv-card);
+  border: 1px solid var(--hv-line);
+  border-radius: var(--hv-radius-card);
+  margin: 0 0 12px;
+  padding: 12px;
+}
 
 /* 侧边导航：未选中透明无边框，选中蓝底白字（ID 优先级，对标 Penpot 01） */
-#ahvauto-panel .ahvauto-tabmenu > button {
-  border: 1px solid transparent;
+#ahvauto-panel .ahvauto-tabitem > button {
+  border: none;
   background: transparent;
-  color: var(--hv-t2);
+  color: inherit;
 }
-#ahvauto-panel .ahvauto-tabmenu > button:hover {
+#ahvauto-panel .ahvauto-tabmenu > .ahvauto-tabitem:not(.active):hover {
   background: var(--hv-primary-soft);
+}
+#ahvauto-panel .ahvauto-tabmenu > .ahvauto-tabitem:not(.active):hover button {
   color: var(--hv-primary);
   border-color: transparent;
 }
-#ahvauto-panel .ahvauto-tabmenu > button.active {
+#ahvauto-panel .ahvauto-tabmenu > .ahvauto-tabitem.active {
   background: var(--hv-primary);
   color: #fff;
   font-weight: 700;
+}
+#ahvauto-panel .ahvauto-tabmenu > .ahvauto-tabitem.active:hover,
+#ahvauto-panel .ahvauto-tabmenu > .ahvauto-tabitem.active:hover button {
+  background: var(--hv-primary);
+  color: #fff;
 }
 
 /* 条件编辑器 chips：蓝色胶囊（对标 Penpot 16） */
 #ahvauto-panel .cond .hints button {
   border-radius: 999px;
-  border: 1px solid #bfdbfe;
-  background: #eef2ff;
+  border: 1px solid var(--hv-primary-border);
+  background: var(--hv-primary-soft);
   color: var(--hv-primary);
   padding: 2px 10px;
   font-size: 12px;
 }
 #ahvauto-panel .cond .hints button:hover {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: var(--hv-primary-hover);
+  color: var(--hv-primary-active);
 }
 
 /* 施放顺序：编号胶囊链（对标 Penpot 16 chips） */
@@ -79,8 +148,8 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  background: #eef2ff;
-  border: 1px solid #bfdbfe;
+  background: var(--hv-primary-soft);
+  border: 1px solid var(--hv-primary-border);
   border-radius: 999px;
   padding: 2px 4px 2px 6px;
   font-size: 12px;
@@ -107,7 +176,7 @@
   font-size: 12px;
 }
 #ahvauto-panel .ahvauto-tab ol.seq.ghost li {
-  background: #f1f5f9;
+  background: var(--hv-input);
   border-color: var(--hv-line);
   opacity: 0.7;
 }
@@ -124,10 +193,20 @@
   font-weight: 700;
   padding: 3px 14px;
 }
+#ahvauto-panel button.ahvauto-close:hover:not(:disabled) {
+  background: var(--hv-primary-active);
+  border-color: var(--hv-primary-active);
+}
+#ahvauto-panel button.ahvauto-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 #ahvauto-panel select,
 #ahvauto-panel input[type='text'],
 #ahvauto-panel input[type='number'],
+#ahvauto-panel input[type='password'],
+#ahvauto-panel input:not([type]),
 #ahvauto-panel textarea {
   border-radius: var(--hv-radius-input);
   border: 1px solid #cbd5e1;
@@ -139,14 +218,24 @@
 #ahvauto-panel select:focus,
 #ahvauto-panel input:focus,
 #ahvauto-panel textarea:focus {
-  outline: 2px solid #bfdbfe;
+  outline: 2px solid var(--hv-primary-border);
   border-color: var(--hv-primary);
+}
+#ahvauto-panel input:disabled,
+#ahvauto-panel select:disabled,
+#ahvauto-panel textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 #ahvauto-panel input[type='checkbox'] {
   accent-color: var(--hv-primary);
   width: 15px;
   height: 15px;
+}
+#ahvauto-panel input[type='checkbox']:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* 短数字输入框：各 Tab 共用（scoped 样式不再各自重复定义） */

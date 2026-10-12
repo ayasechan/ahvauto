@@ -24,17 +24,24 @@
 
 ## 集火（`snapshot.ts:orderTargets`）
 
-`finWeight ＝ 血量比×10 ± 身上 debuff 权重`，**永远升序**（`ruleReverse`
+`weightFor ＝ 血量比×10 ± 身上 debuff 权重`（`snapshot.ts:weightFor`），**永远升序**（`ruleReverse`
 只反公式不反排序——曾反向排把死怪选成目标，已修），死怪（`Infinity`）垫底。
-例外：活着的 Yggdrasil（怪名去空格后大小写无关全等）永远置顶，无视
+例外：活着的 Yggdrasil（怪名去首尾空白后大小写无关全等）永远置顶，无视
 `ruleReverse`；死了掉回权重排序。怪名从 `btm3` 解析进快照。
 点目标前验 `onclick` handler（死怪没有），无 handler 顺延活怪。
+
+## 点击路由（`execute.ts`）
+
+法术书/Buff 直调 `getElementById`（纯数字 id 用 `querySelector` 不可靠）；
+其余经 `click`/`qs`；`item` 内部分流：`id > 10000` 走物品栏 `.bti3`，
+否则（含 Cure 311 / FC 313）走法术书；卷轴/药剂/魔药走物品栏 `.bti3`。
 
 ## 武器链（attack 规则内）
 
 - **与原版实效一致**：魔法点了不返回，武器能放就覆盖，最后必点目标。
 - OFC（1111，需 8 OC）/ FRD（1101，需 4 OC）/ T3/T2/T1（`2<fightingStyle>0<阶>`，
-  各需 2 OC），要求：Spirit 开启中＋条件＋可用＋OC 足＋OTOS 未用。
+  各需 2 OC），要求：Spirit 开启中＋条件＋可用＋OC 足＋OTOS 未用
+  （OTOS 限一次仅在对应 `otosOFC/otosFRD/otosT3/T2/T1` 开关开时生效）。
 - OTOS（一回合一次）每轮清零（`combat/round.ts:newRound`）。
 - Merciful Blow：仅单手（style 2）＋T3，目标血 <25% 且流血则转火。
 - EtherTap：集火目标有 Coalesced Mana 且（无 Ether Tap(x2) 或 x2 快过期）且条件通过时**只跳过魔法**，武器照走。
@@ -45,9 +52,11 @@
   与条件系统无关，回血链哑火（药空/CD/缺蓝）时兜底。
 - **发后看门狗**：8 秒无新发包→补点集火目标（有在途会被游戏吞掉，无害，
   消息带 `rule/action/clicked` 上下文）；25 秒无进展→整页重载
-  （常驻脚本自愈，CDP 注入调试时慎用）。换轮后页世界无 `Battle`
-  构造器则重载；胜/败收尾清掉 `ROUND_NOW/ROUND_ALL`，不污染下一局的换轮判断；
+  （常驻脚本自愈，CDP 注入调试时慎用）。
   发包钩子内发送抛错会回滚发包计数，不让看门狗误判。
+- **驱动换轮**（`api-hook.ts:eventEnd`，非看门狗）：换轮后页世界无 `Battle`
+  构造器则重载；胜/败收尾清掉 `ROUND_TYPE/ROUND_NOW/ROUND_ALL/MONSTER_STATUS/MONSTER_BASE`，
+  不污染下一局的换轮判断；
 - **`halt`**：Debuff 格满且告警开时弹框＋暂停，等人工。
 
 ## 面板决策历史

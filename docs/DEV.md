@@ -10,15 +10,15 @@
 
 | 进程                        | 启动                                                                         | 作用                                                                                               |
 | --------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `npm run dev`（vite :5173） | `setsid nohup npm run dev > logs/dev-server.log 2>&1 < /dev/null &`          | VM dev 版（`server:` 安装）热更新源。改 `src/` 即触发页面 reload，新代码直接生效，**不用重装脚本** |
+| `npm run dev`（vite，默认 :5173，未 pin 端口） | `setsid nohup npm run dev > logs/dev-server.log 2>&1 < /dev/null &`          | VM dev 版（`server:` 安装）热更新源。改 `src/` 即触发页面 reload，新代码直接生效，**不用重装脚本** |
 | `npm run build:watch`       | `setsid nohup npm run build:watch > logs/build-watch.log 2>&1 < /dev/null &` | `src/` 变动自动重编 `dist/ahvauto.user.js`（生产安装包）                                           |
 
-验证 dev 联通：改完 reload 页面，悬浮钮统一显示 `ahvauto·dev`（dev/dist 均此文案，不再用于区分版本；以热更新生效为准）。
+验证 dev 联通：改完 reload 页面，悬浮钮显示 `ahvauto`（dev/dist 同文案，不再用于区分版本；以热更新生效为准）。
 
 ## 常用命令
 
 ```bash
-npm test    # 单元测试（tsx 直跑 src/**/*.test.ts，无需 tsc 中转）
+npm test    # 单元测试（node --import tsx/esm --test "src/**/*.test.ts"，--localstorage-file 落盘隔离，无需 tsc 中转）
 npm run check   # svelte-check + tsc（0 errors 方可合）
 npm run lint / npm run fmt:check   # 只读检查（oxlint / oxfmt）
 npm run lint:fix / npm run fmt     # 落盘修复
@@ -34,7 +34,7 @@ IDB 异步路径走 CDP 真机验证。`src/**/*.test.ts` 已在 tsconfig exclud
 ## 存储命名空间（铁律）
 
 - 旧脚本：`hvAA-` 前缀——**只读不写**。
-- 新脚本：`ahvauto-` 前缀，key 唯一来源 `src/platform/storage-keys.ts`；读写唯一入口 `src/config/store.ts`（配置 `options/sanitizeOptions/snapshotOptions`、KV `kv*`＋短键常量、备份 `loadBackups/saveBackups`、发包延迟 `publishSpellDelays/readSpellDelays`、进页清理 `clearFieldCtx`；运行日志已迁 IDB `logs` 表）。引擎/UI 不直碰 `localStorage/sessionStorage`。
+- 新脚本：`ahvauto-` 前缀，key 唯一来源 `src/platform/storage-keys.ts`；读写经 `src/config/` 各模块（配置 `options/sanitizeOptions/snapshotOptions`、KV `kv*`＋短键常量、备份 `loadBackups/saveBackups`、发包延迟 `publishSpellDelays/readSpellDelays`、进页清理 `clearFieldCtx`，`store.ts` 仅 re-export 门面；运行日志已迁 IDB `logs` 表）。引擎/UI 不直碰 `localStorage/sessionStorage`。
 - 旧配置不再自动导入，需面板“关于→导入旧配置”手动触发（含权重、条件翻译），见 `src/config/legacy-import.ts`。
 
 ## 安全铁律（测战斗时）
@@ -50,9 +50,9 @@ IDB 异步路径走 CDP 真机验证。`src/**/*.test.ts` 已在 tsconfig exclud
 - `window.__ahvauto`：核心字段 `{step（规则名）/lastError/lastAction/history/nr}` ＋页世界钩子附加 `{apiCalls/lastReq/lastSend/fired}`（＋独立序号 `__ahvautoSeq`），只读定位 stall。
 - IDB `ahvauto-debug`（v7）：`records`（只存 `{seq,data}` 去冗余 gzip 包，`seq` keyPath，上限 2000）、 `turns`（`{t,data}` 决策现场，上限 50000，自增 key）、`logs`（运行日志原文 `{t,level,category,message,props}` 不 gzip，上限 1000，自增 key）、`battles`（单场全量行，自增 key，上限 2000）、`cur`（进行中局，`k='cur'` 单行）；解压得配对体/快照，导出走 JSONL+gzip（面板与 CDP 共 `toJsonlLine`）。
   修剪全部在非战斗页空闲一次完成（`scheduleIdlePrune`→`pruneDebugRecords/pruneStats`），热路径只追加。
-  ⚠️ 外部工具 open IDB **不许带版本号**（会空提交版本跳过升级，v2 就是这么坏的）。
+  ⚠️ 外部工具 open IDB **不许带版本号**（会空提交版本跳过升级；全仓唯一允许带版本号 `open()` 的地方是 `src/data/db.ts`）。
 - 运行日志：logtape 日志经 IDB `logs` 表持久化（含 `fsm boot -> battle`、`rec begin/end` 转移），IDB 不可用时回落当会话内存环（100 条）。
-- 门控：`main.debug` 开才写 IDB 录制（`records/turns`）；运行日志（`logs`）由 logLevel 门控，与 debug 开关无关；数据统计门控 `recordUsage`。
+- 门控：`main.debug` 开才写 IDB 录制（`records/turns`）；运行日志（`logs`）级别随 `debug` 开关在 `debug/info` 间切换；数据统计门控 `recordUsage`。
 - `logs/`：战斗快照、录制导出、localStorage 备份（不出仓库）。
 
 ## 已知的坑（别再踩）
@@ -60,11 +60,11 @@ IDB 异步路径走 CDP 真机验证。`src/**/*.test.ts` 已在 tsconfig exclud
 1. 游戏页把 `localStorage.setItem` 包了一层，静默丢弃写入——全仓一律直接赋值，禁 `setItem`（`store.ts` 有注释）。
 2. `Infinity` 过 JSON 变 `null`——读回必须归一化（死亡判定依赖）。
 3. `src` 生产入口（`src/app/main.ts`，monkey 打包）禁动态 `import()`，会切 SystemJS（页内无 `System` 直接暴毙）。
-4. `bind:` 传 `undefined` 会炸 tab 切换（`props_invalid_value`）——必须预填 key：item/buff/debuff/scroll conditions＋enabledMap、debuff.turns、rule.weights、channel.first/useSecond、scroll.roundTypes/first、alarm.audio/audioEnable/telegram/webhook（`backfill/backfillBool/backfillNum/backfillAlarm`＋单测守护）。
+4. `bind:` 传 `undefined` 会炸 tab 切换（`props_invalid_value`）——必须预填 key：item/buff/debuff/scroll conditions（含单数 `condition`）＋enabledMap、debuff.turns、rule.weights、channel.first/useSecond/secondOrder、scroll.roundTypes/first、alarm.audio/audioEnable/telegram/webhook（`backfill/backfillBool/backfillNum/backfillAlarm`＋单测守护）。
 5. 集火排序恒升序（原版亦然），`ruleReverse` 只反公式不反排序；点目标前验 `onclick`（死怪没有）。
 6. 魔法 lock＋目标必须同回合两次点击（游戏机制），只锁不等于是 stall 主因之一。
-7. 发包三道门（忙/已锁/在途）会静默吞点击——看门狗（8s 补点／25s 重载）是最终兜底。
-8. `delayReload`（用户配置 30s）调试期会掀桌子（reload 清注入态）；常驻版无此问题。
+7. 发包失败会被游戏静默吞点击（看门狗 8s 补点／25s 重载是最终兜底；“忙/已锁/在途”仅为现象描述，代码无此命名分支，见 `api-hook.ts` 发包计数回滚）。
+8. `delayReload`（默认关，`delayReload:false/delayReloadTime:0`）调试期若打开会掀桌子（reload 清注入态）。
 9. CDP `evaluate` 偶发把游戏页自身未捕获异常算到结果头上——`common.ts` 只在无有效值时才抛。
 10. 全仓禁 `eval`/`new Function`（CSP + 外来陌生配置）。
 11. 竞技场列表缺席≠失败——`startBattle` 返回三态（`field/idle-arena.ts:StartResult`）：

@@ -20,12 +20,17 @@
     ['ED', 'Energy Drink'],
   ];
 
-  let newKey = $state('Cure');
+  let labelOf = (k: string): string => NAMES.find(([key]) => key === k)?.[1] ?? k;
 
-  function addOrder() {
-    if ($options.item.order.some((o) => o.key === newKey)) return;
-    $options.item.order = [...$options.item.order, { key: newKey, id: ITEM_IDS[newKey] }];
-    $options.item.enabled[newKey] = true;
+  function toggle(k: string, ev: Event) {
+    const on = (ev.target as HTMLInputElement).checked;
+    if (on) {
+      if ($options.item.order.some((o) => o.key === k)) return;
+      $options.item.order = [...$options.item.order, { key: k, id: ITEM_IDS[k] }];
+      $options.item.enabled[k] = true;
+    } else {
+      $options.item.order = $options.item.order.filter((o) => o.key !== k);
+    }
   }
   function move(i: number, d: -1 | 1) {
     const arr = [...$options.item.order];
@@ -41,23 +46,49 @@
 
 <div>
   <div class="row">
-    <b>{L('item.order')}</b>
-    <select bind:value={newKey}>
+    <b>{L('item.order')}</b><span class="hint">{L('order.seq')}</span><br />
+    {#if $options.item.order.length === 0}
+      <span class="hint">{L('order.emptySkill')}</span>
+      <ol class="seq ghost">
+        {#each NAMES as [k, label], i}
+          <li><span class="n">{i + 1}</span>{label}</li>
+        {/each}
+      </ol>
+    {:else}
+      <ol class="seq">
+        {#each $options.item.order as o, i}
+          <li>
+            <span class="n">{i + 1}</span>{labelOf(o.key)}
+            <button
+              type="button"
+              onclick={() => move(i, -1)}
+              disabled={i === 0}
+              aria-label="up {labelOf(o.key)}">↑</button
+            >
+            <button
+              type="button"
+              onclick={() => move(i, 1)}
+              disabled={i === $options.item.order.length - 1}
+              aria-label="down {labelOf(o.key)}">↓</button
+            >
+            <button type="button" onclick={() => remove(i)} aria-label="remove {labelOf(o.key)}"
+              >✕</button
+            >
+          </li>
+        {/each}
+      </ol>
+    {/if}
+    <div style="margin-top: 8px">
       {#each NAMES as [k, label]}
-        <option value={k}>{label}</option>
+        <label
+          ><input
+            type="checkbox"
+            checked={$options.item.order.some((o) => o.key === k)}
+            onchange={(e) => toggle(k, e)}
+          />{label}</label
+        >
       {/each}
-    </select>
-    <button type="button" onclick={addOrder}>{L('ui.add')}</button>
-    <ol>
-      {#each $options.item.order as o, i}
-        <li>
-          {o.key} (id {o.id})
-          <button type="button" onclick={() => move(i, -1)}>↑</button>
-          <button type="button" onclick={() => move(i, 1)}>↓</button>
-          <button type="button" onclick={() => remove(i)}>{L('ui.delete')}</button>
-        </li>
-      {/each}
-    </ol>
+    </div>
   </div>
   {#each NAMES as [k, label]}
     <div class="row">
@@ -68,11 +99,4 @@
 </div>
 
 <style>
-  .row {
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    margin: 0 0 12px;
-    padding: 12px;
-  }
 </style>

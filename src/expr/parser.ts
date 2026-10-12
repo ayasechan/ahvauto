@@ -1,6 +1,7 @@
 // 条件表达式语法：权威 EBNF 见同目录 GRAMMAR.md，改语法先改文档。
 import { tokenize, ExprSyntaxError } from './tokenizer';
 import type { Token, TokenKind } from './tokenizer';
+import type { I18nKey } from '../platform/i18n-dict';
 
 export type AST =
   | { type: 'or'; left: AST; right: AST; pos: number }
@@ -32,10 +33,11 @@ class Parser {
   }
 
   parse(): AST {
-    if (this.peek().kind === 'eof') throw new ExprSyntaxError('表达式为空', 0);
+    if (this.peek().kind === 'eof') throw new ExprSyntaxError('expr.empty', {}, 0);
     const node = this.orExpr(0);
     const t = this.peek();
-    if (t.kind !== 'eof') throw new ExprSyntaxError(`多余的输入 \`${describe(t)}\``, t.pos);
+    if (t.kind !== 'eof')
+      throw new ExprSyntaxError('expr.trailing', { actual: describe(t) }, t.pos);
     return node;
   }
 
@@ -47,14 +49,15 @@ class Parser {
     return this.tokens[this.i++];
   }
 
-  private expect(kind: TokenKind, what: string): Token {
+  private expect(kind: TokenKind, what: string | { k: I18nKey }): Token {
     const t = this.next();
-    if (t.kind !== kind) throw new ExprSyntaxError(`期望${what}，实际是 \`${describe(t)}\``, t.pos);
+    if (t.kind !== kind)
+      throw new ExprSyntaxError('expr.expect', { what, actual: describe(t) }, t.pos);
     return t;
   }
 
   private depthGuard(depth: number, pos: number): void {
-    if (depth > MAX_DEPTH) throw new ExprSyntaxError(`嵌套超过 ${MAX_DEPTH} 层`, pos);
+    if (depth > MAX_DEPTH) throw new ExprSyntaxError('expr.tooDeep', { max: MAX_DEPTH }, pos);
   }
 
   private orExpr(depth: number): AST {
@@ -109,7 +112,7 @@ class Parser {
         t2.kind === 'lt' ||
         t2.kind === 'gt'
       ) {
-        throw new ExprSyntaxError('不支持链式比较，请用 and 连接', t2.pos);
+        throw new ExprSyntaxError('expr.noChain', {}, t2.pos);
       }
       return { type: 'cmp', op: t.kind, left, right, pos: t.pos };
     }
@@ -182,21 +185,21 @@ class Parser {
         const path = [name];
         while (this.peek().kind === 'dot') {
           this.next();
-          const seg = this.expect('ident', '变量名');
+          const seg = this.expect('ident', { k: 'expr.what.varName' });
           path.push(seg.name ?? '');
         }
         return { type: 'var', path, pos: t.pos };
       }
       default:
-        throw new ExprSyntaxError(`此处不应出现 \`${describe(t)}\``, t.pos);
+        throw new ExprSyntaxError('expr.unexpected', { actual: describe(t) }, t.pos);
     }
   }
 }
 
-function describe(t: Token): string {
+function describe(t: Token): string | { k: I18nKey } {
   switch (t.kind) {
     case 'eof':
-      return '输入结束';
+      return { k: 'expr.tok.eof' };
     case 'num':
       return String(t.numVal);
     case 'str':

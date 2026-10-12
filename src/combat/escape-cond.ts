@@ -3,6 +3,7 @@ import { battle } from '../config/store';
 import { qs } from '../platform/dom';
 import { logger } from '../platform/logger';
 import { evaluateExpression } from '../expr/index';
+import { ExprError } from '../expr/errors';
 import type { EvalContext, Value } from '../expr/index';
 
 export interface BattleVars {
@@ -45,7 +46,7 @@ export function battleVars(): BattleVars {
 /** isCd(<id>) : 可用=0 / CD中=1 */
 function isCd(id: Value): Value {
   if (typeof id !== 'number' || !Number.isFinite(id))
-    throw new Error(`isCd 参数必须是技能 id 数字`);
+    throw new ExprError('expr.argIsCdNum', {}, -1);
   const key = String(id);
   if (Number(key) > 10000) return qs(`.bti3>div[onmouseover*="${key}"]`) ? 0 : 1;
   const node = document.getElementById(key);
@@ -54,7 +55,7 @@ function isCd(id: Value): Value {
 
 /** buffTurn("<img>") : buff 剩余回合，不存在=0 */
 function buffTurn(img: Value): Value {
-  if (typeof img !== 'string' || img === '') throw new Error(`buffTurn 参数必须是非空字符串`);
+  if (typeof img !== 'string' || img === '') throw new ExprError('expr.argBuffTurnStr', {}, -1);
   const buff = qs(`#pane_effects>img[src*="${img}"]`);
   if (!buff) return 0;
   const m = (buff.getAttribute('onmouseover') ?? '').match(/\(.*,.*, (.*?)\)$/);

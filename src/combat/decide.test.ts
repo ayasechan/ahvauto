@@ -407,34 +407,57 @@ describe('context 条件求值', () => {
 });
 
 describe('describeAction 标签', () => {
-  it('全类型覆盖', () => {
-    assert.equal(describeAction({ kind: 'none' }), '等待');
-    assert.equal(describeAction({ kind: 'gem' }), '宝石');
-    assert.equal(describeAction({ kind: 'item', id: '311', key: 'Cure' }), '物品 Cure');
-    assert.equal(describeAction({ kind: 'defend' }), 'Defend');
-    assert.equal(describeAction({ kind: 'focus' }), 'Focus');
-    assert.equal(describeAction({ kind: 'spirit', on: true }), '开 Spirit');
-    assert.equal(describeAction({ kind: 'spirit', on: false }), '关 Spirit');
-    assert.equal(describeAction({ kind: 'scroll', id: '13111' }), '卷轴 13111');
+  it('全类型覆盖（中文）', () => {
+    const zh = '0' as const;
+    assert.equal(describeAction(zh, { kind: 'none' }), '等待');
+    assert.equal(describeAction(zh, { kind: 'gem' }), '宝石');
+    assert.equal(describeAction(zh, { kind: 'item', id: '311', key: 'Cure' }), '物品 Cure');
+    assert.equal(describeAction(zh, { kind: 'defend' }), '防御');
+    assert.equal(describeAction(zh, { kind: 'focus' }), '专注');
+    assert.equal(describeAction(zh, { kind: 'spirit', on: true }), '开 Spirit');
+    assert.equal(describeAction(zh, { kind: 'spirit', on: false }), '关 Spirit');
+    assert.equal(describeAction(zh, { kind: 'scroll', id: '13111' }), '卷轴 13111');
     assert.equal(
-      describeAction({ kind: 'scroll', id: '13111' }, { '13111': 'Scroll of Protection' }),
+      describeAction(zh, { kind: 'scroll', id: '13111' }, { '13111': 'Scroll of Protection' }),
       '卷轴 Scroll of Protection',
     );
-    assert.equal(describeAction({ kind: 'buff', id: '411' }), 'Buff 411');
-    assert.equal(describeAction({ kind: 'draught', id: '11191' }), '药剂 11191');
-    assert.equal(describeAction({ kind: 'infusion', id: '12601' }), '魔药 12601');
-    assert.equal(describeAction({ kind: 'imperil', target: '2' }), 'Imperil → 2');
-    assert.equal(describeAction({ kind: 'debuff', id: '213', target: '2' }), 'Debuff 213 → 2');
-    assert.equal(describeAction({ kind: 'magic', id: '163', target: '1' }), '魔法 163 → 1');
+    assert.equal(describeAction(zh, { kind: 'buff', id: '411' }), '增益 411');
+    assert.equal(describeAction(zh, { kind: 'draught', id: '11191' }), '药剂 11191');
+    assert.equal(describeAction(zh, { kind: 'infusion', id: '12601' }), '魔药 12601');
+    assert.equal(describeAction(zh, { kind: 'imperil', target: '2' }), 'Imperil → 2');
+    assert.equal(describeAction(zh, { kind: 'debuff', id: '213', target: '2' }), '减益 213 → 2');
+    assert.equal(describeAction(zh, { kind: 'magic', id: '163', target: '1' }), '魔法 163 → 1');
     assert.equal(
-      describeAction({ kind: 'magic', id: '163', target: '1' }, { '163': 'Ragnarok' }),
+      describeAction(zh, { kind: 'magic', id: '163', target: '1' }, { '163': 'Ragnarok' }),
       '魔法 Ragnarok → 1',
     );
     assert.equal(
-      describeAction({ kind: 'weapon', id: '1111', key: 'OFC', target: '1' }),
+      describeAction(zh, { kind: 'weapon', id: '1111', key: 'OFC', target: '1' }),
       'OFC → 1',
     );
-    assert.equal(describeAction({ kind: 'attack', target: '3' }), '普攻 → 3');
-    assert.equal(describeAction({ kind: 'halt', message: 'x' }), '暂停(异常)');
+    assert.equal(describeAction(zh, { kind: 'attack', target: '3' }), '普攻 → 3');
+    assert.equal(describeAction(zh, { kind: 'halt', message: 'x' }), '暂停（异常）');
+  });
+  it('全类型覆盖（英文，专名恒英文）', () => {
+    const en = '2' as const;
+    assert.equal(describeAction(en, { kind: 'none' }), 'Wait');
+    assert.equal(describeAction(en, { kind: 'gem' }), 'Gem');
+    assert.equal(describeAction(en, { kind: 'item', id: '311', key: 'Cure' }), 'Item Cure');
+    assert.equal(describeAction(en, { kind: 'defend' }), 'Defend');
+    assert.equal(describeAction(en, { kind: 'focus' }), 'Focus');
+    assert.equal(describeAction(en, { kind: 'spirit', on: true }), 'Spirit on');
+    assert.equal(
+      describeAction(en, { kind: 'scroll', id: '13111' }, { '13111': 'Scroll of Protection' }),
+      'Scroll Scroll of Protection',
+    );
+    assert.equal(describeAction(en, { kind: 'buff', id: '411' }), 'Buff 411');
+    assert.equal(describeAction(en, { kind: 'draught', id: '11191' }), 'Draught 11191');
+    assert.equal(describeAction(en, { kind: 'debuff', id: '213', target: '2' }), 'Debuff 213 → 2');
+    assert.equal(
+      describeAction(en, { kind: 'magic', id: '163', target: '1' }, { '163': 'Ragnarok' }),
+      'Magic Ragnarok → 1',
+    );
+    assert.equal(describeAction(en, { kind: 'attack', target: '3' }), 'Attack → 3');
+    assert.equal(describeAction(en, { kind: 'halt', message: 'x' }), 'Paused (error)');
   });
 });

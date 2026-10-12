@@ -128,10 +128,10 @@ export function logBarWidths(
   }));
 }
 
-/** 紧凑数字（k/M：9084→9.1k，1362591→1.4M，千以下保持千分位；hover 全量由调用方 title 承担）。 */
-export function fmtCompact(n: number | undefined | null): string {
+/** 紧凑数字（k/M：9084→9.1k，1362591→1.4M，千以下保持千分位；hover 全量由调用方 title 承担；locale 只影响千分位，默认 en-US 保单测稳定）。 */
+export function fmtCompact(n: number | undefined | null, locale = 'en-US'): string {
   const v = n ?? 0;
-  if (v < 1000) return v.toLocaleString('en-US');
+  if (v < 1000) return v.toLocaleString(locale);
   const [d, u] = v < 1_000_000 ? [v / 1000, 'k'] : [v / 1_000_000, 'M'];
   const r = Math.round(d * 10) / 10;
   return `${Number.isInteger(r) ? r.toFixed(0) : r}${u}`;
@@ -152,7 +152,7 @@ function csvCell(v: string | number): string {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-/** 单场列表导出 CSV（时间正序，Excel 可直接打开，UTF-8 BOM）。 */
+/** 单场列表导出 CSV（时间正序，Excel 可直接打开，UTF-8 BOM；表头恒英文、时间列用浏览器默认 locale，机器接口口径，不进词典）。 */
 export function battlesToCsv(rows: BattleRow[]): string {
   const head = [
     'time',
@@ -255,7 +255,7 @@ export function groupedDrops(
   }
 }
 
-/** 掉落汇总导出 CSV（展示键聚合后 name,count 按件数降序，UTF-8 BOM；q 为展示层品质过滤）。 */
+/** 掉落汇总导出 CSV（展示键聚合后 name,count 按件数降序，UTF-8 BOM；表头恒英文，机器接口口径，不进词典；q 为展示层品质过滤）。 */
 export function dropsToCsv(totals: Pick<Totals, 'drops'>, q = ''): string {
   const grouped: Record<string, number> = {};
   for (const [k, v] of Object.entries(totals.drops ?? {})) {

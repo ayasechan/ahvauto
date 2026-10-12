@@ -50,7 +50,16 @@
 </script>
 
 {#if $panelOpen}
-  <div id="ahvauto-panel" role="dialog" aria-label="ahvauto">
+  <div
+    id="ahvauto-panel"
+    role="dialog"
+    aria-modal="true"
+    aria-label="ahvauto"
+    tabindex="-1"
+    onkeydown={(e) => {
+      if (e.key === 'Escape') $panelOpen = false;
+    }}
+  >
     <div class="ahvauto-center">
       <h1>ahvauto</h1>
       <select bind:value={$options.lang} aria-label={tr($options.lang, 'about.lang')}>
@@ -63,28 +72,29 @@
       >
     </div>
     <div class="ahvauto-tablist">
-      <div class="ahvauto-tabmenu" role="tablist">
+      <div class="ahvauto-tabmenu" role="tablist" aria-label={tr($options.lang, 'tab.main')}>
         {#each GROUPS as g}
           <div class="ahvauto-group">{tr($options.lang, g.titleKey)}</div>
           {#each g.tabs as t}
-            <button
-              type="button"
-              role="tab"
-              aria-selected={$activeTab === t.name}
-              class:active={$activeTab === t.name}
-              onclick={() => ($activeTab = t.name)}
-            >
+            <div class="ahvauto-tabitem" class:active={$activeTab === t.name}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={$activeTab === t.name}
+                title={tr($options.lang, t.labelKey)}
+                onclick={() => ($activeTab = t.name)}
+              >
+                {tr($options.lang, t.labelKey)}
+              </button>
               {#if t.check}
                 <input
                   type="checkbox"
                   checked={t.check.get($options)}
-                  onclick={(e) => e.stopPropagation()}
                   onchange={(e) => t.check?.set($options, e.currentTarget.checked)}
                   aria-label={tr($options.lang, t.labelKey)}
                 />
               {/if}
-              {tr($options.lang, t.labelKey)}
-            </button>
+            </div>
           {/each}
         {/each}
       </div>
@@ -101,21 +111,22 @@
 
 <style>
   #ahvauto-panel {
-    left: calc(50% - 480px);
+    left: 50%;
+    transform: translateX(-50%);
     top: 40px;
     font-size: 14px;
-    z-index: 99999;
-    width: 960px;
+    z-index: 100000;
+    width: min(960px, calc(100vw - 32px));
     max-height: 86vh;
     overflow: hidden;
     position: fixed;
     text-align: left;
     background-color: var(--hv-panel);
     border: 1px solid var(--hv-line);
-    border-radius: 12px;
-    font-family: 'Microsoft Yahei', 'Noto Sans TC', sans-serif;
+    border-radius: var(--hv-radius-panel);
+    font-family: var(--hv-font);
     color: var(--hv-t1);
-    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18);
+    box-shadow: var(--hv-shadow-panel);
   }
   .ahvauto-center {
     display: flex;
@@ -136,6 +147,8 @@
   .ahvauto-tablist {
     position: relative;
     display: flex;
+    flex: 1;
+    min-height: 0;
     max-height: calc(86vh - 57px);
   }
   .ahvauto-tabmenu {
@@ -156,7 +169,7 @@
     font-weight: 700;
     padding: 8px 8px 2px;
   }
-  .ahvauto-tabmenu > button {
+  .ahvauto-tabitem {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -164,22 +177,42 @@
     border: 1px solid transparent;
     font-size: 13px;
     border-radius: 8px;
-    background-color: transparent;
     color: var(--hv-t2);
+  }
+  .ahvauto-tabitem:not(.active):hover {
+    background: var(--hv-primary-soft);
+  }
+  .ahvauto-tabitem:not(.active):hover button {
+    color: var(--hv-primary);
+  }
+  .ahvauto-tabitem.active {
+    background: var(--hv-primary);
+    color: #fff;
+    font-weight: 700;
+  }
+  .ahvauto-tabitem.active:hover,
+  .ahvauto-tabitem.active:hover button {
+    background: var(--hv-primary);
+    color: #fff;
+  }
+  .ahvauto-tabitem.active button {
+    color: #fff;
+    font-weight: 700;
+  }
+  .ahvauto-tabitem > button {
+    flex: 1;
+    min-width: 0;
+    display: block;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
     cursor: pointer;
     text-align: left;
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
-  }
-  .ahvauto-tabmenu > button:hover {
-    background: var(--hv-primary-soft);
-    color: var(--hv-primary);
-  }
-  .ahvauto-tabmenu > button.active {
-    background: var(--hv-primary);
-    color: #fff;
-    font-weight: 700;
+    font-size: inherit;
   }
   .ahvauto-content {
     flex: 1;
@@ -207,13 +240,6 @@
     color: var(--hv-t1);
     background-color: transparent;
     border: none;
-  }
-  .ahvauto-tab :global(.row) {
-    background: var(--hv-card) !important;
-    border: 1px solid var(--hv-line) !important;
-    border-radius: var(--hv-radius-card) !important;
-    margin: 0 0 12px !important;
-    padding: 12px !important;
   }
   .ahvauto-tab :global(.row) :global(b) {
     font-size: 13px;

@@ -1,4 +1,8 @@
 // 词法切分（语法见同目录 GRAMMAR.md）。
+import { ExprSyntaxError } from './errors';
+import type { I18nKey, TrVars } from '../platform/i18n-dict';
+
+export { ExprSyntaxError };
 export type TokenKind =
   | 'num'
   | 'str'
@@ -33,15 +37,6 @@ export interface Token {
   name?: string;
 }
 
-export class ExprSyntaxError extends Error {
-  pos: number;
-  constructor(message: string, pos: number) {
-    super(`列 ${pos}: ${message}`);
-    this.name = 'ExprSyntaxError';
-    this.pos = pos;
-  }
-}
-
 const KEYWORDS: Record<string, TokenKind> = {
   and: 'and',
   or: 'or',
@@ -60,8 +55,8 @@ const TWO_CHAR_OP: Record<string, TokenKind> = {
 export function tokenize(input: string): Token[] {
   const out: Token[] = [];
   let i = 0;
-  const err = (pos: number, msg: string): never => {
-    throw new ExprSyntaxError(msg, pos);
+  const err = (pos: number, key: I18nKey, vars: TrVars = {}): never => {
+    throw new ExprSyntaxError(key, vars, pos);
   };
   while (i < input.length) {
     const c = input[i];
@@ -74,7 +69,7 @@ export function tokenize(input: string): Token[] {
       while (i < input.length && input[i] >= '0' && input[i] <= '9') i++;
       if (input[i] === '.') {
         i++;
-        if (!(input[i] >= '0' && input[i] <= '9')) err(start, '数字的小数点后需要数字');
+        if (!(input[i] >= '0' && input[i] <= '9')) err(start, 'expr.fracDigits');
         while (i < input.length && input[i] >= '0' && input[i] <= '9') i++;
       }
       out.push({ kind: 'num', pos: start, numVal: Number(input.slice(start, i)) });
@@ -85,7 +80,7 @@ export function tokenize(input: string): Token[] {
       let s = '';
       i++;
       for (;;) {
-        if (i >= input.length) err(start, '字符串未闭合，缺失双引号');
+        if (i >= input.length) err(start, 'expr.unclosedStr');
         const ch = input[i];
         if (ch === '"') {
           i++;
@@ -98,7 +93,7 @@ export function tokenize(input: string): Token[] {
           else if (n === 'n') s += '\n';
           else if (n === 't') s += '\t';
           else if (n === 'r') s += '\r';
-          else err(i, `不支持的转义 \\${n ?? ''}`);
+          else err(i, 'expr.badEscape', { esc: n ?? '' });
           i += 2;
           continue;
         }
@@ -177,17 +172,17 @@ export function tokenize(input: string): Token[] {
         i++;
         continue;
       case '&':
-        err(i, '不支持 `&&`，请用 `and`');
+        err(i, 'expr.noAnd');
       case '|':
-        err(i, '不支持 `||`，请用 `or`');
+        err(i, 'expr.noOr');
       case '!':
-        err(i, '不支持 `!`，请用 `not`');
+        err(i, 'expr.noNot');
       case '=':
-        err(i, '不支持单个 `=`，比较相等请用 `==`（已是严格相等）');
+        err(i, 'expr.singleEq');
       case "'":
-        err(i, '字符串请用双引号，如 "ar"');
+        err(i, 'expr.singleQuote');
       default:
-        err(i, `不支持的字符 \`${c}\``);
+        err(i, 'expr.badChar', { ch: c });
     }
   }
   out.push({ kind: 'eof', pos: i });

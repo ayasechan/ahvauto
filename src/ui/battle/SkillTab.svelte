@@ -40,9 +40,16 @@
         {#each $options.skill.order as k, i}
           <li>
             <span class="n">{i + 1}</span>{k}
-            <button type="button" onclick={() => move(i, -1)} aria-label="up">↑</button>
-            <button type="button" onclick={() => move(i, 1)} aria-label="down">↓</button>
-            <button type="button" onclick={() => remove(i)} aria-label="remove">✕</button>
+            <button type="button" onclick={() => move(i, -1)} disabled={i === 0} aria-label="up {k}"
+              >↑</button
+            >
+            <button
+              type="button"
+              onclick={() => move(i, 1)}
+              disabled={i === $options.skill.order.length - 1}
+              aria-label="down {k}">↓</button
+            >
+            <button type="button" onclick={() => remove(i)} aria-label="remove {k}">✕</button>
           </li>
         {/each}
       </ol>
@@ -96,11 +103,4 @@
 </div>
 
 <style>
-  .row {
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    margin: 0 0 12px;
-    padding: 12px;
-  }
 </style>

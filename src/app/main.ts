@@ -36,13 +36,13 @@ function mountButton(): void {
   if (qs(`.${FAB_CLASS}`)) return;
   const style = document.head.appendChild(el('style'));
   style.textContent =
-    `.${FAB_CLASS}{position:fixed;top:4px;right:4px;z-index:99999;cursor:pointer;` +
+    `.${FAB_CLASS}{position:fixed;top:4px;right:4px;z-index:99998;cursor:pointer;` +
     'width:36px;height:36px;border-radius:8px;background:#5C0D11;color:#fff;' +
     'font:bold 12px/36px sans-serif;text-align:center;box-shadow:0 0 4px #000;}';
   const btn = document.body.appendChild(el('div'));
   btn.className = FAB_CLASS;
   btn.title = 'ahvauto';
-  btn.textContent = 'ahvauto·dev';
+  btn.textContent = 'ahvauto';
   btn.onclick = () => panelOpen.update((v) => !v);
 }
 

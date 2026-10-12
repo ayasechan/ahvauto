@@ -1,42 +1,44 @@
 import { click } from '../platform/dom';
+import { tr } from '../platform/i18n';
+import type { Lang } from '../config/types';
 import type { Action } from './types';
 
-/** 动作 → 可读标签（面板展示用），纯函数。names 为 id→展示名（缺失回退 id）。 */
-export function describeAction(a: Action, names: Record<string, string> = {}): string {
+/** 动作 → 可读标签（面板/悬浮窗展示用），纯函数。names 为 id→展示名（缺失回退 id，展示名恒英文专名不进i18n）。 */
+export function describeAction(lang: Lang, a: Action, names: Record<string, string> = {}): string {
   const nm = (id: string): string => names[id] ?? id;
   switch (a.kind) {
     case 'none':
-      return '等待';
+      return tr(lang, 'action.wait');
     case 'gem':
-      return '宝石';
+      return tr(lang, 'action.gem');
     case 'item':
-      return `物品 ${a.key}`;
+      return tr(lang, 'action.itemWithKey', { key: a.key });
     case 'defend':
-      return 'Defend';
+      return tr(lang, 'action.defend');
     case 'focus':
-      return 'Focus';
+      return tr(lang, 'action.focus');
     case 'spirit':
-      return a.on ? '开 Spirit' : '关 Spirit';
+      return tr(lang, a.on ? 'action.spiritOn' : 'action.spiritOff');
     case 'scroll':
-      return `卷轴 ${nm(a.id)}`;
+      return tr(lang, 'action.scrollWithName', { name: nm(a.id) });
     case 'buff':
-      return `Buff ${nm(a.id)}`;
+      return tr(lang, 'action.buffWithName', { name: nm(a.id) });
     case 'draught':
-      return `药剂 ${nm(a.id)}`;
+      return tr(lang, 'action.draughtWithName', { name: nm(a.id) });
     case 'infusion':
-      return `魔药 ${nm(a.id)}`;
+      return tr(lang, 'action.infusionWithName', { name: nm(a.id) });
     case 'imperil':
-      return `Imperil → ${a.target}`;
+      return tr(lang, 'action.imperilTo', { target: a.target });
     case 'debuff':
-      return `Debuff ${nm(a.id)} → ${a.target}`;
+      return tr(lang, 'action.debuffTo', { name: nm(a.id), target: a.target });
     case 'magic':
-      return `魔法 ${nm(a.id)} → ${a.target}`;
+      return tr(lang, 'action.magicTo', { name: nm(a.id), target: a.target });
     case 'weapon':
       return `${a.key} → ${a.target}`;
     case 'attack':
-      return `普攻 → ${a.target}`;
+      return tr(lang, 'action.attackTo', { target: a.target });
     case 'halt':
-      return '暂停(异常)';
+      return tr(lang, 'action.halt');
   }
 }
 
@@ -54,7 +56,7 @@ function shelf(id: string): boolean {
 }
 
 /**
- * 执行决策动作（唯一写 DOM 的地方，除面板外；点击机制见 docs/COMBAT.md）。
+ * 执行决策动作（决策动作写 DOM 的唯一入口：只发点击；面板/事件锚点/换轮直写除外，触点表见 docs/ARCHITECTURE.md；点击机制见 docs/COMBAT.md）。
  * trace 回调收点击标签（调用方接 debugAct）；halt 时调 onHalt。
  */
 export function executeAction(

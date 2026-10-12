@@ -7,11 +7,23 @@
   const L = (k: I18nKey) => tr($options.lang, k);
   const KINDS = ['Common', 'Error', 'Defeat', 'Riddle', 'Victory'] as const;
 
+  let audioMsg: Record<string, string> = {};
   function test(kind: string) {
-    const url = $options.alarm.audio[kind];
-    if (!url) return;
+    const url = ($options.alarm.audio[kind] ?? '').trim();
+    if (!url) {
+      audioMsg[kind] = L('alarm.url');
+      return;
+    }
+    audioMsg[kind] = '...';
     const a = new Audio(url);
-    void a.play().catch(() => {});
+    void a
+      .play()
+      .then(() => {
+        audioMsg[kind] = 'OK';
+      })
+      .catch((e) => {
+        audioMsg[kind] = e instanceof Error ? e.message : String(e);
+      });
   }
 
   let tgMsg = '';
@@ -47,8 +59,18 @@
           >{L(alarmKindKey[k])}</b
         ></label
       >
-      <input class="url" bind:value={$options.alarm.audio[k]} placeholder={L('alarm.url')} />
-      <button type="button" onclick={() => test(k)}>{L('alarm.test')}</button>
+      <input
+        class="url"
+        bind:value={$options.alarm.audio[k]}
+        placeholder={L('alarm.url')}
+        aria-label={L('alarm.url')}
+      />
+      <button
+        type="button"
+        onclick={() => test(k)}
+        disabled={!($options.alarm.audio[k] ?? '').trim()}>{L('alarm.test')}</button
+      >
+      {#if audioMsg[k]}<span class="msg" role="status">{audioMsg[k]}</span>{/if}
     </div>
   {/each}
 
@@ -89,7 +111,7 @@
       {/each}
     </div>
     <button type="button" onclick={testTelegram}>{L('alarm.testPush')}</button>
-    {#if tgMsg}<span class="msg">{tgMsg}</span>{/if}
+    {#if tgMsg}<span class="msg" role="status">{tgMsg}</span>{/if}
   </div>
 
   <div class="row">
@@ -117,41 +139,34 @@
       {/each}
     </div>
     <button type="button" onclick={testWebhook}>{L('alarm.testPush')}</button>
-    {#if whMsg}<span class="msg">{whMsg}</span>{/if}
+    {#if whMsg}<span class="msg" role="status">{whMsg}</span>{/if}
   </div>
 </div>
 
 <style>
-  .row {
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    margin: 0 0 12px;
-    padding: 12px;
-  }
   .url {
     width: 70%;
   }
   .chat {
     width: 280px;
     max-width: 70%;
-    font-family: monospace;
+    font-family: var(--hv-mono);
   }
   .field {
     margin-top: 8px;
   }
   .hint {
-    color: #64748b;
+    color: var(--hv-t2);
     font-size: 12px;
     margin-top: 4px;
   }
   .msg {
     margin-left: 8px;
-    color: #475569;
+    color: var(--hv-t2);
   }
   .tpl {
     width: 100%;
-    font-family: monospace;
+    font-family: var(--hv-mono);
     font-size: 12px;
     margin-top: 4px;
   }

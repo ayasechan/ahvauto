@@ -37,9 +37,11 @@
 
 <div>
   <div class="row">
-    Gem: Health <input class="num" type="number" bind:value={$options.main.hp1} />% Mana
-    <input class="num" type="number" bind:value={$options.main.mp1} />% Spirit
-    <input class="num" type="number" bind:value={$options.main.sp1} />%
+    {L('action.gem')}: Health
+    <input class="num" type="number" bind:value={$options.main.hp1} />{' '}
+    % Mana
+    <input class="num" type="number" bind:value={$options.main.mp1} />{' '}% Spirit
+    <input class="num" type="number" bind:value={$options.main.sp1} />{' '}%
   </div>
   <div class="row hot">
     <b>*{L('main.attackMode')}:</b>
@@ -59,7 +61,11 @@
     <label><input type="checkbox" bind:checked={$options.main.pauseButton} />{L('main.btn')}</label>
     <label
       ><input type="checkbox" bind:checked={$options.main.pauseHotkey} />{L('main.hotkey')}
-      <input style="width:40px" bind:value={$options.main.pauseHotkeyStr} /></label
+      <input
+        class="num"
+        bind:value={$options.main.pauseHotkeyStr}
+        disabled={!$options.main.pauseHotkey}
+      /></label
     >
   </div>
   <div class="row">
@@ -95,11 +101,16 @@
     <ConditionEditor bind:expr={$options.main.turnOffSSCondition} />
   </div>
   <div class="row">
-    <label><input type="checkbox" bind:checked={$options.main.defend} /><b>Defend</b></label>
+    <label
+      ><input type="checkbox" bind:checked={$options.main.defend} /><b>{L('action.defend')}</b
+      ></label
+    >
     <ConditionEditor bind:expr={$options.main.defendCondition} />
   </div>
   <div class="row">
-    <label><input type="checkbox" bind:checked={$options.main.focus} /><b>Focus</b></label>
+    <label
+      ><input type="checkbox" bind:checked={$options.main.focus} /><b>{L('action.focus')}</b></label
+    >
     <ConditionEditor bind:expr={$options.main.focusCondition} />
   </div>
   <div class="row">
@@ -109,6 +120,7 @@
         class="num"
         type="number"
         bind:value={$options.main.delayAlertTime}
+        disabled={!$options.main.delayAlert}
       />{L('main.secAlarm')}</label
     >
     <label
@@ -116,6 +128,7 @@
         class="num"
         type="number"
         bind:value={$options.main.delayReloadTime}
+        disabled={!$options.main.delayReload}
       />{L('main.secReload')}</label
     >
   </div>
@@ -127,7 +140,7 @@
     >
   </div>
   <div class="row">
-    <b>Stamina</b>
+    <b>{L('battle.stamina')}</b>
     {L('main.stamLoss')} ≥
     <input class="num" type="number" bind:value={$options.main.staminaLose} />:
     <label
@@ -157,9 +170,14 @@
           {#each queue() as id, i}
             <li>
               <span class="n">{i + 1}</span>{arenaLabel(id)}
-              <button type="button" onclick={() => move(i, -1)} aria-label="up">↑</button>
-              <button type="button" onclick={() => move(i, 1)} aria-label="down">↓</button>
-              <button type="button" onclick={() => remove(i)} aria-label="remove">✕</button>
+              <button
+                type="button"
+                onclick={() => move(i, -1)}
+                disabled={i === 0}
+                aria-label="move up ">↑</button
+              >
+              <button type="button" onclick={() => move(i, 1)} aria-label="move down ">↓</button>
+              <button type="button" onclick={() => remove(i)} aria-label="remove ">✕</button>
             </li>
           {/each}
         </ol>
@@ -207,7 +225,7 @@
       ><input type="checkbox" bind:checked={$options.main.repair} /><b>{L('main.repair')}</b></label
     >
     {L('main.durability')} ≤
-    <input class="num" type="number" bind:value={$options.main.repairValue} />%
+    <input class="num" type="number" bind:value={$options.main.repairValue} />{' '}%
     <label
       ><input type="checkbox" bind:checked={$options.main.repairCharms} />{L(
         'main.repairCharms',
@@ -231,7 +249,8 @@
         >{L('main.restore')}</b
       ></label
     >
-    Stamina ≤ <input class="num" type="number" bind:value={$options.main.staminaLow} />
+    {L('battle.stamina')} ≤
+    <input class="num" type="number" bind:value={$options.main.staminaLow} />
   </div>
   <div class="row">
     <label
@@ -245,8 +264,12 @@
   </div>
   <div class="row">
     <b>{L('main.delay')}</b>: 1. {L('main.skills')}
-    <input class="num" type="number" bind:value={$options.main.spellDelay} />ms 2. {L('main.other')}
-    <input class="num" type="number" bind:value={$options.main.noSpellDelay} />ms {L('main.jitter')}
+    <input class="num" type="number" bind:value={$options.main.spellDelay} />{' '}ms 2. {L(
+      'main.other',
+    )}
+    <input class="num" type="number" bind:value={$options.main.noSpellDelay} />{' '}ms{' '}{L(
+      'main.jitter',
+    )}
   </div>
   <div class="row">
     {L('main.style')}:
@@ -261,14 +284,7 @@
 </div>
 
 <style>
-  .row {
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    margin: 0 0 12px;
-    padding: 12px;
-  }
   .hot {
-    color: #dc2626;
+    color: var(--hv-danger);
   }
 </style>

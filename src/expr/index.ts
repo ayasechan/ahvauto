@@ -2,9 +2,10 @@ import { parse } from './parser';
 import type { AST } from './parser';
 import { evaluateAst } from './evaluator';
 import type { EvalContext } from './evaluator';
+import { ExprEvalError } from './errors';
 
 export { ExprSyntaxError } from './tokenizer';
-export { ExprEvalError, UnknownNameError } from './evaluator';
+export { ExprEvalError, UnknownNameError } from './errors';
 export type { AST, EvalContext };
 export type { Value } from './evaluator';
 
@@ -29,7 +30,7 @@ export function evaluateExpression(src: string, ctx: EvalContext): boolean {
   const ast = compileExpression(src);
   const v = evaluateAst(ast, ctx);
   if (typeof v !== 'boolean') {
-    throw new Error(`表达式结果不是布尔值：${String(v)}`);
+    throw new ExprEvalError('expr.notBool', { v: String(v) }, -1);
   }
   return v;
 }

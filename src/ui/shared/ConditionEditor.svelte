@@ -1,6 +1,6 @@
 <script lang="ts">
   import { options } from '../../config/store';
-  import { tr } from '../../platform/i18n';
+  import { tr, formatExprError } from '../../platform/i18n';
   import { compileExpression } from '../../expr/index';
   import { EXPR_HINTS } from '../../combat/escape-cond';
 
@@ -13,7 +13,7 @@
       compileExpression(v);
       return '';
     } catch (e) {
-      return e instanceof Error ? e.message : String(e);
+      return formatExprError($options.lang, e);
     }
   });
 
@@ -43,6 +43,8 @@
     bind:value={expr}
     rows="2"
     placeholder={tr($options.lang, 'editor.ph')}
+    aria-label={title || tr($options.lang, 'editor.ph')}
+    aria-invalid={error !== ''}
     class:bad={error !== ''}
     spellcheck={false}></textarea>
   {#if error === ''}
@@ -50,14 +52,15 @@
       {(expr ?? '').trim() ? tr($options.lang, 'editor.ok') : tr($options.lang, 'editor.empty')}
     </div>
   {:else}
-    <div class="err">✗ {error}</div>
+    <div class="err" role="alert">✗ {error}</div>
   {/if}
   <div class="hints">
     {#each EXPR_HINTS as h}
       <button
         type="button"
         title={`${tr($options.lang, 'editor.insert')} ${h.insert}`}
-        onclick={() => insert(h.insert)}>{h.label}</button
+        onclick={() => insert(h.insert)}
+        aria-label={`${tr($options.lang, 'editor.insert')} ${h.insert}`}>{h.label}</button
       >
     {/each}
   </div>
@@ -70,26 +73,26 @@
   .cond textarea {
     width: 100%;
     box-sizing: border-box;
-    font-family: ui-monospace, monospace;
-    background: var(--hv-input, #f1f5f9);
+    font-family: var(--hv-mono);
+    background: var(--hv-input);
     border: 1px solid #cbd5e1;
     border-radius: 8px;
     padding: 8px 10px;
-    color: #1e293b;
+    color: var(--hv-t1);
     resize: vertical;
   }
   .cond textarea.bad {
-    border-color: #fca5a5;
-    background: #fef2f2;
-    outline: 2px solid #fecaca;
+    border-color: var(--hv-danger-border);
+    background: var(--hv-danger-soft);
+    outline: 2px solid var(--hv-danger-border);
   }
   .ok {
-    color: #16a34a;
+    color: var(--hv-success);
     font-size: 12px;
     margin-top: 4px;
   }
   .err {
-    color: #dc2626;
+    color: var(--hv-danger);
     font-size: 12px;
     margin-top: 4px;
   }
@@ -103,13 +106,13 @@
     margin: 0;
     font-size: 12px;
     border-radius: 999px;
-    border: 1px solid #bfdbfe;
-    background: #eef2ff;
-    color: #2563eb;
+    border: 1px solid var(--hv-primary-border);
+    background: var(--hv-primary-soft);
+    color: var(--hv-primary);
     padding: 2px 10px;
   }
   .hints button:hover {
-    background: #dbeafe;
-    color: #1d4ed8;
+    background: var(--hv-primary-hover);
+    color: var(--hv-primary-active);
   }
 </style>

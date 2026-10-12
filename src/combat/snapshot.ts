@@ -114,7 +114,7 @@ function readMonster(
   };
 }
 
-/** 从 DOM 一次性读出纯快照（唯一碰 DOM 的地方，无写）。base 为满血表。 */
+/** 从 DOM 一次性读出纯快照（唯一把 DOM 读成快照的地方，无写；他处仍有零散只读，触点表见 docs/ARCHITECTURE.md）。base 为满血表。 */
 export function readSnapshot(base: number[]): Snapshot {
   let hp = 100;
   let mp = 100;

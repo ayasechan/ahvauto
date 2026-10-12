@@ -4,6 +4,7 @@ import { compileExpression, evaluateExpression } from './index';
 import type { EvalContext } from './index';
 import { groupsToExpr, migrateCond, migrateOptions, BATTLE_VAR_NAMES } from './migrate';
 import { battleVars } from '../combat/escape-cond';
+import { formatExprError, tr } from '../platform/i18n';
 
 const ctx: EvalContext = {
   vars: {
@@ -167,6 +168,36 @@ describe('未知名字的建议', () => {
   });
   it('差太远不给建议', () => {
     assert.ok(!msgOf('zzzzzz > 1').includes('是不是'), msgOf('zzzzzz > 1'));
+  });
+});
+
+describe('错误本地化（与中文断言同输入）', () => {
+  const errOf = (expr: string): unknown => {
+    try {
+      evaluateExpression(expr, ctx);
+    } catch (e) {
+      return e;
+    }
+    assert.fail(`应抛错：${expr}`);
+  };
+  it('英文渲染无中文残留', () => {
+    for (const src of ['1 < 2 < 3', 'round_type < 50', '1 / 0 > 0', 'hp > 1 && mp > 1', '"abc']) {
+      const en = formatExprError('2', errOf(src));
+      assert.ok(!/[\u4e00-\u9fff]/.test(en), `${src} → ${en}`);
+    }
+  });
+  it('英文列号与建议', () => {
+    assert.equal(
+      formatExprError('2', errOf('1 < 2 < 3')),
+      'Col 6: Chained comparisons are unsupported, join with and',
+    );
+    assert.ok(
+      formatExprError('2', errOf('heal < 30')).includes('did you mean variable `hp`?'),
+      formatExprError('2', errOf('heal < 30')),
+    );
+  });
+  it('tr 插值未知占位原样保留', () => {
+    assert.equal(tr('2', 'battle.minutesAgo', { mins: 5 }), '5 min ago');
   });
 });
 

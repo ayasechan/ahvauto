@@ -1,6 +1,6 @@
 # ahvauto 条件表达式 EBNF（v1）
 
-实现：`src/expr/`（tokenizer / parser / evaluator / index）。
+实现：`src/expr/`（tokenizer / parser / evaluator / index / suggest / errors）。
 用例即规格补充：`src/expr/expr.test.ts`（`npm test`）。
 本文档是语法的唯一权威来源；`parser.ts` 的实现必须与本文一致，改语法先改本文。
 
@@ -68,7 +68,7 @@ var_path       = ident { "." ident } ;   (* 点后面必须是 ident；函数调
 | `1e3`、`0x10`                         | 只支持十进制，解析失败                |
 | `a < b < c`                           | 语法错误，提示用 `and` 连接           |
 | 多余输入、空表达式、括号不配对        | 语法错误                              |
-| 嵌套超过 64 层                        | 语法错误（防恶意配置爆栈）            |
+| 嵌套超过 64 层（parser 内部语法层计数，一重括号约耗 8 层，约 8 重括号即触发） | 语法错误（防恶意配置爆栈）            |
 
 ## 5. 示例（变量名以 escape-cond.ts battleVars 为准）
 

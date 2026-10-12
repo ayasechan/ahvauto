@@ -1,5 +1,6 @@
 // 未知名字时的"你是不是想说"建议。纯函数，无外部依赖。
-export type NameKind = '变量' | '函数' | '关键字';
+// 候选 kind 为结构化标签，展示文本由词条 expr.unknown{Var,Fn}Suggest{,Kw} 决定，不在此拼中文。
+export type NameKind = 'var' | 'fn' | 'kw';
 
 export interface Candidate {
   name: string;
@@ -8,7 +9,7 @@ export interface Candidate {
 
 export const KEYWORDS: Candidate[] = ['and', 'or', 'not', 'true', 'false'].map((name) => ({
   name,
-  kind: '关键字' as NameKind,
+  kind: 'kw' as NameKind,
 }));
 
 /** 区分大小写的编辑距离（短字符串够用，不做剪枝）。 */
@@ -47,9 +48,27 @@ export function suggestName(input: string, pool: Candidate[]): Candidate | null 
   return null;
 }
 
-export function formatSuggestion(input: string, pool: Candidate[], what: '变量' | '函数'): string {
+export interface Suggestion {
+  key:
+    | 'expr.unknownVar'
+    | 'expr.unknownVarSuggest'
+    | 'expr.unknownVarSuggestKw'
+    | 'expr.unknownFn'
+    | 'expr.unknownFnSuggest';
+  vars: { name: string; suggest?: string };
+}
+
+/** 未知名字错误体：无建议/变量建议/关键字建议/函数建议四态，调用方直抛 ExprEvalError。 */
+export function formatSuggestion(input: string, pool: Candidate[], what: 'var' | 'fn'): Suggestion {
+  const varKey = what === 'var' ? 'expr.unknownVar' : 'expr.unknownFn';
   const s = suggestName(input, pool);
-  if (!s) return `未知${what} \`${input}\``;
-  const head = s.kind === '关键字' ? '是不是想写关键字' : `是不是想说${s.kind}`;
-  return `未知${what} \`${input}\`，${head} \`${s.name}\`？`;
+  if (!s) return { key: varKey, vars: { name: input } };
+  if (s.kind === 'kw') {
+    if (what !== 'var') return { key: varKey, vars: { name: input } };
+    return { key: 'expr.unknownVarSuggestKw', vars: { name: input, suggest: s.name } };
+  }
+  return {
+    key: what === 'var' ? 'expr.unknownVarSuggest' : 'expr.unknownFnSuggest',
+    vars: { name: input, suggest: s.name },
+  };
 }

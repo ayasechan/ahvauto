@@ -51,6 +51,7 @@ Channeling 窗口（1MP＋150% 伤害）三段：按 Buff 顺序补缺（需 `ch
 
 总门 `scroll.enabled`＋总条件＋`roundTypes[roundType]`，再逐项查启用表＋单卷轴条件＋有货＋覆盖 buff（任一存在即跳过）。
 `scrollFirst` 勾选后只认 `_scroll` 后缀 buff（技能版 buff 不挡卷轴）。
+卷轴展示名（`Scroll of…`）恒英文不翻译、不进i18n（游戏专名保留口径，同 Buff/物品名）。
 
 ## 魔药（`INFUSION_LIB`，走物品栏）
 

@@ -1,4 +1,5 @@
 import type { ConditionGroups } from '../config/types';
+import { ExprError } from './errors';
 import { DEFAULT_WEBHOOK_TEMPLATE } from '../config/types';
 import { ITEM_IDS, BUFF_LIB, DRAUGHT_LIB, DEBUFF_LIB, SCROLL_LIB } from '../config/tables';
 
@@ -44,28 +45,28 @@ function tokenToExpr(token: string, vars: Record<string, true>, lookup: Lookup):
     const [, fn, arg = ''] = token.split('_');
     if (fn === 'isCd') {
       const id = Number(arg);
-      if (!Number.isFinite(id)) throw new Error(`非法的 isCd 参数 \`${arg}\``);
+      if (!Number.isFinite(id)) throw new ExprError('expr.migBadIsCd', { arg }, -1);
       return `isCd(${id})`;
     }
     if (fn === 'buffTurn') {
-      if (!arg) throw new Error('buffTurn 缺少参数');
+      if (!arg) throw new ExprError('expr.migNoBuffTurn', {}, -1);
       return `buffTurn(${JSON.stringify(arg)})`;
     }
-    throw new Error(`未知函数 \`${fn}\``);
+    throw new ExprError('expr.migUnknownFn', { fn }, -1);
   }
   if (/^'.*'$|^".*"$/.test(token)) return JSON.stringify(token.slice(1, -1));
   if (token !== '' && !Number.isNaN(Number(token))) {
     const n = Number(token);
-    if (!Number.isFinite(n)) throw new Error(`非法数字 \`${token}\``);
+    if (!Number.isFinite(n)) throw new ExprError('expr.migBadNum', { token }, -1);
     return String(n);
   }
-  if (!IDENT_RE.test(token)) throw new Error(`非法变量名 \`${token}\``);
+  if (!IDENT_RE.test(token)) throw new ExprError('expr.migBadVar', { token }, -1);
   if (token.split('.')[0] in vars) return token;
   const ov = lookup(token.split('.')[0]);
   if (typeof ov === 'number' && Number.isFinite(ov)) return String(ov);
   if (typeof ov === 'string') return JSON.stringify(ov);
   if (typeof ov === 'boolean') return String(ov);
-  throw new Error(`未知变量 \`${token}\``);
+  throw new ExprError('expr.migUnknownVar', { token }, -1);
 }
 
 /**
@@ -236,6 +237,7 @@ export function migrateOptions(raw: Record<string, unknown>): void {
   if (channel) {
     backfillBool(channel.first, Object.keys(BUFF_LIB));
     if (typeof channel.useSecond !== 'boolean') channel.useSecond = false;
+    if (!Array.isArray(channel.secondOrder)) channel.secondOrder = [];
   }
   const buff = raw.buff as Record<string, unknown> | undefined;
   if (buff) {

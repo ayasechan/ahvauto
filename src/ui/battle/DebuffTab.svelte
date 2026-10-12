@@ -39,9 +39,14 @@
         {#each $options.debuff.order as k, i}
           <li>
             <span class="n">{i + 1}</span>{DEBUFF_LIB[k]?.name ?? k}
-            <button type="button" onclick={() => move(i, -1)} aria-label="up">↑</button>
-            <button type="button" onclick={() => move(i, 1)} aria-label="down">↓</button>
-            <button type="button" onclick={() => remove(i)} aria-label="remove">✕</button>
+            <button
+              type="button"
+              onclick={() => move(i, -1)}
+              disabled={i === 0}
+              aria-label="move up o">↑</button
+            >
+            <button type="button" onclick={() => move(i, 1)} aria-label="move down o">↓</button>
+            <button type="button" onclick={() => remove(i)} aria-label="remove o">✕</button>
           </li>
         {/each}
       </ol>
@@ -86,11 +91,4 @@
 </div>
 
 <style>
-  .row {
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    margin: 0 0 12px;
-    padding: 12px;
-  }
 </style>

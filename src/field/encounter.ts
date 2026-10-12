@@ -2,7 +2,7 @@ import { kvGet, kvSet, kvDel, snapshotOptions } from '../config/store';
 import { ENCOUNTER_KEY } from '../platform/storage-keys';
 import { qs, el } from '../platform/dom';
 import { httpPost, requestRetry, todayKey } from '../platform/http';
-import { tt } from '../platform/i18n';
+import { tr } from '../platform/i18n';
 import { after } from '../app/fsm';
 
 interface EncounterCache {
@@ -46,13 +46,13 @@ export function encounterCheck(): void {
   if (!link) {
     link = document.body.appendChild(el('a'));
     link.className = 'lastEncounter';
-    link.title = `${new Date(cache.lastTime ?? now).toLocaleString()}\nEncounter Time: ${cache.time}`;
+    link.title = `${new Date(cache.lastTime ?? now).toLocaleString()}\nEncounter Time: ${cache.time}`; // 游戏页 tooltip：浏览器默认 locale，不跟 options.lang
     link.href = 'https://e-hentai.org/news.php';
     link.onclick = () => {
-      if (cache.time >= 24 && confirm(tt('battle.confirmReset'))) kvDel(ENCOUNTER_KEY);
+      if (cache.time >= 24 && confirm(tr(opt.lang, 'battle.confirmReset'))) kvDel(ENCOUNTER_KEY);
     };
   }
   const mins = Math.floor((now - (cache.lastTime ?? now)) / 1000 / 60);
-  link.innerHTML = tt('battle.minutesAgo').replace('{mins}', String(mins));
+  link.innerHTML = tr(opt.lang, 'battle.minutesAgo', { mins });
   after('encounter', (1 * 60 * 1000 * (Math.random() * 20 + 90)) / 100, encounterCheck);
 }

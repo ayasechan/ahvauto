@@ -1,4 +1,4 @@
-# 物品接口（`src/config/tables.ts:ITEM_IDS`）
+# 物品接口（`src/config/tables.ts:ITEM_IDS/DRAUGHT_LIB/BUFF_LIB/SCROLL_LIB/INFUSION_LIB`）
 
 ## ID 表
 
@@ -16,9 +16,16 @@
 | ED（Energy Drink）  | 11401 | 物品栏            | 同上                                                                        |
 
 `id > 10000` 走物品栏存在性，否则走法术书可用性——两边判定不同，
-执行层必须“判哪点哪”（`src/combat/execute.ts`），点错元素会静默失败。
-旧 `isOn` 已拆分，无统一函数（`dom.ts` 现无 `isOn`）：判在 `snapshot.ts`，点在 `execute.ts`，`id > 10000` 以 `Number(id)` 判定。
+执行层必须“判哪点哪”（`src/combat/execute.ts:76-86`），点错元素会静默失败。
+点击路由：`item` 按 `Number(id) > 10000` 分流（物品栏 `.bti3` vs 法术书）；
+`scroll`/`draught`/`infusion` 走物品栏 `.bti3`；`buff` 走法术书。
+旧 `isOn` 已拆分（`src/platform/dom.ts` 现无 `isOn`）：判在 `src/combat/snapshot.ts`，
+点在 `src/combat/execute.ts`，`id > 10000` 以 `Number(id)` 判定；
+表达式内仍有统一查询 `isCd(id)`（DOM 版 `src/combat/escape-cond.ts:46-54`、
+快照版 `src/combat/context.ts:27-31`，可用=0/CD 中=1）。
 法术书直点用 `document.getElementById`（纯数字 id `querySelector` 会抛错），其余经 `qs`/选择器。
+注：Cure/FC=311/313 在 `tables.ts:ITEM_IDS`、`ItemTab.svelte:NAMES`、
+`ChannelTab.svelte:CHANNEL_SECOND_ID`（键 `Cu`/`FC`）三处复用同一 id。
 
 ## 施放顺序
 
@@ -44,3 +51,46 @@
 
 固定顺序 HD→MD→SD→FV→BG（不可排），要求：对应 buff 不存在＋开关＋
 条件＋物品栏有货。主 Buff（Pr/SL/SS/Ha/AF/He/Re/SV/Ab）扫完才扫这里。
+
+## 主 Buff（`BUFF_LIB`，走法术书）
+
+| key | id  | 展示名（恒英文） |
+| --- | --- | ---------------- |
+| Pr  | 411 | Protection |
+| SL  | 422 | Spark of Life |
+| SS  | 423 | Spirit Shield |
+| Ha  | 412 | Haste |
+| AF  | 432 | Arcane Focus |
+| He  | 431 | Heartseeker |
+| Re  | 312 | Regen |
+| SV  | 413 | Shadow Veil |
+| Ab  | 421 | Absorb |
+
+Buff 动作走法术书直点（`execute.ts:buff→spellbook`），判定看法术书可用性。
+
+## 卷轴（`SCROLL_LIB`，走物品栏 `.bti3`）
+
+| key | id    | 展示名（恒英文） |
+| --- | ----- | ---------------- |
+| Go  | 13299 | Scroll of the Gods |
+| Av  | 13199 | Scroll of the Avatar |
+| Pr  | 13111 | Scroll of Protection |
+| Sw  | 13101 | Scroll of Swiftness |
+| Li  | 13221 | Scroll of Life |
+| Sh  | 13211 | Scroll of Shadows |
+| Ab  | 13201 | Scroll of Absorption |
+
+卷轴页按小写码对照 Usage 台账 `TYPE_KEY`（见 `ScrollTab.svelte`）；展示名恒英文专名，不进i18n。
+
+## 魔药（`INFUSION_LIB`，走物品栏 `.bti3`）
+
+| key（攻击模式） | id    | 展示名（恒英文） |
+| --- | ----- | ---------------- |
+| 1   | 12101 | Fire Infusion |
+| 2   | 12201 | Cold Infusion |
+| 3   | 12301 | Elec Infusion |
+| 4   | 12401 | Wind Infusion |
+| 5   | 12501 | Holy Infusion |
+| 6   | 12601 | Dark Infusion |
+
+决策按 `attackStatus` 查表（`decide.ts` infusion 规则），魔药页仅全局 `enabled+condition`（`InfusionTab.svelte`），无 per-key 开关。

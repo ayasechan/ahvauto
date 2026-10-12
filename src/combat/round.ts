@@ -2,7 +2,7 @@ import { get } from 'svelte/store';
 import { battle } from '../config/battle-state';
 import { kvGet, kvSet, snapshotOptions } from '../config/store';
 import { qsa } from '../platform/dom';
-import { tt } from '../platform/i18n';
+import { tr } from '../platform/i18n';
 import { checkCondition } from './escape-cond';
 import { setAlarm } from '../notify/notify';
 import { sleep } from '../platform/http';
@@ -100,11 +100,11 @@ export async function newRound(): Promise<void> {
   if (/You lose \d+ Stamina/.test(battleLog[0]?.textContent ?? '')) {
     const log = (kvGet(STAMINA_LOG_KEY, true) as Record<string, number> | null) ?? {};
     const lost = Number(battleLog[0].textContent.match(/You lose (\d+) Stamina/)?.[1] ?? 0);
-    log[new Date().toLocaleString()] = lost;
+    log[new Date().toLocaleString()] = lost; // 存储键：浏览器默认 locale，不跟 options.lang
     kvSet(STAMINA_LOG_KEY, log);
     if (lost >= opt.main.staminaLose) {
       await setAlarm('Error');
-      if (!confirm(tt('battle.confirmStamina'))) {
+      if (!confirm(tr(opt.lang, 'battle.confirmStamina'))) {
         pauseChange();
         return;
       }

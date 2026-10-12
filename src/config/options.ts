@@ -63,12 +63,19 @@ function loadOptions(): HvOptions {
       if (parsed.version !== VERSION) {
         return { ...defaultOptions(), lang: parsed.lang ?? '0' };
       }
-      return sanitizeOptions(parsed) ?? defaultOptions();
+      return sanitizeOptions(parsed) ?? freshDefaults();
     }
   } catch {
     /* 损坏则重置 */
   }
-  return defaultOptions();
+  return freshDefaults();
+}
+
+/** 新鲜默认值亦走一次迁移，保证 bind 永不拿 undefined（与 sanitize 路径一致）。 */
+function freshDefaults(): HvOptions {
+  const d = defaultOptions();
+  migrateOptions(d as unknown as Record<string, unknown>);
+  return d;
 }
 
 /** 手动导入旧配置（hvAA-option v2.x）：覆盖当前配置并持久化。旧配置只读不写。 */

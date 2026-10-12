@@ -130,6 +130,7 @@ describe('migrate backfill（bind 永不拿 undefined）', () => {
     migrateOptions(raw);
     const channel = raw.channel as Record<string, unknown>;
     assert.equal(channel.useSecond, false);
+    assert.deepEqual(channel.secondOrder, []);
     assert.deepEqual(channel.first, {
       Pr: true,
       SL: false,
@@ -152,5 +153,17 @@ describe('migrate backfill（bind 永不拿 undefined）', () => {
     assert.equal((rule.weights as Record<string, unknown>).Sle, 0);
     const debuff = raw.debuff as Record<string, unknown>;
     assert.equal((debuff.turns as Record<string, unknown>).Im, 0);
+  });
+  it('secondOrder 非数组重置、合法数组保留', () => {
+    const bad: Record<string, unknown> = { channel: { secondOrder: {} } };
+    migrateOptions(bad);
+    assert.deepEqual((bad.channel as Record<string, unknown>).secondOrder, []);
+    const good: Record<string, unknown> = {
+      channel: { secondOrder: [{ key: 'SL', id: '422' }] },
+    };
+    migrateOptions(good);
+    assert.deepEqual((good.channel as Record<string, unknown>).secondOrder, [
+      { key: 'SL', id: '422' },
+    ]);
   });
 });

@@ -38,20 +38,32 @@
       ><input type="checkbox" bind:checked={$options.channel.useSecond} /><b>{L('channel.then')}</b
       ></label
     >
-    <select bind:value={newKey}>
+    <select bind:value={newKey} disabled={!$options.channel.useSecond}>
       <option value="Cu">Cure</option>
       <option value="FC">Full-Cure</option>
       {#each KEYS as k}
         <option value={k}>{BUFF_LIB[k].name}</option>
       {/each}
     </select>
-    <button type="button" onclick={addSecond}>{L('ui.add')}</button>
-    <ol>
+    <button type="button" onclick={addSecond} disabled={!$options.channel.useSecond}
+      >{L('ui.add')}</button
+    >
+    <ol class="seq">
       {#each $options.channel.secondOrder as o, i}
         <li>
           {o.key} ({o.id})
-          <button type="button" onclick={() => move(i, -1)}>↑</button>
-          <button type="button" onclick={() => move(i, 1)}>↓</button>
+          <button
+            type="button"
+            onclick={() => move(i, -1)}
+            disabled={i === 0}
+            aria-label="up {o.key}">↑</button
+          >
+          <button
+            type="button"
+            onclick={() => move(i, 1)}
+            disabled={i === $options.channel.secondOrder.length - 1}
+            aria-label="down {o.key}">↓</button
+          >
           <button
             type="button"
             onclick={() =>
@@ -61,16 +73,12 @@
           >
         </li>
       {/each}
+      {#if $options.channel.secondOrder.length === 0}<li class="hint">
+          {L('order.emptySkill')}
+        </li>{/if}
     </ol>
   </div>
 </div>
 
 <style>
-  .row {
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    margin: 0 0 12px;
-    padding: 12px;
-  }
 </style>
