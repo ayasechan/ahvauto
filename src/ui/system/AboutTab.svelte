@@ -9,7 +9,7 @@
   import { tr } from '../../platform/i18n';
   import type { I18nKey } from '../../platform/i18n';
   import { defaultOptions } from '../../config/defaults';
-  import { getStoredLogs, clearStoredLogs, toLogfmt } from '../../platform/logger';
+  import { getStoredLogs, clearStoredLogs, toLogfmt, LOG_LEVELS } from '../../platform/logger';
   import type { StoredEntry } from '../../platform/logger';
   import {
     countRecords,
@@ -101,6 +101,20 @@
   refreshBackups();
 
   let kvLogs = $state<StoredEntry[]>([]);
+  let logFilter = $state<string>('all');
+  const LOG_RANK: Record<string, number> = {
+    trace: 0,
+    debug: 10,
+    info: 20,
+    warning: 30,
+    error: 40,
+    fatal: 50,
+  };
+  const visibleLogs = $derived(
+    logFilter === 'all'
+      ? kvLogs
+      : kvLogs.filter((e) => (LOG_RANK[e.level] ?? 20) >= (LOG_RANK[logFilter] ?? 20)),
+  );
   async function refreshLogs() {
     try {
       kvLogs = (await getStoredLogs()).slice(-100).reverse();
@@ -191,6 +205,14 @@
   </div>
   <div class="row">
     <label><input type="checkbox" bind:checked={$options.main.debug} />{L('about.debug')}</label>
+    <label
+      >{L('about.logLevel')}
+      <select bind:value={$options.main.logLevel}>
+        {#each LOG_LEVELS as lv}
+          <option value={lv}>{lv}</option>
+        {/each}
+      </select>
+    </label>
   </div>
   <div class="row">
     <b>{L('about.backups')}</b>
@@ -215,8 +237,17 @@
     <button type="button" onclick={refreshLogs}>{L('ui.refresh')}</button>
     <button type="button" onclick={exportLogsFile}>{L('about.export')}</button>
     <button type="button" onclick={clearLogs}>{L('ui.clear')}</button>
+    <label
+      >{L('about.logFilter')}
+      <select bind:value={logFilter}>
+        <option value="all">all</option>
+        {#each LOG_LEVELS as lv}
+          <option value={lv}>{lv}+</option>
+        {/each}
+      </select>
+    </label>
     <div class="logview">
-      {#each kvLogs as e}
+      {#each visibleLogs as e}
         <div class="logline {e.level}">
           <span class="ts">{new Date(e.t).toLocaleTimeString()}</span> level={e.level}
           {toLogfmt(e)}

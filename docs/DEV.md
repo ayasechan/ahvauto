@@ -52,7 +52,7 @@ IDB 异步路径走 CDP 真机验证。`src/**/*.test.ts` 已在 tsconfig exclud
   修剪全部在非战斗页空闲一次完成（`scheduleIdlePrune`→`pruneDebugRecords/pruneStats`），热路径只追加。
   ⚠️ 外部工具 open IDB **不许带版本号**（会空提交版本跳过升级；全仓唯一允许带版本号 `open()` 的地方是 `src/data/db.ts`）。
 - 运行日志：logtape 日志经 IDB `logs` 表持久化（含 `fsm boot -> battle`、`rec begin/end` 转移），IDB 不可用时回落当会话内存环（100 条）。
-- 门控：`main.debug` 开才写 IDB 录制（`records/turns`）；运行日志（`logs`）级别随 `debug` 开关在 `debug/info` 间切换；数据统计门控 `recordUsage`。
+- 门控：`main.debug` 开才写 IDB 录制（`records/turns`＋`debugSurface`）；运行日志（`logs`）阈值由 `main.logLevel`（`debug/info/warning/error`，默认 `info`）控制，与录制开关解耦；数据统计门控 `recordUsage`。
 - `logs/`：战斗快照、录制导出、localStorage 备份（不出仓库）。
 
 ## 已知的坑（别再踩）

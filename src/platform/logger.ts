@@ -1,19 +1,31 @@
-import { configureSync, getConsoleSink, getLogger, getLogfmtFormatter } from '@logtape/logtape';
+import {
+  compareLogLevel,
+  configureSync,
+  getConsoleSink,
+  getLogger,
+  getLogfmtFormatter,
+} from '@logtape/logtape';
 import type { LogLevel, LogRecord, Sink } from '@logtape/logtape';
 import type { LogEntry } from '../data/logs';
+import type { AppLogLevel } from '../config/options-types';
 import { appendLog, exportLogs, pruneLogs, clearLogs } from '../data/logs';
 
 const MEM_CAP = 100;
 
-const CATEGORY = ['hvauto'];
-const RANK: Record<LogLevel, number> = {
-  trace: 0,
-  debug: 10,
-  info: 20,
-  warning: 30,
-  error: 40,
-  fatal: 50,
-};
+const CATEGORY = ['ahvauto'];
+
+/** 面板可选的运行日志阈值（trace/fatal 不暴露）。 */
+export const LOG_LEVELS: readonly AppLogLevel[] = ['debug', 'info', 'warning', 'error'];
+
+export function isAppLogLevel(v: unknown): v is AppLogLevel {
+  return typeof v === 'string' && (LOG_LEVELS as readonly string[]).includes(v);
+}
+
+/** 配置归一化：非法/缺失回 info；老配置无字段且 debug 开则补 debug（仅一次迁移）。 */
+export function resolveLogLevel(raw: unknown, debug: boolean): AppLogLevel {
+  if (isAppLogLevel(raw)) return raw;
+  return debug ? 'debug' : 'info';
+}
 
 /** 运行日志行（与 data/logs.ts LogEntry 同构）。 */
 export type StoredEntry = LogEntry;
@@ -116,7 +128,7 @@ export function setLogLevel(level: LogLevel): void {
 }
 
 function emit(level: LogLevel, message: string, ...args: unknown[]): void {
-  if (RANK[level] < RANK[currentLevel]) return;
+  if (compareLogLevel(level, currentLevel) < 0) return;
   (inner[level] as (...a: unknown[]) => void)(message, ...args);
 }
 

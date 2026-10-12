@@ -60,7 +60,7 @@ export function deriveTotals(rows: BattleRow[], cur?: CurBattle | null): Totals 
 }
 
 /** 总数（读时对已落盘单场＋进行中局求和；IDB 不可用时回落空表）。
- * 每次展示/导出都记一条耗时（info 级，不受 debug 门控）：IDB 全读＋内存求和。 */
+ * 每次展示/导出都记一条耗时（debug 级，不受 info 门控影响）：IDB 全读＋内存求和。 */
 export async function getTotals(): Promise<Totals> {
   const t0 = performance.now();
   try {
@@ -70,7 +70,7 @@ export async function getTotals(): Promise<Totals> {
     const t2 = performance.now();
     const r1 = Math.round((t1 - t0) * 10) / 10;
     const r2 = Math.round((t2 - t1) * 10) / 10;
-    logger.info('stats totals', {
+    logger.debug('stats totals', {
       rows: rows.length + (cur ? 1 : 0),
       turns: t.turns,
       readMs: r1,

@@ -4,7 +4,7 @@ import { OPT_KEY, LEGACY_OPT_KEY } from '../platform/storage-keys';
 import { defaultOptions, VERSION } from './defaults';
 import { migrateOptions } from '../expr/migrate';
 import { isLegacyOption, importLegacyOption } from './legacy-import';
-import { logger } from '../platform/logger';
+import { logger, resolveLogLevel } from '../platform/logger';
 
 /** 注意：游戏页把 localStorage.setItem 包了一层，静默丢弃 hvAA* 开头的 key。
  *  本文件一律用 localStorage[k] = v 直接赋值（绕过该拦截），勿改回 setItem。 */
@@ -40,6 +40,10 @@ export function sanitizeOptions(raw: unknown): HvOptions | null {
     delete pm.delay2;
     // 顶层字符串守卫：bind: 禁 undefined/null，坏档回默认（dropQuality/usageTimeRange 供面板输入框绑定）
     if (typeof merged.dropQuality !== 'string') merged.dropQuality = d.dropQuality;
+    // 日志阈值守卫：非法/缺失回 info，老配置（无字段且 debug 开）补 debug。
+    // 注意：必须读合并前的 raw（默认值已带 logLevel:info，会掩盖“无字段”）。
+    const rawMain = (parsed.main ?? {}) as Record<string, unknown>;
+    merged.main.logLevel = resolveLogLevel(rawMain.logLevel, merged.main.debug === true);
     if (
       typeof merged.usageTimeRange !== 'string' ||
       !['1d', '7d', 'all'].includes(merged.usageTimeRange)

@@ -86,7 +86,7 @@ describe('handleRec', () => {
 describe('isLogEntry', () => {
   it('正常行通过', () => {
     assert.equal(
-      isLogEntry({ t: 1, level: 'info', category: ['hvauto'], message: 'a', props: {} }),
+      isLogEntry({ t: 1, level: 'info', category: ['ahvauto'], message: 'a', props: {} }),
       true,
     );
   });

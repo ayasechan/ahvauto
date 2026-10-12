@@ -9,7 +9,7 @@ import {
   clearFieldCtx,
   isDisabled,
 } from '../config/store';
-import { initLogger, setLogLevel, logger } from '../platform/logger';
+import { initLogger, setLogLevel, logger, resolveLogLevel } from '../platform/logger';
 import { qs, el } from '../platform/dom';
 import { tr } from '../platform/i18n';
 import { riddleAlert } from '../field/riddle';
@@ -78,8 +78,8 @@ async function init(): Promise<void> {
 }
 
 async function initInner(): Promise<void> {
-  initLogger(snapshotOptions().main.debug ? 'debug' : 'info');
-  options.subscribe((o) => setLogLevel(o.main.debug ? 'debug' : 'info'));
+  initLogger(resolveLogLevel(snapshotOptions().main.logLevel, snapshotOptions().main.debug));
+  options.subscribe((o) => setLogLevel(resolveLogLevel(o.main.logLevel, o.main.debug)));
   logger.info('ahvauto started on {url}', { url: location.href });
   if (location.href === 'https://e-hentai.org/news.php') {
     let href = document.referrer || 'https://hentaiverse.org';

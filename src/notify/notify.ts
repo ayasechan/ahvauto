@@ -125,7 +125,7 @@ export async function sendWebhook(
     throw new Error(tr(lang, 'alarm.error.httpWebhook', { status: res.status }));
 }
 
-/** 告警推送（Telegram＋Webhook）：失败只记 debug 日志，不打断战斗。 */
+/** 告警推送（Telegram＋Webhook）：失败只记 warning 日志，不打断战斗。 */
 export async function pushAlarm(kind: AlarmKind): Promise<void> {
   const opt = snapshotOptions();
   const label = tr(opt.lang, alarmKindKey[kind]);
@@ -133,10 +133,10 @@ export async function pushAlarm(kind: AlarmKind): Promise<void> {
   const text = `${title}\n${location.href}\n${new Date().toLocaleString()}`; // 推送正文时间：浏览器默认 locale，不跟 options.lang
   await Promise.all([
     sendTelegram(kind, text).catch((e) => {
-      logger.debug('telegram push failed: {err}', { err: String(e) });
+      logger.warning('telegram push failed: {err}', { err: String(e) });
     }),
     sendWebhook(kind, title, text).catch((e) => {
-      logger.debug('webhook push failed: {err}', { err: String(e) });
+      logger.warning('webhook push failed: {err}', { err: String(e) });
     }),
   ]);
 }
@@ -173,7 +173,7 @@ export async function setAlarm(kind: NotifyKind = 'Common'): Promise<void> {
         setTimeout(() => n.close(), 10_000);
       }
     } catch (e) {
-      logger.debug('notification failed: {err}', { err: String(e) });
+      logger.warning('notification failed: {err}', { err: String(e) });
     }
   }
   if (opt.main.alert && opt.alarm.audioEnable[kind as keyof typeof opt.alarm.audioEnable]) {
@@ -191,7 +191,7 @@ export async function setAlarm(kind: NotifyKind = 'Common'): Promise<void> {
         }
       }
     } catch (e) {
-      logger.debug('audio alarm blocked: {err}', { err: String(e) });
+      logger.warning('audio alarm blocked: {err}', { err: String(e) });
     }
   }
   if (kind !== 'Test') void pushAlarm(kind);

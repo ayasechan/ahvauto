@@ -15,6 +15,9 @@ export interface OrderEntry {
 
 export type AttackStatus = -1 | 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
+/** 运行日志阈值（面板可选四档；trace/fatal 不暴露，避免噪音）。 */
+export type AppLogLevel = 'debug' | 'info' | 'warning' | 'error';
+
 export interface MainOptions {
   attackStatus: AttackStatus;
   hp1: number;
@@ -67,7 +70,10 @@ export interface MainOptions {
   spellDelay: number;
   noSpellDelay: number;
   fightingStyle: string;
+  /** 战斗录制（IDB records/turns＋debugSurface）：重型捕获，与日志阈值解耦。 */
   debug: boolean;
+  /** 运行日志阈值（默认 info）。 */
+  logLevel: AppLogLevel;
 }
 
 export interface ItemOptions {

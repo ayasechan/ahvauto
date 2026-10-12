@@ -91,6 +91,7 @@ export function defaultOptions(): HvOptions {
       noSpellDelay: 30,
       fightingStyle: '1',
       debug: false,
+      logLevel: 'info',
     },
     item: { order: [], enabled: falseMap(ITEM_KEYS), conditions: blank(ITEM_KEYS) },
     channel: {

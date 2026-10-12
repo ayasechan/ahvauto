@@ -238,7 +238,7 @@
       cur = c;
       applyRange();
       const t2 = performance.now();
-      logger.info('stats totals', {
+      logger.debug('stats totals', {
         rows: rows.length + (c ? 1 : 0),
         turns: stats.turns,
         readMs: Math.round((t1 - t0) * 10) / 10,
